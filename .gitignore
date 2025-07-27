@@ -1,0 +1,8 @@
+.env
+.vs*
+node_modules
+build
+npm-debug.log
+.DS_Store
+frontend/css/output.css
+frontend/ts/*.js
