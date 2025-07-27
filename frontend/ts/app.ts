@@ -1,15 +1,20 @@
 const app: HTMLElement | null = document.getElementById('app');
 
-function renderPage(path: string) {
+async function renderPage(pathURL: string) {
     if (!app)
         return;
-    switch (path) {
-        case '/test':
-            app.innerHTML = '<h1>TEST</h1><a href="/">Home</a>';
-            break;
-        default:
-            app.innerHTML = '<h1>HOME</h1><a href="/test">Test</a>';
-            break;
+    try {
+        const safePath = pathURL.replace(/^\/+/, '');
+        const response = await fetch(`/api/view/${safePath}`);
+        if (!response.ok)
+            throw new Error("Failed to load view");
+        const view = await response.text();
+        app.innerHTML = view;
+        const newUrl = new URL(pathURL, window.location.origin).pathname;
+        window.history.pushState({}, '', newUrl);
+    } catch (error) {
+        console.error(error);
+        app.innerHTML = `<p>Error loading page: ${error}</p>`;
     }
 }
 
@@ -23,11 +28,10 @@ document.addEventListener('click', (e) => {
     if (!target)
         return;
     if (target.tagName === 'A') {
-        e.preventDefault();
         const href: string | null = target.getAttribute('href');
         if (href) {
-            window.history.pushState({}, '', href);
-            handleRouteChange();
+            e.preventDefault();
+            renderPage(href);
         }
     }
 })
