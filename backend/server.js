@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static"
 import path from "path";
 import viewsRoutes from "./routes/viewRoutes.js";
+import testDatabase from "./test.js";
 
 const fastify = Fastify({
     logger: true
@@ -11,6 +12,8 @@ fastify.register(fastifyStatic, {
     root: path.join(process.cwd(), 'frontend'),
     wildcard: false
 });
+
+testDatabase();
 
 fastify.register(viewsRoutes);
 
