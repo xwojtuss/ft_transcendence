@@ -7,7 +7,7 @@ async function renderPage(pathURL: string) {
         const safePath = pathURL.replace(/^\/+/, '');
         const response = await fetch(`/api/view/${safePath}`);
         if (!response.ok)
-            throw new Error("Failed to load view");
+            throw new Error((await response.json())['error']);
         const view = await response.text();
         app.innerHTML = view;
         const newUrl = new URL(pathURL, window.location.origin).pathname;

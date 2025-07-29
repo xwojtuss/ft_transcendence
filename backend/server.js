@@ -3,22 +3,31 @@ import fastifyStatic from "@fastify/static"
 import path from "path";
 import viewsRoutes from "./routes/viewRoutes.js";
 
+const defaultPageName = process.env.DEFAULT_PAGE_NAME || 'index.html';
+
 const fastify = Fastify({
     logger: true
 });
 
 fastify.register(fastifyStatic, {
-    root: path.join(process.cwd(), 'frontend'),
-    wildcard: false
+    root: path.join(process.cwd(), 'frontend')
+});
+
+fastify.get("/", async (req, reply) => {
+    return reply.type('text/html').sendFile(defaultPageName);
 });
 
 fastify.register(viewsRoutes);
 
-fastify.get("/*", async (req, reply) => {
-    return reply.type('text/html').sendFile('index.html');
+// fastify.get("/*", { method: 'GET', exposeHeadRoute: false }, async (req, reply) => {
+//     return reply.type('text/html').sendFile(defaultPageName);
+// });
+
+fastify.setNotFoundHandler((req, reply) => {
+    return reply.type('text/html').sendFile(defaultPageName);
 });
 
-fastify.listen({ port: process.env.PORT }, (err, address) => {
+fastify.listen({ port: process.env.PORT || 3000 }, (err, address) => {
     if (err) {
         fastify.log.error(err);
         process.exit(1);
