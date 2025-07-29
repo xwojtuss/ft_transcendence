@@ -18,11 +18,7 @@ header {
 }
 
 nav div {
-    @apply mx-3 font-light text-sm justify-center items-center;
-}
-
-nav div {
-    @apply transition-all delay-50 duration-300 ease-in-out;
+    @apply mx-3 font-light text-sm justify-center items-center transition-all delay-50 duration-300 ease-in-out;
 }
 
 nav div:hover {

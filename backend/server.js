@@ -19,10 +19,6 @@ fastify.get("/", async (req, reply) => {
 
 fastify.register(viewsRoutes);
 
-// fastify.get("/*", { method: 'GET', exposeHeadRoute: false }, async (req, reply) => {
-//     return reply.type('text/html').sendFile(defaultPageName);
-// });
-
 fastify.setNotFoundHandler((req, reply) => {
     return reply.type('text/html').sendFile(defaultPageName);
 });
