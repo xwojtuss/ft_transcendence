@@ -29,8 +29,8 @@ export default class Match {
             throw new Error("Match has ended");
         if (!user)
             throw new Error("User must exist");
-        if (this._maxNumOfPlayers != -1 && this._numOfPlayers >= this._maxNumOfPlayers)
-            throw new Error("Too much players");
+        if (this._maxNumOfPlayers !== -1 && this._numOfPlayers >= this._maxNumOfPlayers)
+            throw new Error("Too many players");
         this._participants.set(user, 0);
         this._numOfPlayers++;
     }

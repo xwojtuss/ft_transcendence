@@ -51,7 +51,7 @@ export async function addMatch(db, match) {
             match.numOfPlayers
         );
         const matchID = result.lastID;
-        for (var [player, rank] of match.participants.entries()) {
+        for (const [player, rank] of match.participants.entries()) {
             const participant = await db.get("SELECT user_id FROM users WHERE nickname = ?", player.nickname);
             if (!participant)
                 throw new Error("User not found");

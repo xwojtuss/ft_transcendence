@@ -21,7 +21,7 @@ export default class User {
     }
 
     get isOnline() {
-        return this._isOnline
+        return this._isOnline;
     }
 
     async setPassword(password) {
@@ -29,7 +29,7 @@ export default class User {
     }
 
     get password() {
-        return this._password
+        return this._password;
     }
 
     set email(email) {
@@ -37,7 +37,7 @@ export default class User {
     }
 
     get email() {
-        return this._email
+        return this._email;
     }
 
     set avatar(avatar) {
@@ -45,6 +45,6 @@ export default class User {
     }
 
     get avatar() {
-        return this._avatar
+        return this._avatar;
     }
 }
