@@ -1,3 +1,32 @@
-.test {
-    color: red;
+:root {
+  font-family: Inter, sans-serif;
+  font-feature-settings: 'liga' 1, 'calt' 1; /* fix for Chrome */
+}
+@supports (font-variation-settings: normal) {
+  :root { font-family: InterVariable, sans-serif; }
+}
+
+body {
+    @apply min-h-screen flex flex-col;
+/* Removed incomplete @font-face rule as Inter is already loaded via external links */
+}
+
+header {
+    @apply mx-5 px-6 py-4 font-bold uppercase text-lg justify-center items-center;
+}
+
+nav div {
+    @apply mx-3 font-light text-sm justify-center items-center transition-all delay-50 duration-300 ease-in-out;
+}
+
+nav div:hover {
+    @apply text-gray-600 -translate-y-0.5 scale-105 text-shadow-xs/30;
+}
+
+.active-link {
+    @apply underline;
+}
+
+main {
+    @apply flex-1 bg-slate-200;
 }
