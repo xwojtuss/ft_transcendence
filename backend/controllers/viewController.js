@@ -6,7 +6,6 @@ const allowedNames = new Set(["test", "home", ""]);
 export async function getView(name) {
     if (allowedNames.has(name) === false)
         return [404, "Page does not exist"];
-    console.log(name);
     if (name === "")
         name = "home";
     const viewPath = path.join(process.cwd(), `backend/views/${name}.html`);
