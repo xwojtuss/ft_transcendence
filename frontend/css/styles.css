@@ -8,9 +8,7 @@
 
 body {
     @apply min-h-screen flex flex-col;
-    @font-face {
-        font-family: Inter;
-    }
+/* Removed incomplete @font-face rule as Inter is already loaded via external links */
 }
 
 header {
