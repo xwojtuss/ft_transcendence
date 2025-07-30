@@ -11,8 +11,9 @@ async function renderPage(pathURL: string) {
         const view = await response.text();
         app.innerHTML = view;
         const newUrl = new URL(pathURL, window.location.origin).pathname;
-        window.history.pushState({}, '', newUrl);
-        changeActiveStyle();
+        if (window.location.pathname !== newUrl) {
+            window.history.pushState({}, '', newUrl);
+        }
     } catch (error) {
         console.error(error);
         app.innerHTML = `<p>Error loading page: ${error}</p>`;

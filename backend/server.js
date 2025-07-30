@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static"
 import path from "path";
 import viewsRoutes from "./routes/viewRoutes.js";
+import testDatabase from "./test.js";
 
 const defaultPageName = process.env.DEFAULT_PAGE_NAME || 'index.html';
 
@@ -16,6 +17,8 @@ fastify.register(fastifyStatic, {
 fastify.get("/", async (req, reply) => {
     return reply.type('text/html').sendFile(defaultPageName);
 });
+
+testDatabase();
 
 fastify.register(viewsRoutes);
 
