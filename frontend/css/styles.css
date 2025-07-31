@@ -8,25 +8,44 @@
 
 body {
     @apply min-h-screen flex flex-col;
-/* Removed incomplete @font-face rule as Inter is already loaded via external links */
 }
 
 header {
-    @apply mx-5 px-6 py-4 font-bold uppercase text-lg justify-center items-center;
+    @apply px-6 py-4 font-bold uppercase text-base sm:text-lg justify-center items-center flex;
+}
+
+header div {
+    @apply mx-2 sm:mx-5;
+}
+
+header .logo {
+    @apply hidden xs:block;
+}
+
+header .minilogo {
+    @apply block xs:hidden;
+}
+
+nav {
+    @apply flex w-full justify-end;
 }
 
 nav div {
-    @apply mx-3 font-light text-sm justify-center items-center transition-all delay-50 duration-300 ease-in-out;
+    @apply mx-2 sm:mx-3 font-light text-xs sm:text-sm justify-center items-center transition-all delay-50 duration-300 ease-in-out;
 }
 
 nav div:hover {
     @apply text-gray-600 -translate-y-0.5 scale-105 text-shadow-xs/30;
 }
 
-.active-link {
+header nav .active-link {
     @apply underline;
 }
 
 main {
-    @apply flex-1 bg-slate-200;
+    @apply flex-1 content-stretch flex bg-blue-200 bg-geometric-pattern;
+}
+
+.app-wrapper-center {
+    @apply content-center flex-1 flex flex-col justify-center items-center gap-y-4 w-screen;
 }

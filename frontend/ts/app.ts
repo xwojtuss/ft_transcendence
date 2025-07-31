@@ -1,4 +1,7 @@
+import changePasswordButton from "./login-register-form.js";
+
 const app: HTMLElement | null = document.getElementById('app');
+const passwordField: HTMLInputElement| null = document.getElementById('password-input') as HTMLInputElement;
 
 async function renderPage(pathURL: string) {
     if (!app)
@@ -35,6 +38,8 @@ document.addEventListener('click', (e) => {
             e.preventDefault();
             renderPage(href);
         }
+    } else if (target.tagName === 'IMG' && target.classList.contains('toggle-password-visibility')) {
+        changePasswordButton(target, passwordField, e);
     }
 })
 
