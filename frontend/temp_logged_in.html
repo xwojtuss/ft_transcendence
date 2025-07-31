@@ -41,6 +41,43 @@
         </nav>
     </header>
     <main id="app">
+        <div class="app-wrapper-center">
+            <div class="floater">
+                <div class="user-info">
+                    <div class="avatar">
+                        <img src="./assets/default-avatar.svg" alt="User avatar"><!-- default avatar from svgrepo.com -->
+                        <p>
+                            <a class="edit-profile require-ownership" href="/update">
+                                Edit profile
+                            </a>
+                        </p>
+                    </div>
+                    <div class="user-stats">
+                        <p class="nickname">wkornato</p>
+                        <p>15 wins</p>
+                        <p>7 loses</p>
+                    </div>
+                </div>
+                <div class="match-history require-log-in">
+                    <table>
+                        <tr>
+                            <th>Date</th>
+                            <th>Player Count</th>
+                            <th>Opponents</th>
+                            <th>Initiator</th>
+                            <th>Rank</th>
+                        </th>
+                        <tr>
+                            <td>2025-07-31 21:41:01</td>
+                            <td>2</td>
+                            <td><a href="/profile/pzurawic">pzurawic</a></td>
+                            <td><a href="/profile/wkornato">wkornato</a></td>
+                            <td>1</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
     </main>
     <script type="module" src="/ts/app.js"></script>
 </body>

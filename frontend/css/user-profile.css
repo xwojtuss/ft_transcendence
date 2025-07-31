@@ -1,0 +1,23 @@
+.floater {
+    @apply flex flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12;
+}
+
+.user-info {
+    @apply flex items-center;
+}
+
+.user-stats .nickname {
+    @apply font-bold text-lg basis-128;
+}
+
+.user-stats p {
+    @apply basis-64;
+}
+
+.avatar img {
+    @apply max-w-[100px];
+}
+
+.match-history table, .match-history tr, .match-history th, .match-history td {
+    @apply border-gray-600 border-1 px-1;
+}

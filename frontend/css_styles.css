@@ -2,5 +2,6 @@
 
 @import "tailwindcss";
 
+@import "./css/user-profile.css";
 @import "./css/form.css";
 @import "./css/styles.css";
