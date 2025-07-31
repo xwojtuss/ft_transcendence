@@ -1,5 +1,5 @@
 form {
-    @apply mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-17 sm:pb-12;
+    @apply mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12;
 }
 
 form div {
