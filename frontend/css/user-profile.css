@@ -1,23 +1,80 @@
 .floater {
-    @apply flex flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12;
+    @apply flex flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
 }
 
 .user-info {
-    @apply flex items-center;
+    @apply flex items-center gap-10;
 }
 
-.user-stats .nickname {
-    @apply font-bold text-lg basis-128;
+.user-stats span.nickname {
+    @apply font-bold text-2xl inline-flex items-center gap-1;
 }
 
-.user-stats p {
-    @apply basis-64;
+.user-stats .wins-losses {
+    @apply flex justify-around text-center mt-2 gap-4;
+}
+
+.wins-losses div :first-child {
+    @apply block text-xl font-bold;
+}
+
+.wins-losses div :last-child {
+    @apply text-sm;
+}
+
+.avatar {
+    @apply items-center text-center text-sm;
+}
+
+.avatar p {
+    @apply mt-2;
 }
 
 .avatar img {
-    @apply max-w-[100px];
+    @apply w-[100px] h-[100px] object-cover rounded-full border-1 border-gray-200 shadow-gray-200 shadow-sm;
 }
 
+.avatar p button {
+    @apply transition-colors ease-in-out delay-50 duration-300 border-1 border-gray-200 rounded-xl px-3 py-2 max-w-[100px] shadow-gray-200 shadow-sm;
+}
+
+.avatar p button:hover {
+    @apply font-semibold;
+}
+
+.avatar p button:active {
+    @apply translate-y-[2px] shadow-gray-200/50 shadow-md;
+}
+
+
 .match-history table, .match-history tr, .match-history th, .match-history td {
-    @apply border-gray-600 border-1 px-1;
+    @apply border-gray-400 border-1 px-2 py-1;
+}
+
+.match-history caption {
+    @apply text-lg mb-4;
+}
+
+.match-history table {
+    @apply border-2;
+}
+
+.match-history th {
+    @apply font-semibold bg-gray-200;
+}
+
+.match-history td {
+    @apply text-sm text-center;
+}
+
+.tooltip {
+    @apply relative inline-block;
+}
+
+.tooltip .tooltiptext {
+    @apply invisible opacity-0 bg-gray-500 text-xs text-white text-center px-[10px] py-[3px] rounded-full absolute -translate-x-5/11 -translate-y-5 transition-all delay-50 duration-300;
+}
+
+.tooltip:hover .tooltiptext {
+    @apply visible opacity-100;
 }

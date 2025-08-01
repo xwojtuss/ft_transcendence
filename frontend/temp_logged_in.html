@@ -47,19 +47,39 @@
                     <div class="avatar">
                         <img src="./assets/default-avatar.svg" alt="User avatar"><!-- default avatar from svgrepo.com -->
                         <p>
-                            <a class="edit-profile require-ownership" href="/update">
+                            <button class="edit-profile require-ownership">
                                 Edit profile
-                            </a>
+                            </button>
                         </p>
                     </div>
+                    <div class="vl"></div>
                     <div class="user-stats">
-                        <p class="nickname">wkornato</p>
-                        <p>15 wins</p>
-                        <p>7 loses</p>
+                        <span class="nickname">
+                            <span class="tooltip">
+                                <span class="tooltiptext">
+                                    Online
+                                </span>
+                                <svg title="Online" width="16" height="24">
+                                    <circle cx="6" cy="13" r="6" fill="green"></circle>
+                                </svg>
+                            </span>
+                            wkornato
+                        </span>
+                        <div class="wins-losses">
+                            <div>
+                                <span>15</span>
+                                <span>Wins</span>
+                            </div>
+                            <div>
+                                <span>7</span>
+                                <span>Losses</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="match-history require-log-in">
                     <table>
+                        <caption>wkornato's Match History:</caption>
                         <tr>
                             <th>Date</th>
                             <th>Player Count</th>
@@ -70,9 +90,9 @@
                         <tr>
                             <td>2025-07-31 21:41:01</td>
                             <td>2</td>
-                            <td><a href="/profile/pzurawic">pzurawic</a></td>
+                            <td class="overflow-x-auto max-w-[150px] whitespace-nowrap"><a href="/profile/pzurawic">pzurawic</a></td>
                             <td><a href="/profile/wkornato">wkornato</a></td>
-                            <td>1</td>
+                            <td>1st</td>
                         </tr>
                     </table>
                 </div>
