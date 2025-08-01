@@ -7,7 +7,7 @@ module.exports = {
       },
     },
     screens: {
-      'xs': '400px',
+      'xs': '440px',
       'max-sm': { 'max': '639px' }
     },
   },

@@ -53,3 +53,27 @@ main {
 .vl {
     @apply border-l-1 border-gray-300 -ml-[1px] h-full;
 }
+
+ul {
+    @apply list-disc list-inside;
+}
+
+ol {
+    @apply list-decimal list-inside;
+}
+
+ul ol, ol ul {
+    @apply ml-6;
+}
+
+ul ul {
+    @apply list-["-"];
+}
+
+.online-indicator {
+    @apply fill-green-600;
+}
+
+.offline-indicator {
+    @apply fill-red-600;
+}

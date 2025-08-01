@@ -45,7 +45,7 @@ document.addEventListener('click', (e) => {
 
 window.addEventListener('popstate', handleRouteChange);
 
-// handleRouteChange();
+handleRouteChange();
 changeActiveStyle();
 
 function changeActiveStyle() {

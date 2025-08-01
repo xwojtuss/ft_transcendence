@@ -1,29 +1,33 @@
 .floater {
-    @apply flex flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
+    @apply flex text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
 }
 
 .user-info {
-    @apply flex items-center gap-10;
+    @apply flex items-center gap-5 sm:gap-10 w-full;
+}
+
+.user-stats {
+    @apply flex flex-col items-center justify-center w-full sm:mr-10;
 }
 
 .user-stats span.nickname {
-    @apply font-bold text-2xl inline-flex items-center gap-1;
+    @apply font-bold text-lg sm:text-2xl inline-flex items-center gap-1 justify-center;
 }
 
 .user-stats .wins-losses {
-    @apply flex justify-around text-center mt-2 gap-4;
+    @apply flex justify-around text-center mt-2 gap-4 sm:gap-15 max-w-[300px];
 }
 
 .wins-losses div :first-child {
-    @apply block text-xl font-bold;
+    @apply block text-base sm:text-xl font-medium;
 }
 
 .wins-losses div :last-child {
-    @apply text-sm;
+    @apply text-xs sm:text-sm font-light;
 }
 
 .avatar {
-    @apply items-center text-center text-sm;
+    @apply items-center text-center text-sm flex-none;
 }
 
 .avatar p {
@@ -35,40 +39,51 @@
 }
 
 .avatar p button {
-    @apply transition-colors ease-in-out delay-50 duration-300 border-1 border-gray-200 rounded-xl px-3 py-2 max-w-[100px] shadow-gray-200 shadow-sm;
+    @apply font-light transition-colors ease-in-out delay-50 duration-300 border-1 border-gray-200 rounded-xl px-3 py-1 max-w-[100px] shadow-gray-200 shadow-sm;
 }
 
 .avatar p button:hover {
-    @apply font-semibold;
+    @apply font-normal;
 }
 
 .avatar p button:active {
     @apply translate-y-[2px] shadow-gray-200/50 shadow-md;
 }
 
-
-.match-history table, .match-history tr, .match-history th, .match-history td {
-    @apply border-gray-400 border-1 px-2 py-1;
+.match-history-desktop {
+    @apply hidden invisible sm:block sm:visible;
 }
 
-.match-history caption {
-    @apply text-lg mb-4;
+.match-history-mobile {
+    @apply block visible sm:hidden sm:invisible;
 }
 
-.match-history table {
-    @apply border-2;
+.match-history-desktop table, .match-history-desktop tr, .match-history-desktop th, .match-history-desktop td {
+    @apply border-gray-300 border-1 px-2 py-1;
 }
 
-.match-history th {
-    @apply font-semibold bg-gray-200;
+.match-history-desktop caption, .match-history-mobile p {
+    @apply text-lg mb-4 font-normal;
 }
 
-.match-history td {
+.match-history-desktop table {
+    @apply border-2 w-full;
+}
+
+.match-history-desktop th {
+    @apply font-semibold bg-gray-100;
+}
+
+.match-history-desktop td {
     @apply text-sm text-center;
 }
 
 .tooltip {
     @apply relative inline-block;
+}
+
+.tooltip svg {
+    @apply w-[12px] h-[25px] scale-75 sm:scale-100;
 }
 
 .tooltip .tooltiptext {
