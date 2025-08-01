@@ -7,7 +7,7 @@
 }
 
 body {
-    @apply min-h-screen flex flex-col;
+    @apply min-h-screen flex flex-col overflow-hidden;
 }
 
 header {
@@ -43,9 +43,41 @@ header nav .active-link {
 }
 
 main {
-    @apply flex-1 content-stretch flex bg-blue-200 bg-geometric-pattern;
+    @apply flex-1 max-h-screen overflow-hidden content-stretch flex bg-blue-200 bg-geometric-pattern;
 }
 
 .app-wrapper-center {
     @apply content-center flex-1 flex flex-col justify-center items-center gap-y-4 w-screen;
+}
+
+.vl {
+    @apply border-l-1 border-gray-300 -ml-[1px] h-full;
+}
+
+ul {
+    @apply list-disc list-inside;
+}
+
+ol {
+    @apply list-decimal list-inside;
+}
+
+ul ol, ol ul {
+    @apply ml-6;
+}
+
+ul li:last-of-type, ol li:last-of-type {
+    @apply mb-1;
+}
+
+ul ul {
+    @apply list-["-"];
+}
+
+.online-indicator {
+    @apply fill-green-600;
+}
+
+.offline-indicator {
+    @apply fill-red-600;
 }

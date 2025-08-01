@@ -1,0 +1,95 @@
+.floater {
+    @apply flex max-h-3/4 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
+}
+
+.user-info {
+    @apply flex items-center gap-5 sm:gap-10 w-full;
+}
+
+.user-stats {
+    @apply flex flex-col items-center justify-center w-full sm:mr-10;
+}
+
+.user-stats span.nickname {
+    @apply font-bold text-lg sm:text-2xl inline-flex items-center gap-1 justify-center;
+}
+
+.user-stats .wins-losses {
+    @apply flex justify-around text-center mt-2 gap-4 sm:gap-15 max-w-[300px];
+}
+
+.wins-losses div :first-child {
+    @apply block text-base sm:text-xl font-medium;
+}
+
+.wins-losses div :last-child {
+    @apply text-xs sm:text-sm font-light;
+}
+
+.avatar {
+    @apply items-center text-center text-sm flex-none;
+}
+
+.avatar p {
+    @apply mt-2;
+}
+
+.avatar img {
+    @apply w-[100px] h-[100px] object-cover rounded-full border-1 border-gray-200 shadow-gray-200 shadow-sm;
+}
+
+.avatar p button {
+    @apply font-light transition-colors ease-in-out delay-50 duration-300 border-1 border-gray-200 rounded-xl px-3 py-1 max-w-[100px] shadow-gray-200 shadow-sm;
+}
+
+.avatar p button:hover {
+    @apply font-normal;
+}
+
+.avatar p button:active {
+    @apply translate-y-[2px] shadow-gray-200/50 shadow-md;
+}
+
+.match-history-desktop {
+    @apply hidden invisible sm:block sm:visible overflow-y-auto;
+}
+
+.match-history-mobile {
+    @apply block visible sm:hidden sm:invisible overflow-y-auto;
+}
+
+.match-history-desktop table, .match-history-desktop tr, .match-history-desktop th, .match-history-desktop td {
+    @apply border-gray-300 border-1 px-2 py-1;
+}
+
+.match-history-desktop caption, .match-history-mobile p {
+    @apply text-lg mb-4 font-normal;
+}
+
+.match-history-desktop table {
+    @apply border-2 w-full;
+}
+
+.match-history-desktop th {
+    @apply font-semibold bg-gray-100;
+}
+
+.match-history-desktop td {
+    @apply text-sm text-center;
+}
+
+.tooltip {
+    @apply relative inline-block;
+}
+
+.tooltip svg {
+    @apply w-[12px] h-[25px] scale-75 sm:scale-100;
+}
+
+.tooltip .tooltiptext {
+    @apply invisible opacity-0 bg-gray-500 text-xs text-white text-center px-[10px] py-[3px] rounded-full absolute -translate-x-1/3 -translate-y-5 transition-all delay-50 duration-300;
+}
+
+.tooltip:hover .tooltiptext {
+    @apply visible opacity-100;
+}
