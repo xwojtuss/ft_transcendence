@@ -1,5 +1,5 @@
 .floater {
-    @apply flex text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
+    @apply flex max-h-3/4 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
 }
 
 .user-info {
@@ -51,11 +51,11 @@
 }
 
 .match-history-desktop {
-    @apply hidden invisible sm:block sm:visible;
+    @apply hidden invisible sm:block sm:visible overflow-y-auto;
 }
 
 .match-history-mobile {
-    @apply block visible sm:hidden sm:invisible;
+    @apply block visible sm:hidden sm:invisible overflow-y-auto;
 }
 
 .match-history-desktop table, .match-history-desktop tr, .match-history-desktop th, .match-history-desktop td {
