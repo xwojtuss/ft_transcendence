@@ -1,29 +1,37 @@
 form {
-    @apply mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12;
+    @apply text-gray-700;
 }
 
 form div {
     @apply mx-auto content-stretch flex justify-center-safe relative my-2 sm:my-3;
 }
 
-form legend {
+form legend, .floater > legend  {
     @apply text-center mb-8 md:mb-10 lg:mb-12 text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-700;
 }
 
-form input {
-    @apply bg-white rounded-xl px-4 sm:px-5 py-2 sm:py-3 text-sm sm:text-base border-slate-300 border w-full sm:mx-10 shadow-xs focus:outline-2 focus:outline-blue-300;
+form input, form .cancel, form label.file-input {
+    @apply bg-white rounded-xl px-4 sm:px-5 py-2 sm:py-3 text-sm sm:text-base border-slate-300 border sm:mx-10 shadow-xs;
+}
+
+form input:not([type=submit]) {
+    @apply w-full focus:outline-2 focus:outline-blue-300;
 }
 
 form input[type=submit], form button {
     @apply cursor-pointer w-auto;
 }
 
-form input#password-input {
+form input#password-input, form.labeled input {
     @apply pr-12;
 }
 
-form input[type=submit] {
-    @apply mt-6 bg-blue-300 border-blue-200 text-white font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300 shadow-blue-300/50 shadow-sm;
+form input[type=submit], form .cancel {
+    @apply mt-6 font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300;
+}
+
+form input[type=submit]:not(.cancel) {
+    @apply bg-blue-300 border-blue-200 text-white shadow-blue-300/50 shadow-sm;
 }
 
 form input[type=submit]:hover {
@@ -34,7 +42,7 @@ form input[type=submit]:active {
     @apply translate-y-[2px] shadow-blue-300/50 shadow-lg;
 }
 
-form button {
+form button.icon {
     @apply absolute right-2 sm:right-12 top-1/2 -translate-y-1/2;
 }
 
@@ -48,4 +56,56 @@ form p a {
 
 form p a:hover {
     @apply font-bold;
+}
+
+form input[type=image] {
+    @apply w-[50px] h-[50px] p-[10px] fill-green-600;
+}
+
+form.labeled label:not(.file-input) {
+    @apply left-5 absolute text-xs sm:text-sm font-light text-gray-500 -translate-y-[8px] bg-white;
+}
+
+form.update input, form.update button {
+    @apply mx-0;
+}
+
+form.update button {
+    @apply sm:right-4;
+}
+
+form.update div.avatar {
+    @apply gap-5;
+}
+
+form.update button img {
+    @apply w-[20px] sm:w-[25px];
+}
+
+form input.input-not-allowed {
+    @apply cursor-not-allowed;
+}
+
+form .cancel:hover {
+    @apply bg-gray-50 border-gray-300;
+}
+
+form .cancel:active {
+    @apply translate-y-[2px] shadow-gray-200/50 shadow-md;
+}
+
+form div.buttons {
+    @apply gap-3 sm:gap-3;
+}
+
+form input[type=file] {
+    @apply hidden;
+}
+
+form label.file-input {
+    @apply inline-block w-full cursor-pointer mx-0;
+}
+
+form.update {
+    @apply px-[20px] sm:px-[40px];
 }
