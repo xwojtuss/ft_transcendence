@@ -1,35 +1,35 @@
 <div class="app-wrapper-center">
-            <div class="floater">
-                <form class="labeled update">
-                    <legend>Update your info</legend>
-                    <div class="avatar update">
-                        <img src="./assets/default-avatar.svg" alt="User avatar"><!-- default avatar from svgrepo.com -->
-                        <label for="file-input" class="file-input">Choose New Avatar</label>
-                        <input type="file" id="file-input" accept="image/*" name="avatar">
-                    </div>
-                    <div>
-                        <input type="text" class="input-not-allowed" name="nickname" id="nickname-input" value="wkornato" disabled>
-                        <label for="nickname-input">Nickname</label>
-                        <button type="button" class="icon"><img src="./assets/edit-icon.svg"></button>
-                    </div>
-                    <div>
-                        <input type="email" class="input-not-allowed" name="email" id="email-input" value="wkornatoemail@gmail.com" disabled>
-                        <label for="email-input">Email</label>
-                        <button type="button" class="icon"><img src="./assets/edit-icon.svg"></button>
-                    </div>
-                    <div>
-                        <input type="password" name="current-password" id="current-password-input" autocomplete="current-password" required>
-                        <label for="current-password-input">Current Password</label>
-                    </div>
-                    <div>
-                        <input type="password" class="input-not-allowed" name="new-password" id="new-password-input" autocomplete="new-password" disabled>
-                        <label for="current-password-input">New Password</label>
-                        <button type="button" class="icon"><img src="./assets/edit-icon.svg"></button>
-                    </div>
-                    <div class="buttons">
-                        <button type="button" class="cancel">Cancel</button>
-                        <input type="submit" value="Submit">
-                    </div>
-                </form>
+    <div class="floater">
+        <form class="labeled update">
+            <legend>Update your info</legend>
+            <div class="avatar update">
+                <img src="./assets/default-avatar.svg" alt="User avatar"><!-- default avatar from svgrepo.com -->
+                <label for="file-input" class="file-input">Choose New Avatar</label>
+                <input type="file" id="file-input" accept="image/*" name="avatar">
             </div>
-        </div>
+            <div>
+                <input type="text" class="input-not-allowed" name="nickname" id="nickname-input" value="wkornato" disabled>
+                <label for="nickname-input">Nickname</label>
+                <button type="button" class="icon"><img src="./assets/edit-icon.svg"></button>
+            </div>
+            <div>
+                <input type="email" class="input-not-allowed" name="email" id="email-input" value="wkornatoemail@gmail.com" disabled>
+                <label for="email-input">Email</label>
+                <button type="button" class="icon"><img src="./assets/edit-icon.svg"></button>
+            </div>
+            <div>
+                <input type="password" name="current-password" id="current-password-input" autocomplete="current-password" required>
+                <label for="current-password-input">Current Password</label>
+            </div>
+            <div>
+                <input type="password" class="input-not-allowed" name="new-password" id="new-password-input" autocomplete="new-password" disabled>
+                <label for="current-password-input">New Password</label>
+                <button type="button" class="icon"><img src="./assets/edit-icon.svg"></button>
+            </div>
+            <div class="buttons">
+                <button type="button" formnovalidate formaction="/profile" class="cancel">Cancel</button>
+                <input type="submit" value="Submit">
+            </div>
+        </form>
+    </div>
+</div>
