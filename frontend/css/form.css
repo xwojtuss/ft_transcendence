@@ -26,20 +26,36 @@ form input#password-input, form.labeled input {
     @apply pr-12;
 }
 
+form input[type=submit]:not(.no-margin), form .cancel:not(.no-margin) {
+    @apply mt-6;
+}
+
 form input[type=submit], form .cancel {
-    @apply mt-6 font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300;
+    @apply font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300
+}
+
+form input[type=submit].sm-button, form .cancel.sm-button {
+    @apply text-xs font-normal sm:px-3 py-1 px-2;
+}
+
+form input[type=submit].sm-button:not(.no-margin), form .cancel.sm-button:not(.no-margin) {
+    @apply mt-3
 }
 
 form input[type=submit]:not(.cancel) {
     @apply bg-blue-300 border-blue-200 text-white shadow-blue-300/50 shadow-sm;
 }
 
-form input[type=submit]:hover {
+form input[type=submit]:not(.cancel):hover {
     @apply bg-blue-400 border-blue-300;
 }
 
+form input[type=submit]:not(.cancel):active {
+    @apply shadow-blue-300/50;
+}
+
 form input[type=submit]:active {
-    @apply translate-y-[2px] shadow-blue-300/50 shadow-lg;
+    @apply translate-y-[2px] shadow-lg;
 }
 
 form button.icon {

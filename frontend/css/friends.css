@@ -1,0 +1,15 @@
+.add-friend {
+    @apply gap-1 sm:gap-5;
+}
+
+.users-wrapper {
+    @apply flex flex-wrap place-content-around content-[space-evenly] overflow-y-auto max-w-[90vw] sm:max-w-[80vw] md:max-w-[70vw];
+}
+
+.accept-decline {
+    @apply flex gap-1;
+}
+
+.accept-decline form input {
+    @apply m-0;
+}

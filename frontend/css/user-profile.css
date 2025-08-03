@@ -2,6 +2,10 @@
     @apply flex max-h-3/4 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
 }
 
+.floater .floater {
+    @apply w-full h-100 px-2 py-2 gap-0 m-0 border-1 border-gray-100 shadow-sm;
+}
+
 .user-info {
     @apply flex items-center gap-5 sm:gap-10 w-full;
 }
@@ -10,8 +14,16 @@
     @apply flex flex-col items-center justify-center w-full sm:mr-10;
 }
 
+.users-wrapper .user-stats {
+    @apply gap-1;
+}
+
 .user-stats span.nickname {
     @apply font-bold text-lg sm:text-2xl inline-flex items-center gap-1 justify-center;
+}
+
+.user-stats span.nickname-smaller {
+    @apply font-semibold text-base sm:text-lg inline-flex items-center gap-1 justify-center;
 }
 
 .user-stats .wins-losses {
@@ -24,6 +36,10 @@
 
 .wins-losses div :last-child {
     @apply text-xs sm:text-sm font-light;
+}
+
+.users-wrapper .avatar {
+    @apply w-auto h-auto m-1;
 }
 
 .avatar {
@@ -83,7 +99,15 @@
 }
 
 .tooltip svg {
-    @apply w-[12px] h-[25px] scale-75 sm:scale-100;
+    @apply w-[12px] h-[25px] scale-75;
+}
+
+.tooltip svg:not(.smaller) {
+    @apply sm:scale-100;
+}
+
+.tooltip svg.smaller {
+    @apply scale-75;
 }
 
 .tooltip .tooltiptext {
