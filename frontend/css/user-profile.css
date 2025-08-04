@@ -1,9 +1,9 @@
 .floater {
-    @apply flex max-h-3/4 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
+    @apply flex w-auto max-h-3/4 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
 }
 
 .floater .floater {
-    @apply w-full h-100 px-2 py-2 gap-0 m-0 border-1 border-gray-100 shadow-sm;
+    @apply h-100 px-2 py-2 gap-0 m-0 border-1 border-gray-100 shadow-sm;
 }
 
 .user-info {

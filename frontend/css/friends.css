@@ -3,7 +3,11 @@
 }
 
 .users-wrapper {
-    @apply flex flex-wrap place-content-around content-[space-evenly] overflow-y-auto max-w-[90vw] sm:max-w-[80vw] md:max-w-[70vw];
+    @apply w-full max-w-screen grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 overflow-y-auto;
+}
+
+.avatar.users-wrapper.floater {
+    @apply w-full;
 }
 
 .accept-decline {
