@@ -35,6 +35,7 @@ document.addEventListener('click', (e) => {
         if (href) {
             e.preventDefault();
             renderPage(href);
+            changeActiveStyle(href);
         }
     } else if (target.tagName === 'IMG' && target.classList.contains('toggle-password-visibility')) {
         changePasswordButton(target, passwordField, e);
@@ -46,8 +47,8 @@ window.addEventListener('popstate', handleRouteChange);
 handleRouteChange();
 changeActiveStyle();
 
-function changeActiveStyle() {
-    const path = window.location.pathname;
+function changeActiveStyle(pathURL?: string) {
+    const path: string = pathURL || window.location.pathname;
     document.querySelectorAll('.nav-link').forEach(link => {
         if (link.getAttribute('href') === path) {
             link.classList.add('active-link');

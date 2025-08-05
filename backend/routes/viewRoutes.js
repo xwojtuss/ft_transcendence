@@ -11,6 +11,6 @@ export default async function viewsRoutes(fastify) {
         if (statusCode === StatusCodes.OK)
             return reply.type('text/html').send(result);
         else
-            return reply.code(statusCode).type('text/html').send(await getErrorPage(statusCode));
+            return reply.code(statusCode).type('text/html').send(await getErrorPage(statusCode, result));
     })
 }
