@@ -81,3 +81,11 @@ ul ul {
 .offline-indicator {
     @apply fill-red-600;
 }
+
+.no-margin {
+    @apply m-0;
+}
+
+.section-title {
+    @apply text-xl text-gray-600 font-semibold text-center;
+}

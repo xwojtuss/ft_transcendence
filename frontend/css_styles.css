@@ -2,6 +2,7 @@
 
 @import "tailwindcss";
 
+@import "./css/friends.css";
 @import "./css/user-profile.css";
 @import "./css/form.css";
 @import "./css/styles.css";

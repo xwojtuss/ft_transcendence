@@ -1,0 +1,52 @@
+<div class="app-wrapper-center">
+    <div class="floater lg-floater">
+        <form class="labeled">
+            <div class="add-friend no-margin">
+                <label for="friend-input">Add New Friend</label>
+                <input type="text" class="no-margin" id="friend-input" name="friend-input" placeholder="Nickname">
+                <input type="submit" class="no-margin" value="Invite">
+            </div>
+        </form>
+        <p class="section-title">Friend Invitations</p>
+        <div class="users-wrapper">
+            <div class="avatar user-stats floater">
+                <img src="./assets/default-avatar.svg" alt="Avatar">
+                <span class="nickname-smaller">
+                    wkornato
+                </span>
+                <div class="buttons accept-decline">
+                    <form>
+                        <input type="submit" class="sm-button no-margin" value="Accept">
+                    </form>
+                    <form>
+                        <input type="submit" class="cancel sm-button no-margin" value="Decline">
+                    </form>
+                </div>
+            </div>
+        </div>
+        <p class="section-title">My Friends</p>
+        <div class="users-wrapper users-wrapper-my-friends">
+            <div class="avatar user-stats floater">
+                <span class="pending">Pending</span>
+                <img src="./assets/default-avatar.svg" alt="Avatar">
+                <span class="nickname-smaller">
+                    wkornato
+                </span>
+            </div>
+            <div class="avatar user-stats floater">
+                <img src="./assets/default-avatar.svg" alt="Avatar">
+                <span class="nickname-smaller">
+                    <span class="tooltip">
+                        <span class="tooltiptext">
+                            Online
+                        </span>
+                        <svg class="smaller">
+                            <circle class="online-indicator" cx="6" cy="13" r="6"></circle>
+                        </svg>
+                    </span>
+                    wkornato
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
