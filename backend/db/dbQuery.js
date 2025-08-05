@@ -1,4 +1,8 @@
-export default async function getAllUsers(db) {
+import { db } from "../server.js";
+import User from "../utils/User.js";
+import Match from "../utils/Match.js";
+
+export default async function getAllUsers() {
     try {
         const users = await db.all("SELECT * FROM users");
         return users;
@@ -8,7 +12,25 @@ export default async function getAllUsers(db) {
     }
 }
 
-export async function getAllMatchHistory(db) {
+export async function getUser(nickname) {
+    try {
+        const user = await db.get("SELECT * FROM users WHERE nickname=? LIMIT 1", nickname);
+        if (!user || user.empty)
+            return null;
+        const userInstance = new User(user.nickname, user.password);
+        userInstance.email = user.email;
+        userInstance.isOnline = user.is_online;
+        userInstance.avatar = user.avatar;
+        userInstance.won_games = user.won_games;
+        userInstance.lost_games = user.lost_games;
+        return userInstance;
+    } catch (error) {
+        console.error("Failed to fetch user:", error.message);
+        throw new Error("Database query failed");
+    }
+}
+
+export async function getAllMatchHistory() {
     try {
         const matches = await db.all("SELECT * FROM match_history");
         return matches;
@@ -18,7 +40,62 @@ export async function getAllMatchHistory(db) {
     }
 }
 
-export async function getAllMatches(db) {
+/*
+<th>Date</th>
+<th>Player Count</th>
+<th>Opponents</th>
+<th>Initiator</th>
+<th>Rank</th>
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY,
+    nickname TEXT NOT NULL UNIQUE,
+    is_online BOOLEAN DEFAULT true,
+    password TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    avatar TEXT,
+    won_games INTEGER DEFAULT 0,
+    lost_games INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS match_history (
+    match_id INTEGER PRIMARY KEY,
+    ended_at TIMESTAMP NOT NULL,
+    num_of_players INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS matches (
+    match_id INTEGER NOT NULL REFERENCES match_history(match_id),
+    participant INTEGER NOT NULL REFERENCES users(user_id),
+    is_originator BOOLEAN NOT NULL,
+    rank INTEGER NOT NULL,
+    PRIMARY KEY (match_id, participant)
+);
+*/
+export async function getUserMatchHistory(nickname) {
+    const matchesMap = new Map();
+    try {
+        const matches = await db.all("SELECT match_history.match_id, match_history.ended_at, match_history.num_of_players, users.nickname as participant, matches.is_originator, matches.rank FROM match_history JOIN matches ON matches.match_id = match_history.match_id JOIN users ON users.user_id = matches.participant ORDER BY matches.is_originator DESC");
+        matches.forEach(match => {
+            var matchInstance;
+            if (matchesMap.has(match.match_id) === false) {
+                matchInstance = new Match(match.participant, match.num_of_players);
+                matchesMap.set(match.match_id, matchInstance);
+                matchInstance.endedAt = match.ended_at;
+            } else {
+                matchInstance = matchesMap.get(match.match_id);
+                matchInstance.addParticipant(match.participant);
+            }
+            matchInstance.addRank(match.participant, match.rank);
+        });
+        return matchesMap;
+    } catch (error) {
+        console.error("Failed to fetch match history:", error.message);
+        throw new Error("Database query failed");
+    }
+}
+
+export async function getAllMatches() {
     try {
         const matches = await db.all("SELECT * FROM matches");
         return matches;
@@ -28,7 +105,7 @@ export async function getAllMatches(db) {
     }
 }
 
-export async function addUser(db, user) {
+export async function addUser(user) {
     try {
         await db.run(
             "INSERT INTO users (nickname, password, email) VALUES (?, ?, ?)",
@@ -42,7 +119,7 @@ export async function addUser(db, user) {
     }
 }
 
-export async function addMatch(db, match) {
+export async function addMatch(match) {
     await db.exec("BEGIN TRANSACTION");
     try {
         const result = await db.run(

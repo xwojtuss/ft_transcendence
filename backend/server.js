@@ -1,10 +1,17 @@
+import { initDb } from "./db/dbInit.js";
+import deleteDatabase from "./db/dbDev.js";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static"
 import path from "path";
 import viewsRoutes from "./routes/viewRoutes.js";
 import testDatabase from "./test.js";
+import * as Cheerio from 'cheerio';
 
 const defaultPageName = process.env.DEFAULT_PAGE_NAME || 'index.html';
+
+await deleteDatabase("test.sqlite");
+export const db = await initDb("test.sqlite");
+export const cheerio = Cheerio;
 
 const fastify = Fastify({
     logger: true
@@ -18,7 +25,7 @@ fastify.get("/", async (req, reply) => {
     return reply.type('text/html').sendFile(defaultPageName);
 });
 
-testDatabase();
+testDatabase(db);
 
 fastify.register(viewsRoutes);
 

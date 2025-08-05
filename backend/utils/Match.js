@@ -25,8 +25,6 @@ export default class Match {
 
     // before the scores are known
     addParticipant(user) {
-        if (this._endedAt)
-            throw new Error("Match has ended");
         if (!user)
             throw new Error("User must exist");
         if (this._maxNumOfPlayers !== -1 && this._numOfPlayers >= this._maxNumOfPlayers)
@@ -46,13 +44,18 @@ export default class Match {
 
     // after the scores are known
     addRank(user, rank) {
-        if (rank < 1 || rank > this._numOfPlayers)
+        if (rank < 1 || (this._maxNumOfPlayers !== -1 && rank > this._maxNumOfPlayers))
             throw new Error("Rank is invalid");
         this._participants.set(user, rank);
     }
 
     endMatch() {
         this._endedAt = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+    }
+
+    // only for reassembling data from database
+    set endedAt(endedAt) {
+        this._endedAt = endedAt;
     }
 
     get participants() {
@@ -63,7 +66,15 @@ export default class Match {
         return this._numOfPlayers;
     }
 
+    get maxNumOfPlayers() {
+        return this._maxNumOfPlayers;
+    }
+
     get endedAt() {
         return this._endedAt;
+    }
+
+    getRank(participant) {
+        return this._participants.get(participant);
     }
 }
