@@ -81,3 +81,19 @@ ul ul {
 .offline-indicator {
     @apply fill-red-600;
 }
+
+.error-wrapper.floater {
+    @apply gap-0;
+}
+
+.error-wrapper img {
+    @apply max-h-4/5 mt-6;
+}
+
+.error-name {
+    @apply text-2xl font-bold;
+}
+
+.error-description {
+    @apply ml-5 text-sm before:content-['-'];
+}
