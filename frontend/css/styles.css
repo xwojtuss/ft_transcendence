@@ -97,3 +97,11 @@ ul ul {
 .error-description {
     @apply ml-5 text-sm before:content-['-'];
 }
+
+.no-margin {
+    @apply m-0;
+}
+
+.section-title {
+    @apply text-xl text-gray-600 font-semibold text-center;
+}
