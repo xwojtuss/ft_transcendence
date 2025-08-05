@@ -14,6 +14,6 @@ export async function getView(name) {
         const view = await fs.readFile(viewPath, "utf-8");
         return [StatusCodes.OK, view];
     } catch (error) {
-        return [StatusCodes.INTERNAL_SERVER_ERROR, StatusCodes.INTERNAL_SERVER_ERROR];
+        return [StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR];
     }
 }
