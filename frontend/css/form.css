@@ -31,7 +31,7 @@ form input[type=submit]:not(.no-margin), form .cancel:not(.no-margin) {
 }
 
 form input[type=submit], form .cancel {
-    @apply font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300
+    @apply font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300;
 }
 
 form input[type=submit].sm-button, form .cancel.sm-button {
@@ -39,7 +39,7 @@ form input[type=submit].sm-button, form .cancel.sm-button {
 }
 
 form input[type=submit].sm-button:not(.no-margin), form .cancel.sm-button:not(.no-margin) {
-    @apply mt-3
+    @apply mt-3;
 }
 
 form input[type=submit]:not(.cancel) {
