@@ -6,6 +6,10 @@
     @apply h-100 px-2 py-2 gap-0 m-0 border-1 border-gray-100 shadow-sm;
 }
 
+.lg-floater.floater {
+    @apply sm:max-h-7/9 pt-10 gap-6;
+}
+
 .user-info {
     @apply flex items-center gap-5 sm:gap-10 w-full;
 }
@@ -39,7 +43,7 @@
 }
 
 .users-wrapper .avatar {
-    @apply w-auto h-auto m-1;
+    @apply w-auto h-auto m-1 px-[5px] py-[85px] sm:py-[30px];
 }
 
 .avatar {

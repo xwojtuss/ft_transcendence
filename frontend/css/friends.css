@@ -3,11 +3,19 @@
 }
 
 .users-wrapper {
-    @apply w-full max-w-screen grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 overflow-y-auto;
+    @apply pt-2 gap-y-0 min-h-[190px] w-full max-w-screen flex flex-col sm:grid sm:grid-cols-3 lg:grid-cols-5 overflow-y-auto;
+}
+
+.users-wrapper.users-wrapper-my-friends {
+    @apply min-h-[150px];
 }
 
 .avatar.users-wrapper.floater {
     @apply w-full;
+}
+
+.avatar.user-stats.floater {
+    @apply relative;
 }
 
 .accept-decline {
@@ -16,4 +24,8 @@
 
 .accept-decline form input {
     @apply m-0;
+}
+
+span.pending {
+    @apply absolute -translate-y-19 bg-white text-gray-500 text-xs m-0 p-0;
 }
