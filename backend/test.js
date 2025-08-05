@@ -15,6 +15,12 @@ export default async function testDatabase(db) {
 
     addUser(pzurawic);
 
+    let pingwin = new User("pingwin");
+    await pingwin.setPassword("itishashed");
+    pingwin.email = "pingwinemail@gmail.com";
+
+    addUser(pingwin);
+
     let newmatch = new Match(newuser);
     newmatch.addParticipant(pzurawic);
     newmatch.endMatch();
@@ -22,6 +28,16 @@ export default async function testDatabase(db) {
     newmatch.addRank(pzurawic, 1);
 
     await addMatch(newmatch);
+
+    let secondMatch = new Match(pzurawic);
+    secondMatch.addParticipant(newuser);
+    secondMatch.addParticipant(pingwin);
+    secondMatch.endMatch();
+    secondMatch.addRank(pingwin, 1);
+    secondMatch.addRank(pzurawic, 2);
+    secondMatch.addRank(newuser, 3);
+
+    await addMatch(secondMatch);
 
     console.log(await getAllUsers());
     console.log(await getAllMatchHistory());

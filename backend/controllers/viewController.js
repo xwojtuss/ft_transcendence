@@ -40,18 +40,27 @@ function getOrdinalIndicator(number) {
 
 function getMatchHTML(match, currentUser) {
     var count = 1;
-    var delim = ', ';
-    const row = cheerio.load('<tr><td>Date</td><td>#</td><td class="overflow-x-auto max-w-[150px] whitespace-nowrap"></td><td></td><td>1st</td></tr>', null, false)
-    row('tr td:nth-child(1)').text(match.endedAt);
-    row('tr td:nth-child(2)').text(match.numOfPlayers);
+    var delim;
+    var originator = false;
+    const row = cheerio.load(`
+        <tr>
+            <td>${match.endedAt}</td>
+            <td>${match.numOfPlayers}</td>
+            <td class="overflow-x-auto max-w-[150px] whitespace-nowrap"></td>
+            <td><a href="/profile/${match.originator.nickname || match.originator}">${match.originator.nickname || match.originator}</a></td>
+            <td>1st</td>
+        </tr>`, null, false)
     match.participants.forEach((key, participant) => {
-        if (count === match.maxNumOfPlayers) delim = '';
-        if (participant === currentUser || participant === currentUser.nickname)
+        delim = ', ';
+        if (count === match.maxNumOfPlayers || (count === match.maxNumOfPlayers - 1 && originator === false)) delim = '';
+        if (participant === currentUser || participant === currentUser.nickname) {
             row('tr td:nth-child(5)').text(`${key + getOrdinalIndicator(key)}`);
-        row('tr td:nth-child(3)').html(`<a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant) + delim}</a>`);
+            originator = true;
+        } else {
+            row('tr td:nth-child(3)').append(`<a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant) + delim}</a>`);
+        }
         count++;
     })
-    row('tr td:nth-child(4)').html(`<a href="/profile/${match.originator.nickname || match.originator}">${match.originator.nickname || match.originator}</a>`);
     return row.html();
 }
 

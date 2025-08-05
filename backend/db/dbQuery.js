@@ -75,7 +75,25 @@ CREATE TABLE IF NOT EXISTS matches (
 export async function getUserMatchHistory(nickname) {
     const matchesMap = new Map();
     try {
-        const matches = await db.all("SELECT match_history.match_id, match_history.ended_at, match_history.num_of_players, users.nickname as participant, matches.is_originator, matches.rank FROM match_history JOIN matches ON matches.match_id = match_history.match_id JOIN users ON users.user_id = matches.participant ORDER BY matches.is_originator DESC");
+        const matches = await db.all(`
+            SELECT 
+                match_history.match_id, 
+                match_history.ended_at, 
+                match_history.num_of_players, 
+                users.nickname AS participant, 
+                matches.is_originator, 
+                matches.rank
+            FROM match_history
+            JOIN matches ON matches.match_id = match_history.match_id
+            JOIN users ON users.user_id = matches.participant
+            WHERE EXISTS (
+                SELECT 1
+                FROM matches m2
+                JOIN users u2 ON u2.user_id = m2.participant
+                WHERE m2.match_id = match_history.match_id
+                AND u2.nickname = ?
+            )
+            ORDER BY matches.is_originator DESC;`, nickname);
         matches.forEach(match => {
             var matchInstance;
             if (matchesMap.has(match.match_id) === false) {
