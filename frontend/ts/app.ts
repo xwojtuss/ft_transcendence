@@ -19,6 +19,7 @@ async function renderPage(pathURL: string) {
         console.error(error);
         app.innerHTML = `<p>Error loading page: ${error}</p>`;
     }
+    changeActiveStyle(pathURL);
 }
 
 function handleRouteChange() {
@@ -35,7 +36,6 @@ document.addEventListener('click', (e) => {
         if (href) {
             e.preventDefault();
             renderPage(href);
-            changeActiveStyle(href);
         }
     } else if (target.tagName === 'IMG' && target.classList.contains('toggle-password-visibility')) {
         changePasswordButton(target, passwordField, e);
