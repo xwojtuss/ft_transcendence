@@ -39,9 +39,9 @@ function getOrdinalIndicator(number) {
 }
 
 function getDesktopMatchHTML(match, currentUser) {
-    var count = 1;
-    var delim;
-    var originator = false;
+    let count = 1;
+    let delim;
+    let originator = false;
     const row = cheerio.load(`
         <tr>
             <td>${match.endedAt}</td>

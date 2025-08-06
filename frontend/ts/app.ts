@@ -10,7 +10,6 @@ async function renderPage(pathURL: string) {
         const response = await fetch(`/api/view${pathURL}`);
         const view = await response.text();
         app.innerHTML = view;
-        console.log(pathURL, window.location.origin);
         const newUrl = new URL(pathURL, window.location.origin).pathname;
         if (window.location.pathname !== newUrl) {
             window.history.pushState({}, '', newUrl);

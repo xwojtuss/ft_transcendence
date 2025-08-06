@@ -95,7 +95,7 @@ export async function getUserMatchHistory(nickname) {
             )
             ORDER BY matches.is_originator DESC;`, nickname);
         matches.forEach(match => {
-            var matchInstance;
+            let matchInstance;
             if (matchesMap.has(match.match_id) === false) {
                 matchInstance = new Match(match.participant, match.num_of_players);
                 matchesMap.set(match.match_id, matchInstance);
