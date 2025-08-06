@@ -1,25 +1,25 @@
-import { initDb } from "./db/dbInit.js";
-import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches } from "./db/dbQuery.js";
+import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getUserMatchHistory } from "./db/dbQuery.js";
 import User from "./utils/User.js";
-import deleteDatabase from "./db/dbDev.js";
 import Match from "./utils/Match.js";
 
-export default async function testDatabase() {
-    await deleteDatabase("test.sqlite");
-
-    const db = await initDb("test.sqlite");
-
+export default async function testDatabase(db) {
     let newuser = new User("wkornato");
     await newuser.setPassword("test");
     newuser.email = "wkornatoemail@gmail.com";
 
-    addUser(db, newuser);
+    addUser(newuser);
 
     let pzurawic = new User("pzurawic");
     await pzurawic.setPassword("hastobehashed");
     pzurawic.email = "pzurawicemail@gmail.com";
 
-    addUser(db, pzurawic);
+    addUser(pzurawic);
+
+    let pingwin = new User("pingwin");
+    await pingwin.setPassword("itishashed");
+    pingwin.email = "pingwinemail@gmail.com";
+
+    addUser(pingwin);
 
     let newmatch = new Match(newuser);
     newmatch.addParticipant(pzurawic);
@@ -27,9 +27,20 @@ export default async function testDatabase() {
     newmatch.addRank(newuser, 2);
     newmatch.addRank(pzurawic, 1);
 
-    await addMatch(db, newmatch);
+    await addMatch(newmatch);
 
-    console.log(await getAllUsers(db));
-    console.log(await getAllMatchHistory(db));
-    console.log(await getAllMatches(db));
+    let secondMatch = new Match(pzurawic);
+    secondMatch.addParticipant(newuser);
+    secondMatch.addParticipant(pingwin);
+    secondMatch.endMatch();
+    secondMatch.addRank(pingwin, 1);
+    secondMatch.addRank(pzurawic, 2);
+    secondMatch.addRank(newuser, 3);
+
+    await addMatch(secondMatch);
+
+    console.log(await getAllUsers());
+    console.log(await getAllMatchHistory());
+    console.log(await getAllMatches());
+    console.log(await getUserMatchHistory('wkornato'));
 }
