@@ -6,6 +6,7 @@ import path from "path";
 import viewsRoutes from "./routes/viewRoutes.js";
 import testDatabase from "./test.js";
 import * as Cheerio from 'cheerio';
+import { getView } from "./controllers/viewController.js";
 
 const defaultPageName = process.env.DEFAULT_PAGE_NAME || 'index.html';
 
@@ -38,5 +39,5 @@ fastify.listen({ port: process.env.PORT || 3000 }, (err, address) => {
         fastify.log.error(err);
         process.exit(1);
     }
-    fastify.log.info(`Simple page running at ${address}`)
+    fastify.log.info(`ft_transcendence running at ${address}`)
 });

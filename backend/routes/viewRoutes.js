@@ -19,4 +19,8 @@ export default async function viewsRoutes(fastify) {
         const [statusCode, result] = await getProfile(request.params.login);
         return await returnView(reply, statusCode, result);
     });
+    fastify.get("/api/view/:name/*", async (request, reply) => {
+        const [statusCode, result] = await getView(request.params.name);
+        return await returnView(reply, statusCode, result);
+    });
 }

@@ -4,7 +4,7 @@ import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUser, getUserMatchHistory } from "../db/dbQuery.js";
 import { cheerio } from '../server.js';
 
-const allowedNames = new Set(["", "home", "friends", "login", "register", "update", "profile"]);
+const allowedNames = new Set(["", "home", "friends", "login", "register", "update"]);
 
 export async function getView(name) {
     if (allowedNames.has(name) === false)
