@@ -38,7 +38,7 @@ function getOrdinalIndicator(number) {
     }
 }
 
-function getMatchHTML(match, currentUser) {
+function getDesktopMatchHTML(match, currentUser) {
     var count = 1;
     var delim;
     var originator = false;
@@ -64,6 +64,25 @@ function getMatchHTML(match, currentUser) {
     return row.html();
 }
 
+function getMobileMatchHTML(match, currentUser) {
+    const row = cheerio.load(`
+        <li class="mobile-match-list"><b>at ${match.endedAt}:</b><ul>
+            <li>Player Count: ${match.numOfPlayers}</li>
+            <li>Opponents:<ul>
+            </ul></li>
+            <li>Initiator: <a href="/profile/${match.originator.nickname || match.originator}">${match.originator.nickname || match.originator}</a></li>
+            <li>Rank: 1st</li>
+        </ul></li>`, null, false)
+    match.participants.forEach((key, participant) => {
+        if (participant === currentUser || participant === currentUser.nickname) {
+            row('li.mobile-match-list > ul > li:last-child').text(`Rank: ${key + getOrdinalIndicator(key)}`);
+        } else {
+            row('li.mobile-match-list ul li ul').append(`<li><a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant)}</a></li>`);
+        }
+    })
+    return row.html();
+}
+
 export async function getProfile(login) {
     if (!login)
         return [StatusCodes.NOT_FOUND, 'Requested resource does not exist.'];
@@ -85,7 +104,8 @@ export async function getProfile(login) {
         profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
         const userMatches = await getUserMatchHistory(user.nickname);
         userMatches.forEach(match => {
-            profilePage('.match-history-desktop table tbody').append(getMatchHTML(match, login));
+            profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, login));
+            profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, login));
         });
         return [StatusCodes.OK, profilePage.html()];
     } catch (error) {
