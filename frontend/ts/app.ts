@@ -19,6 +19,28 @@ async function renderPage(pathURL: string) {
         // app.innerHTML = `<p>Error loading page: ${error}</p>`;
     }
     changeActiveStyle(pathURL);
+
+    document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target as HTMLFormElement);
+        const data = Object.fromEntries(formData.entries());
+
+        const result = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        
+        if (!result.ok) {
+            // app.innerHTML = await result.text();
+            return alert('Invalid username or password, please try again');
+        } else {
+            return alert('Logged in!');
+        }
+    });
 }
 
 function handleRouteChange() {

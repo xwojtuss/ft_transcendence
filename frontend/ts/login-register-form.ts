@@ -16,3 +16,4 @@ export default function changePasswordButton(image: HTMLElement, passwordField: 
         passwordField.type = 'text';
     }
 }
+
