@@ -1,3 +1,4 @@
+import fastify from "fastify";
 import { SALT_ROUNDS } from "./config.js";
 import bcrypt from "bcrypt";
 
@@ -30,6 +31,18 @@ export default class User {
 
     async setPassword(password) {
         this._password = await bcrypt.hash(password, SALT_ROUNDS);
+    }
+
+    async validatePassword(passwordTry) {
+        let isCorrect = false;
+        try {
+            isCorrect = await bcrypt.compare(passwordTry, this._password);
+        } catch (error) {
+            isCorrect = false;
+            console.error(error);
+            return false;
+        }
+        return isCorrect;
     }
 
     get password() {

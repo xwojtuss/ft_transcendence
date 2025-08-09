@@ -1,3 +1,5 @@
+import { renderPage } from "./app.js";
+
 export default function changePasswordButton(image: HTMLElement, passwordField: HTMLInputElement, event?: Event) {
     event?.preventDefault();
 
