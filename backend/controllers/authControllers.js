@@ -29,13 +29,13 @@ export async function checkRefreshToken(fastify, refreshToken) {
 
 export function generateTokens(fastify, nickname, reply) {
     const accessToken = fastify.jwt.sign({
-        username: nickname
+        nickname: nickname
     }, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: ACCESS_TOKEN_EXPIRY
     });
 
     const refreshToken = fastify.jwt.sign({
-        username: nickname
+        nickname: nickname
     }, process.env.REFRESH_TOKEN_SECRET, {
         expiresIn: REFRESH_TOKEN_EXPIRY
     });

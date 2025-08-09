@@ -2,9 +2,6 @@ import { renderPage } from "./app.js";
 export let accessToken: string | null = null;
 
 export async function refreshAccessToken(): Promise<boolean> {
-    if (accessToken) {
-        return true;
-    }
     const result = await fetch('/api/auth/refresh', {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}` },

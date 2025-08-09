@@ -27,7 +27,6 @@ export async function renderPage(pathURL: string) {
         console.error(error);
     }
     changeActiveStyle(pathURL);
-    console.log(pathURL);
     if (pathURL === '/login') {
         await loginSubmitHandler();
     }
