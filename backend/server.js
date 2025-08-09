@@ -6,10 +6,10 @@ import path from "path";
 import viewsRoutes from "./routes/viewRoutes.js";
 import testDatabase from "./test.js";
 import * as Cheerio from 'cheerio';
-import { getView } from "./controllers/viewController.js";
-import loginRoutes from "./routes/loginRoutes.js";
+import { getView } from "./controllers/viewControllers.js";
 import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
+import loginRoute, { refreshRoute } from "./routes/authRoutes.js";
 
 const fastify = Fastify({
     logger: true
@@ -40,7 +40,8 @@ fastify.get("/", async (req, reply) => {
 
 testDatabase(db);
 
-fastify.register(loginRoutes);
+fastify.register(loginRoute);
+fastify.register(refreshRoute);
 fastify.register(viewsRoutes);
 
 fastify.setNotFoundHandler((req, reply) => {

@@ -1,4 +1,4 @@
-import { getView, getProfile } from "../controllers/viewController.js";
+import { getView, getProfile } from "../controllers/viewControllers.js";
 import getErrorPage from "../utils/error.js";
 import { StatusCodes } from "http-status-codes";
 

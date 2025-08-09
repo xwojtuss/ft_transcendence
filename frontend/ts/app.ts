@@ -14,6 +14,9 @@ export async function renderPage(pathURL: string) {
         const response = await fetch(`/api/view${pathURL}`, {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
+        if (response.status === 401 && await refreshAccessToken() === false) {
+            return renderPage('/login');
+        }
         const view = await response.text();
         app.innerHTML = view;
         const newUrl = new URL(pathURL, window.location.origin).pathname;
@@ -31,8 +34,11 @@ export async function renderPage(pathURL: string) {
 }
 
 async function handleRouteChange() {
-    // await refreshAccessToken();
-    await renderPage(window.location.pathname);
+    if (await refreshAccessToken() === false) {
+        await renderPage('/login');
+    } else {
+        await renderPage(window.location.pathname);
+    }
 }
 
 document.addEventListener('click', (e) => {
