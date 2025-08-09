@@ -18,7 +18,7 @@ export async function refreshAccessToken(): Promise<boolean> {
     return true;
 }
 
-export async function loginSubmitHandler() {
+export async function loginHandler() {
     document.getElementById('login-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         

@@ -1,9 +1,28 @@
-import { loginSubmitHandler, refreshAccessToken } from "./authenticate.js";
+import { loginHandler, refreshAccessToken } from "./authenticate.js";
 import changePasswordButton from "./login-register-form.js";
 import { accessToken } from "./authenticate.js";
+import formPasswordVisibility from "./login-register-form.js";
 
 const app: HTMLElement | null = document.getElementById('app');
-const passwordField: HTMLInputElement| null = document.getElementById('password-input') as HTMLInputElement;
+
+document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+
+    if (!target)
+        return;
+    if (target.tagName === 'A') {
+        const href: string | null = target.getAttribute('href');
+        if (href) {
+            e.preventDefault();
+            renderPage(href);
+        }
+    }
+})
+
+window.addEventListener('popstate', handleRouteChange);
+
+handleRouteChange();
+changeActiveStyle();
 
 export async function renderPage(pathURL: string) {
     if (!app)
@@ -27,35 +46,21 @@ export async function renderPage(pathURL: string) {
         console.error(error);
     }
     changeActiveStyle(pathURL);
-    if (pathURL === '/login') {
-        await loginSubmitHandler();
+    switch (pathURL) {
+        case '/login':
+            await loginHandler();
+            formPasswordVisibility();
+            break;
+        case '/register':
+            formPasswordVisibility();
+        default:
+            break;
     }
 }
 
 async function handleRouteChange() {
     await renderPage(window.location.pathname);
 }
-
-document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-
-    if (!target)
-        return;
-    if (target.tagName === 'A') {
-        const href: string | null = target.getAttribute('href');
-        if (href) {
-            e.preventDefault();
-            renderPage(href);
-        }
-    } else if (target.tagName === 'IMG' && target.classList.contains('toggle-password-visibility')) {
-        changePasswordButton(target, passwordField, e);
-    }
-})
-
-window.addEventListener('popstate', handleRouteChange);
-
-handleRouteChange();
-changeActiveStyle();
 
 function changeActiveStyle(pathURL?: string) {
     const path: string = pathURL || window.location.pathname;
