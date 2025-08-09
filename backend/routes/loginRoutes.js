@@ -1,9 +1,9 @@
-import { StatusCodes } from "http-status-codes";
+import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUser } from "../db/dbQuery.js";
-import getErrorPage from "../utils/error.js";
+import { ACCESS_TOKEN_EXPIRY, ACCESS_TOKEN_EXPIRY_SECONDS, REFRESH_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY_SECONDS } from "../utils/config.js";
 
 export default async function loginRoutes(fastify) {
-    fastify.post('/api/login', {
+    fastify.post('/api/auth/login', {
         schema: {
             body: {
                 type: 'object',
@@ -17,16 +17,41 @@ export default async function loginRoutes(fastify) {
         },
         handler: async (req, reply) => {
             try {
+                try {
+                    await req.jwtVerify();
+                    return reply.code(StatusCodes.BAD_REQUEST).send({ message: 'Already logged in' });
+                } catch (error) {}
                 const user = await getUser(req.body.login);
                 if (user === null || await user.validatePassword(req.body.password) == false) {
-
-                    // will return 404 or something to indicate wrong password or user does not exist
-                    return reply.code(StatusCodes.NOT_FOUND).type('text/html').send(await getErrorPage(StatusCodes.NOT_FOUND, 'Requested resource does not exist.'));
+                    return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Invalid credentials' });
                 }
-                // generate jwt token
-                return reply.code(StatusCodes.OK).type('text/html').send(await getErrorPage(StatusCodes.CONFLICT, 'Logged in successfully!!!!.'));
+
+                const accessToken = fastify.jwt.sign({
+                    username: user.nickname,
+                    email: user.email
+                }, process.env.ACCESS_TOKEN_SECRET, {
+                    expiresIn: ACCESS_TOKEN_EXPIRY
+                });
+
+                const refreshToken = fastify.jwt.sign({
+                    username: user.nickname
+                }, process.env.REFRESH_TOKEN_SECRET, {
+                    expiresIn: REFRESH_TOKEN_EXPIRY
+                });
+
+                reply.setCookie('refreshToken', refreshToken, {
+                    path: '/api/auth/refresh',
+                    httpOnly: true,
+                    secure: process.env.IS_PRODUCTION === 'true',
+                    sameSite: 'Strict',
+                    maxAge: REFRESH_TOKEN_EXPIRY_SECONDS
+                });
+
+                // maybe store sessions on the backend in database?
+                return reply.send({ accessToken });
             } catch (error) {
                 console.error(error);
+                return reply.code(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
             }
         }
     });

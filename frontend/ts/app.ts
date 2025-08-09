@@ -1,13 +1,19 @@
+import { loginSubmitHandler, refreshAccessToken } from "./authenticate.js";
 import changePasswordButton from "./login-register-form.js";
+import { accessToken } from "./authenticate.js";
 
 const app: HTMLElement | null = document.getElementById('app');
 const passwordField: HTMLInputElement| null = document.getElementById('password-input') as HTMLInputElement;
 
-async function renderPage(pathURL: string) {
+export async function renderPage(pathURL: string) {
     if (!app)
         return;
+    if ((pathURL === '/login' || pathURL === '/register') && accessToken !== null)
+        return renderPage('/');
     try {
-        const response = await fetch(`/api/view${pathURL}`);
+        const response = await fetch(`/api/view${pathURL}`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
         const view = await response.text();
         app.innerHTML = view;
         const newUrl = new URL(pathURL, window.location.origin).pathname;
@@ -16,35 +22,17 @@ async function renderPage(pathURL: string) {
         }
     } catch (error) {
         console.error(error);
-        // app.innerHTML = `<p>Error loading page: ${error}</p>`;
     }
     changeActiveStyle(pathURL);
-
-    document.getElementById('login-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(e.target as HTMLFormElement);
-        const data = Object.fromEntries(formData.entries());
-
-        const result = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        });
-        
-        if (!result.ok) {
-            // app.innerHTML = await result.text();
-            return alert('Invalid username or password, please try again');
-        } else {
-            return alert('Logged in!');
-        }
-    });
+    console.log(pathURL);
+    if (pathURL === '/login') {
+        await loginSubmitHandler();
+    }
 }
 
-function handleRouteChange() {
-    renderPage(window.location.pathname);
+async function handleRouteChange() {
+    // await refreshAccessToken();
+    await renderPage(window.location.pathname);
 }
 
 document.addEventListener('click', (e) => {

@@ -8,9 +8,20 @@ import testDatabase from "./test.js";
 import * as Cheerio from 'cheerio';
 import { getView } from "./controllers/viewController.js";
 import loginRoutes from "./routes/loginRoutes.js";
+import fastifyJwt from "@fastify/jwt";
+import cookie from "@fastify/cookie";
 
 const fastify = Fastify({
     logger: true
+});
+
+fastify.register(fastifyJwt, {
+    secret: process.env.ACCESS_TOKEN_SECRET
+});
+
+fastify.register(cookie, {
+    secret: process.env.COOKIE_SECRET,
+    parseOptions: {}
 });
 
 const defaultPageName = process.env.DEFAULT_PAGE_NAME || 'index.html';
