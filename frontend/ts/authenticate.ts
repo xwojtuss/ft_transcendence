@@ -14,6 +14,7 @@ export async function refreshAccessToken(): Promise<boolean> {
         return true;// if the access token was already valid
     }
     if (!result.ok) {
+        accessToken = null;
         return false;
     }
     accessToken = (await result.json()).accessToken;

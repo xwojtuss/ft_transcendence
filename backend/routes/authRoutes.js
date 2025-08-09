@@ -1,32 +1,6 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUser } from "../db/dbQuery.js";
-import { ACCESS_TOKEN_EXPIRY, ACCESS_TOKEN_EXPIRY_SECONDS, REFRESH_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY_SECONDS } from "../utils/config.js";
-
-async function checkAuthHeader(fastify, authHeader) {
-    if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader === 'Bearer null') {
-        return [false, StatusCodes.UNAUTHORIZED, 'Missing or invalid Authorization header', null];
-    }
-    const userAccessToken = authHeader.split(' ')[1];
-
-    try {
-        const payload = await fastify.jwt.verify(userAccessToken, process.env.ACCESS_TOKEN_SECRET);
-        return [true, StatusCodes.OK, ReasonPhrases.OK, payload];
-    } catch (error) {
-        return [false, StatusCodes.UNAUTHORIZED, 'Invalid or expired access token', null];
-    }
-}
-
-async function checkRefreshToken(fastify, refreshToken) {
-    if (!refreshToken) {
-        return [false, StatusCodes.UNAUTHORIZED, 'Missing or invalid refresh token', null];
-    }
-    try {
-        const payload = await fastify.jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        return [true, StatusCodes.OK, ReasonPhrases.OK, payload];
-    } catch (error) {
-        return [false, StatusCodes.UNAUTHORIZED, 'Invalid or expired refresh token', null];
-    }
-}
+import { checkAuthHeader, checkRefreshToken, generateTokens } from "../controllers/authControllers.js";
 
 export default async function loginRoute(fastify) {
     fastify.post('/api/auth/login', {
@@ -50,28 +24,7 @@ export default async function loginRoute(fastify) {
                 if (user === null || await user.validatePassword(req.body.password) == false) {
                     return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Invalid credentials' });
                 }
-
-                const accessToken = fastify.jwt.sign({
-                    username: user.nickname
-                }, process.env.ACCESS_TOKEN_SECRET, {
-                    expiresIn: ACCESS_TOKEN_EXPIRY
-                });
-
-                const refreshToken = fastify.jwt.sign({
-                    username: user.nickname
-                }, process.env.REFRESH_TOKEN_SECRET, {
-                    expiresIn: REFRESH_TOKEN_EXPIRY
-                });
-
-                reply.setCookie('refreshToken', refreshToken, {
-                    path: '/api/auth/refresh',
-                    httpOnly: true,
-                    secure: process.env.IS_PRODUCTION === 'true',
-                    sameSite: 'Strict',
-                    maxAge: REFRESH_TOKEN_EXPIRY_SECONDS
-                });
-
-                // maybe store sessions on the backend in database?
+                const accessToken = generateTokens(fastify, user.nickname, reply);
                 return reply.send({ accessToken });
             } catch (error) {
                 console.error(error);
@@ -92,27 +45,11 @@ export async function refreshRoute(fastify) {
             if (!isValid)
                 return reply.code(statusCode).send({ message: reason });
             try {
-                const accessToken = fastify.jwt.sign({
-                    username: payload.nickname,
-                }, process.env.ACCESS_TOKEN_SECRET, {
-                    expiresIn: ACCESS_TOKEN_EXPIRY
-                });
-
-                const refreshToken = fastify.jwt.sign({
-                    username: payload.nickname
-                }, process.env.REFRESH_TOKEN_SECRET, {
-                    expiresIn: REFRESH_TOKEN_EXPIRY
-                });
-
-                reply.setCookie('refreshToken', refreshToken, {
-                    path: '/api/auth/refresh',
-                    httpOnly: true,
-                    secure: process.env.IS_PRODUCTION === 'true',
-                    sameSite: 'Strict',
-                    maxAge: REFRESH_TOKEN_EXPIRY_SECONDS
-                });
-
-                // maybe store sessions on the backend in database?
+                console.log(payload);
+                if (payload.nickname === undefined || !payload.nickname) {
+                    return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Refresh token is invalid' });
+                }
+                const accessToken = generateTokens(fastify, payload.nickname, reply);
                 return reply.send({ accessToken });
             } catch (error) {
                 console.error(error);

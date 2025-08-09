@@ -34,11 +34,7 @@ export async function renderPage(pathURL: string) {
 }
 
 async function handleRouteChange() {
-    if (await refreshAccessToken() === false) {
-        await renderPage('/login');
-    } else {
-        await renderPage(window.location.pathname);
-    }
+    await renderPage(window.location.pathname);
 }
 
 document.addEventListener('click', (e) => {
