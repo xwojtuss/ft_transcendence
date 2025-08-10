@@ -1,4 +1,5 @@
 import changePasswordButton from "./login-register-form.js";
+import { gameLoop } from "./game.js";
 
 const app: HTMLElement | null = document.getElementById('app');
 const passwordField: HTMLInputElement| null = document.getElementById('password-input') as HTMLInputElement;
@@ -56,3 +57,7 @@ function changeActiveStyle(pathURL?: string) {
         }
     });
 }
+
+window.addEventListener("load", () => {
+	gameLoop();
+});
