@@ -1,5 +1,4 @@
 import { loginHandler, refreshAccessToken } from "./authenticate.js";
-import changePasswordButton from "./login-register-form.js";
 import { accessToken } from "./authenticate.js";
 import formPasswordVisibility from "./login-register-form.js";
 
@@ -21,7 +20,6 @@ document.addEventListener('click', (e) => {
 
 window.addEventListener('popstate', handleRouteChange);
 
-handleRouteChange();
 changeActiveStyle();
 
 export async function renderPage(pathURL: string) {
@@ -30,10 +28,14 @@ export async function renderPage(pathURL: string) {
     if ((pathURL === '/login' || pathURL === '/register') && accessToken !== null)
         return renderPage('/');
     try {
-        const response = await fetch(`/api/view${pathURL}`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
+        const response = await fetch(`${pathURL}`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'X-Partial-Load': 'true'
+            }
         });
         if (response.status === 401 && await refreshAccessToken() === false) {
+            // change the nav bar
             return renderPage('/login');
         }
         const view = await response.text();

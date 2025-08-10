@@ -4,13 +4,21 @@ import fs from 'fs/promises';
 // Cache the error.html template at module load time
 let cachedErrorHtmlPromise = fs.readFile('./backend/views/error.html', 'utf8');
 
-export default async function getErrorPage(statusCode, description) {
-    const cachedErrorHtml = await cachedErrorHtmlPromise;
-    const errorPage = cheerio.load(cachedErrorHtml, null, false);
+export default class HTTPError extends Error {
+    constructor(code, message) {
+        super(message);
+        this.code = code;
+        this.message = message;
+    }
 
-    errorPage('p.error-name').text(statusCode + ' Error');
-    errorPage('span.error-description').text(description);
-    errorPage('.error-wrapper img').attr('src', 'https://http.cat/' + statusCode + '.jpg');
+    async getErrorPage() {
+        const cachedErrorHtml = await cachedErrorHtmlPromise;
+        const errorPage = cheerio.load(cachedErrorHtml, null, false);
 
-    return errorPage.html();
+        errorPage('p.error-name').text(this.code + ' Error');
+        errorPage('span.error-description').text(this.message);
+        errorPage('.error-wrapper img').attr('src', 'https://http.cat/' + this.code + '.jpg');
+
+        return errorPage.html();
+    }
 }

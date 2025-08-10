@@ -1,22 +1,20 @@
-import path from "path";
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUser, getUserMatchHistory } from "../db/dbQuery.js";
 import { cheerio } from '../server.js';
+import HTTPError from "../utils/error.js";
 
 const allowedNames = new Set(["", "home", "friends", "login", "register", "update"]);
 
 export async function getView(name) {
     if (allowedNames.has(name) === false)
-        return [StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND];
+        throw new HTTPError(StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND);
     if (name === "")
         name = "home";
-    const viewPath = path.join(process.cwd(), `backend/views/${name}.html`);
     try {
-        const view = await fs.readFile(viewPath, "utf-8");
-        return [StatusCodes.OK, view];
+        return await fs.readFile(`./backend/views/${name}.html`, "utf-8");
     } catch (error) {
-        return [StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR];
+        throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR);
     }
 }
 
@@ -85,31 +83,26 @@ function getMobileMatchHTML(match, currentUser) {
 
 export async function getProfile(login) {
     if (!login)
-        return [StatusCodes.NOT_FOUND, 'Requested resource does not exist.'];
-    try {
-        const cachedProfileHtml = await cachedProfileHtmlPromise;
-        const user = await getUser(login);
-        if (!user)
-            return [StatusCodes.NOT_FOUND, 'Requested resource does not exist.'];
-        const profilePage = cheerio.load(cachedProfileHtml, null, false);
-        profilePage('.user-stats span.nickname span.user-nickname').text(user.nickname);
-        if (user.isOnline === false) {
-            profilePage('.tooltip .tooltiptext').text('Offline');
-            profilePage('.tooltip svg').removeClass('online-indicator');
-            profilePage('.tooltip svg').addClass('offline-indicator');
-        }
-        profilePage('.wins-losses div:first-child span:first-child').text(user.won_games);
-        profilePage('.wins-losses div:last-child span:first-child').text(user.lost_games);
-        profilePage('.user-info .avatar img').attr('src', user.avatar || '/assets/default-avatar.svg');
-        profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
-        const userMatches = await getUserMatchHistory(user.nickname);
-        userMatches.forEach(match => {
-            profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, login));
-            profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, login));
-        });
-        return [StatusCodes.OK, profilePage.html()];
-    } catch (error) {
-        console.error(error);
-        return [StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR];
+        throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
+    const cachedProfileHtml = await cachedProfileHtmlPromise;
+    const user = await getUser(login);
+    if (!user)
+        throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
+    const profilePage = cheerio.load(cachedProfileHtml, null, false);
+    profilePage('.user-stats span.nickname span.user-nickname').text(user.nickname);
+    if (user.isOnline === false) {
+        profilePage('.tooltip .tooltiptext').text('Offline');
+        profilePage('.tooltip svg').removeClass('online-indicator');
+        profilePage('.tooltip svg').addClass('offline-indicator');
     }
+    profilePage('.wins-losses div:first-child span:first-child').text(user.won_games);
+    profilePage('.wins-losses div:last-child span:first-child').text(user.lost_games);
+    profilePage('.user-info .avatar img').attr('src', user.avatar || '/assets/default-avatar.svg');
+    profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
+    const userMatches = await getUserMatchHistory(user.nickname);
+    userMatches.forEach(match => {
+        profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, login));
+        profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, login));
+    });
+    return profilePage.html();
 }
