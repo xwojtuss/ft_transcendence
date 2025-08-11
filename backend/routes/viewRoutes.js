@@ -5,9 +5,9 @@ import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fs from "fs/promises";
 import { cheerio } from "../server.js";
 
-const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html');
-const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html');
-const indexPromise = fs.readFile('./backend/index.html');
+const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
+const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html', "utf-8");
+const indexPromise = fs.readFile('./backend/index.html', "utf-8");
 
 /**
  * Get the user session information from the access or refresh token
@@ -19,13 +19,13 @@ const indexPromise = fs.readFile('./backend/index.html');
 async function getUserSession(fastify, refreshToken, headers) {
     let payload = null;
     try {
-        if (refreshToken && headers['X-Partial-Load']) {
+        if (refreshToken && headers['x-partial-load']) {
             payload = await checkAuthHeader(fastify, headers['authorization']);
             if (!payload || !payload.nickname)
                 return null;
             return payload.nickname;
         } else if (refreshToken) {
-            payload = await checkRefreshToken(fastify, headers['authorization']);
+            payload = await checkRefreshToken(fastify, refreshToken);
             if (!payload || !payload.nickname)
                 return null;
             return payload.nickname;
@@ -35,23 +35,22 @@ async function getUserSession(fastify, refreshToken, headers) {
     }
 }
 
-//  if the X-Partial-Load header is present
-//      load the index.html
-//  else
-//      load only the document
-//  if there is a log-in state change
-//      add the correct nav bar
-//  get the view
-//  add the view
-//  return the html (a full document, a header with main, or just main)
+/**
+ * Register the possible routes
+ * @param {*} fastify the fastify instance
+ */
 export default async function viewsRoutes(fastify) {
     // for non-dynamic sites: login, register
     fastify.get("/login", async (request, reply) => {
         let view;
-        const nickname = getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         try {
             view = await getView('login');
-            return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
+            if (request.headers['x-request-navigation-bar'] === 'true') {
+                return reply.send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, true));
+            } else {
+                return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
+            }
         } catch (error) {
             if (error instanceof HTTPError) {
                 return reply.type('text/html').send(await error.getErrorPage());
@@ -63,10 +62,15 @@ export default async function viewsRoutes(fastify) {
     });
     fastify.get("/profile/:login", async (request, reply) => {
         let view;
-        const nickname = getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         try {
             view = await getProfile(request.params.login);
-            return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
+            if (request.headers['x-request-navigation-bar'] === 'true') {
+                return reply.send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, true));
+            } else {
+                return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
+            }
+            
         } catch (error) {
             if (error instanceof HTTPError) {
                 return reply.type('text/html').send(await error.getErrorPage());
@@ -78,10 +82,14 @@ export default async function viewsRoutes(fastify) {
     });
     fastify.setNotFoundHandler(async (request, reply) => {
         let view;
-        const nickname = getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         try {
             view = await getView('');
-            return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
+            if (request.headers['x-request-navigation-bar'] === 'true') {
+                return reply.send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, true));
+            } else {
+                return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
+            }
         } catch (error) {
             if (error instanceof HTTPError) {
                 return reply.type('text/html').send(await error.getErrorPage());
@@ -93,15 +101,25 @@ export default async function viewsRoutes(fastify) {
     });
 }
 
+/**
+ * Wrapps the HTML of a view if this is the first load, appends the nav bar if needed
+ * @param {string} viewHTML the view HTML rendered to a string
+ * @param {string} XPartialLoadHeader the x-partial-load header
+ * @param {boolean} isLoggedIn whether the user is logged in
+ * @param {boolean} appendNavBar whether to also include the nav bar to refresh it
+ * @returns the view HTML, document HTML or the view with nav bar in JSON
+ */
 async function prepareHTML(viewHTML, XPartialLoadHeader, isLoggedIn, appendNavBar) {
-    console.log(XPartialLoadHeader)
     if (!XPartialLoadHeader || XPartialLoadHeader === 'false') {
         const index = cheerio.load(await indexPromise);
-        index('header').html(isLoggedIn ? await loggedInNavBarPromise : await notLoggedInNavBarPromise);
+        index('header#navigation').html(isLoggedIn ? await loggedInNavBarPromise : await notLoggedInNavBarPromise);
         index('main#app').html(viewHTML);
         return index.html();
     } else if (appendNavBar) {
-        viewHTML += isLoggedIn ? await loggedInNavBarPromise : await notLoggedInNavBarPromise;
+        return {
+            nav: isLoggedIn ? await loggedInNavBarPromise : await notLoggedInNavBarPromise,
+            app: viewHTML
+        };
     }
     return viewHTML;
 }

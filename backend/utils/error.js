@@ -1,7 +1,6 @@
 import { cheerio } from '../server.js';
 import fs from 'fs/promises';
 
-// Cache the error.html template at module load time
 let cachedErrorHtmlPromise = fs.readFile('./backend/views/error.html', 'utf8');
 
 export default class HTTPError extends Error {

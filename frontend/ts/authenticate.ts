@@ -34,12 +34,12 @@ export async function loginHandler() {
             body: JSON.stringify(data),
 
         });
-        if (result.status === 400) {
-            return await renderPage('/');
+        if (result.status === 400) {// user is already logged in
+            return await renderPage('/', true);
         } else if (!result.ok) {
             return alert((await result.json()).message);
         }
         accessToken = (await result.json()).accessToken;
-        return await renderPage('/');
+        return await renderPage('/', true);
     });
 }

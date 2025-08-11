@@ -3,6 +3,7 @@ import { accessToken } from "./authenticate.js";
 import formPasswordVisibility from "./login-register-form.js";
 
 const app: HTMLElement | null = document.getElementById('app');
+const navigation: HTMLElement | null = document.getElementById('navigation');
 
 document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -13,7 +14,7 @@ document.addEventListener('click', (e) => {
         const href: string | null = target.getAttribute('href');
         if (href) {
             e.preventDefault();
-            renderPage(href);
+            renderPage(href, false);
         }
     }
 })
@@ -22,23 +23,30 @@ window.addEventListener('popstate', handleRouteChange);
 
 changeActiveStyle();
 
-export async function renderPage(pathURL: string) {
+export async function renderPage(pathURL: string, requestNavBar: boolean) {
     if (!app)
         return;
     if ((pathURL === '/login' || pathURL === '/register') && accessToken !== null)
-        return renderPage('/');
+        return renderPage('/', true);
     try {
         const response = await fetch(`${pathURL}`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
-                'X-Partial-Load': 'true'
+                'X-Partial-Load': 'true',
+                'X-Request-Navigation-Bar': `${requestNavBar}`
             }
         });
         if (response.status === 401 && await refreshAccessToken() === false) {
-            // change the nav bar
-            return renderPage('/login');
+            return renderPage('/login', true);
         }
-        const view = await response.text();
+        let view: string;
+        if (requestNavBar && navigation) {
+            const jsonHTML = await response.json();
+            view = jsonHTML.app;
+            navigation.innerHTML = jsonHTML.nav;
+        } else {
+            view = await response.text();
+        }
         app.innerHTML = view;
         const newUrl = new URL(pathURL, window.location.origin).pathname;
         if (window.location.pathname !== newUrl) {
@@ -61,7 +69,7 @@ export async function renderPage(pathURL: string) {
 }
 
 async function handleRouteChange() {
-    await renderPage(window.location.pathname);
+    await renderPage(window.location.pathname, true);
 }
 
 function changeActiveStyle(pathURL?: string) {
