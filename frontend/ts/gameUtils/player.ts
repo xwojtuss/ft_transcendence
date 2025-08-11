@@ -19,15 +19,21 @@ function alignMiddle(canvas: HTMLCanvasElement): { position: Position } {
 }
 
 // Set player dimensions and positions dynamically to where they were
-export function dynamicallyAdjustPlayer(player: Player) {
+export function dynamicallyAdjustPlayer(player: Player, oldCanvasHeight: number) {
 
-	const newPos = alignMiddle(player.canvas);
 	const dims = calculatePlayerDimensions(player.canvas);
 			
 	player.width = dims.width;
 	player.height = dims.height;
-	player.position.x = newPos.position.x;
-	player.position.y = newPos.position.y;
+
+	const scaleY = player.canvas.height / oldCanvasHeight;
+	player.position.y *= scaleY;
+
+	if (player.position.y < 0) {
+		player.position.y = 0;
+	} else if (player.position.y + player.height > player.canvas.height) {
+		player.position.y = player.canvas.height - player.height;
+	}
 
 }
 

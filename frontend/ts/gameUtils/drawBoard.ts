@@ -160,3 +160,44 @@ export function drawPongText() {
 	ctx.fillText("PONG", 0, -fontSize / 2);
 	ctx.restore();
 }
+
+export function drawScore(ctx: CanvasRenderingContext2D, player1Score: number, player2Score: number) {
+	if (!canvas || !ctx) {
+		console.error("Canvas context is not available");
+		return;
+	}
+
+	const fontSize = getDynamicFontSize() * 4;
+	ctx.fillStyle = "white";
+	ctx.strokeStyle = "black";
+	ctx.lineWidth = getDynamicLineWidth() / 4;
+	ctx.font = `${fontSize}px Tektur`;
+
+	// Draw Player 1 Score
+	ctx.save();
+	ctx.translate(canvas.width * 0.45, canvas.height * 0.05);
+	ctx.textBaseline = "top";
+	ctx.textAlign = "left";
+	ctx.strokeText(`${player1Score}`, 0, 0);
+	ctx.fillText(`${player1Score}`, 0, 0);
+	ctx.restore();
+
+	// Draw :
+	ctx.save();
+	ctx.font = `bold ${fontSize * 0.8}px Tektur`;
+	ctx.translate(canvas.width * 0.5, canvas.height * 0.05);
+	ctx.textBaseline = "top";
+	ctx.textAlign = "center";
+	ctx.strokeText(`:`, 0, 0);
+	ctx.fillText(`:`, 0, 0);
+	ctx.restore();
+
+	// Draw Player 2 Score
+	ctx.save();
+	ctx.translate(canvas.width * 0.55, canvas.height * 0.05);
+	ctx.textBaseline = "top";
+	ctx.textAlign = "right";
+	ctx.strokeText(`${player2Score}`, 0, 0);
+	ctx.fillText(`${player2Score}`, 0, 0);
+	ctx.restore();
+}

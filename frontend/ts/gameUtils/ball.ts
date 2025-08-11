@@ -1,7 +1,7 @@
 // Dynamically calculate ball's size
 function getDynamicBallSize(canvas: HTMLCanvasElement): number {
 	const height = (canvas.height * 0.2);
-	const width = height / 6;
+	const width = height / 4;
 	return width;
 }
 

@@ -1,4 +1,4 @@
-import { initCanvas, resizeCanvas, drawBackground, drawOutline, drawDottedLine, drawPongText, getDynamicLineWidth } from "./gameUtils/drawBoard.js";
+import { initCanvas, resizeCanvas, drawBackground, drawOutline, drawDottedLine, drawPongText, getDynamicLineWidth, drawScore } from "./gameUtils/drawBoard.js";
 import { Player, dynamicallyAdjustPlayer } from "./gameUtils/player.js";
 import { Ball, dynamicallyAdjustBall } from "./gameUtils/ball.js";
 
@@ -18,8 +18,8 @@ export function initGameIfHome() {
 		const player1 = new Player(canvas);
 		const player2 = new Player(canvas);
 
-		player1.align(getDynamicLineWidth() * 2);
-		player2.align(canvas.width - getDynamicLineWidth() * 2);
+		player1.align(getDynamicLineWidth() * 2.5);
+		player2.align(canvas.width - getDynamicLineWidth() * 2.5);
 
 		function gameLoop() {
 			drawBackground();
@@ -34,6 +34,7 @@ export function initGameIfHome() {
 			ball.draw(ctx);
 			player1.draw(ctx);
 			player2.draw(ctx);
+			drawScore(ctx, player1.getScore(), player2.getScore());
 
 			requestAnimationFrame(gameLoop);
 		}
@@ -45,10 +46,10 @@ export function initGameIfHome() {
 
 			resizeCanvas();
 			
-			dynamicallyAdjustPlayer(player1);
-			dynamicallyAdjustPlayer(player2);
-			player1.align(getDynamicLineWidth() * 2);
-			player2.align(canvas.width - getDynamicLineWidth() * 2);
+			dynamicallyAdjustPlayer(player1, oldHeight);
+			dynamicallyAdjustPlayer(player2, oldHeight);
+			player1.align(getDynamicLineWidth() * 2.5);
+			player2.align(canvas.width - getDynamicLineWidth() * 2.5);
 
 			dynamicallyAdjustBall(ball, oldWidth, oldHeight);
 
