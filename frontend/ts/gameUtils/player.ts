@@ -1,5 +1,3 @@
-import { calculateCanvasSize, getDynamicLineWidth } from "./drawBoard.js";
-
 // calculate player dimensions
 function calculatePlayerDimensions(canvas: HTMLCanvasElement): { width: number; height: number } {
 	const height = canvas.height * 0.2;
@@ -39,38 +37,45 @@ type Position = {
 };
 
 export class Player {
-	score: number;
+	#score = 0;
+	#paddleSpeed = 5;
 	position: Position;
 	width: number;
 	height: number;
 	canvas: HTMLCanvasElement;
 
 	constructor(canvas: HTMLCanvasElement) {
-		this.score = 0;
 		this.canvas = canvas;
 		this.position = alignMiddle(this.canvas).position;
 		this.width = calculatePlayerDimensions(this.canvas).width;
 		this.height = calculatePlayerDimensions(this.canvas).height;
 	}
 
-	move(y: number) {
-		this.position.y += y;
+	move(deltaY: number) {
+		this.position.y += deltaY * this.#paddleSpeed;
+
+		// Keep player within canvas bounds
+		if (this.position.y < 0) {
+			this.position.y = 0;
+		} else if (this.position.y + this.height > this.canvas.height) {
+			this.position.y = this.canvas.height - this.height;
+		}
 	}
 
 	align(x: number) {
 		this.position.x = x;
 	}
 
-	addPoint() {
-		this.score++;
-	}
-
 	draw(ctx: CanvasRenderingContext2D) {
 		ctx.fillStyle = "gray";
-		ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
+		ctx.fillRect(this.position.x - this.width / 2, this.position.y, this.width, this.height);
+	}
+	
+	updateScore(newScore: number) {
+		this.#score = newScore;
 	}
 
 	getScore() {
-		return this.score;
+		return this.#score;
 	}
 }
