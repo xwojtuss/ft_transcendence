@@ -23,7 +23,7 @@ fastify.register(cookie, {
     parseOptions: {}
 });
 
-await deleteDatabase("test.sqlite");
+// await deleteDatabase("test.sqlite");
 export const db = await initDb("test.sqlite");
 export const cheerio = Cheerio;
 
@@ -31,7 +31,7 @@ fastify.register(fastifyStatic, {
     root: path.join(process.cwd(), 'frontend')
 });
 
-testDatabase(db);
+testDatabase();
 
 fastify.register(loginRoute);
 fastify.register(refreshRoute);

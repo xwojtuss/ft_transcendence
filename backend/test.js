@@ -2,45 +2,49 @@ import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getU
 import User from "./utils/User.js";
 import Match from "./utils/Match.js";
 
-export default async function testDatabase(db) {
-    let newuser = new User("wkornato");
-    await newuser.setPassword("test");
-    newuser.email = "wkornatoemail@gmail.com";
+export default async function testDatabase() {
+    try {
+        let newuser = new User("wkornato");
+        await newuser.setPassword("test");
+        newuser.email = "wkornatoemail@gmail.com";
 
-    addUser(newuser);
+        await addUser(newuser);
 
-    let pzurawic = new User("pzurawic");
-    await pzurawic.setPassword("hastobehashed");
-    pzurawic.email = "pzurawicemail@gmail.com";
+        let pzurawic = new User("pzurawic");
+        await pzurawic.setPassword("hastobehashed");
+        pzurawic.email = "pzurawicemail@gmail.com";
 
-    addUser(pzurawic);
+        await addUser(pzurawic);
 
-    let pingwin = new User("pingwin");
-    await pingwin.setPassword("itishashed");
-    pingwin.email = "pingwinemail@gmail.com";
+        let pingwin = new User("pingwin");
+        await pingwin.setPassword("itishashed");
+        pingwin.email = "pingwinemail@gmail.com";
 
-    addUser(pingwin);
+        await addUser(pingwin);
 
-    let newmatch = new Match(newuser);
-    newmatch.addParticipant(pzurawic);
-    newmatch.endMatch();
-    newmatch.addRank(newuser, 2);
-    newmatch.addRank(pzurawic, 1);
+        let newmatch = new Match(newuser);
+        newmatch.addParticipant(pzurawic);
+        newmatch.endMatch();
+        newmatch.addRank(newuser, 2);
+        newmatch.addRank(pzurawic, 1);
 
-    await addMatch(newmatch);
+        await addMatch(newmatch);
 
-    let secondMatch = new Match(pzurawic);
-    secondMatch.addParticipant(newuser);
-    secondMatch.addParticipant(pingwin);
-    secondMatch.endMatch();
-    secondMatch.addRank(pingwin, 1);
-    secondMatch.addRank(pzurawic, 2);
-    secondMatch.addRank(newuser, 3);
+        let secondMatch = new Match(pzurawic);
+        secondMatch.addParticipant(newuser);
+        secondMatch.addParticipant(pingwin);
+        secondMatch.endMatch();
+        secondMatch.addRank(pingwin, 1);
+        secondMatch.addRank(pzurawic, 2);
+        secondMatch.addRank(newuser, 3);
 
-    await addMatch(secondMatch);
+        await addMatch(secondMatch);
 
-    console.log(await getAllUsers());
-    console.log(await getAllMatchHistory());
-    console.log(await getAllMatches());
-    console.log(await getUserMatchHistory('wkornato'));
+        console.log(await getAllUsers());
+        console.log(await getAllMatchHistory());
+        console.log(await getAllMatches());
+        console.log(await getUserMatchHistory('wkornato'));
+    } catch (error) {
+        console.log(error);
+    }
 }
