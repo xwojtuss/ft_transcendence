@@ -10,6 +10,41 @@ const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.h
 const indexPromise = fs.readFile('./backend/index.html', "utf-8");
 
 /**
+ * Sends the complete view
+ * @param {string} view HTML for the view
+ * @param {any} isLoggedIn any data type that if assigned means the user is logged in
+ * @param {*} request the request
+ * @param {*} reply the reply
+ * @returns 
+ */
+export async function sendView(view, isLoggedIn, request, reply) {
+    if (request.headers['x-request-navigation-bar'] === 'true') {
+        return reply.send(await prepareHTML(view, request.headers['x-partial-load'], isLoggedIn ? true : false, true));
+    } else {
+        return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
+    }
+}
+
+/**
+ * Sends the error page and wraps it if needed
+ * @param {*} error the error instance
+ * @param {*} isLoggedIn any data type that if assigned means the user is logged in
+ * @param {*} request the request
+ * @param {*} reply the reply
+ * @returns 
+ */
+export async function sendErrorPage(error, isLoggedIn, request, reply) {
+    let errorPage;
+
+    if (error instanceof HTTPError) {
+        errorPage = await error.getErrorPage();
+    } else {
+        errorPage = await (new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR).getErrorPage());
+    }
+    return reply.type('text/html').code(error.code | StatusCodes.INTERNAL_SERVER_ERROR).send(await prepareHTML(errorPage, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
+}
+
+/**
  * Get the user session information from the access or refresh token
  * @param {*} fastify the fastify instance
  * @param {string} refreshToken the refresh token
@@ -44,60 +79,36 @@ export default async function viewsRoutes(fastify) {
     fastify.get("/login", async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (nickname)
+            return await sendErrorPage(new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST), nickname, request, reply);
         try {
             view = await getView('login');
-            if (request.headers['x-request-navigation-bar'] === 'true') {
-                return reply.send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, true));
-            } else {
-                return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
-            }
         } catch (error) {
-            if (error instanceof HTTPError) {
-                return reply.type('text/html').send(await error.getErrorPage());
-            } else {
-                console.error(error);
-                return reply.type('text/html').send(await new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR).getErrorPage());
-            }
+            return await sendErrorPage(error, nickname, request, reply);
         }
+        return await sendView(view, nickname, request, reply);
     });
     fastify.get("/profile/:login", async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (!nickname)
+            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), nickname, request, reply);
         try {
             view = await getProfile(request.params.login);
-            if (request.headers['x-request-navigation-bar'] === 'true') {
-                return reply.send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, true));
-            } else {
-                return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
-            }
-            
         } catch (error) {
-            if (error instanceof HTTPError) {
-                return reply.type('text/html').send(await error.getErrorPage());
-            } else {
-                console.error(error);
-                return reply.type('text/html').send(await new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR).getErrorPage());
-            }
+            return await sendErrorPage(error, nickname, request, reply);
         }
+        return await sendView(view, nickname, request, reply);
     });
     fastify.setNotFoundHandler(async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         try {
             view = await getView('');
-            if (request.headers['x-request-navigation-bar'] === 'true') {
-                return reply.send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, true));
-            } else {
-                return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], nickname ? true : false, false));
-            }
         } catch (error) {
-            if (error instanceof HTTPError) {
-                return reply.type('text/html').send(await error.getErrorPage());
-            } else {
-                console.error(error);
-                return reply.type('text/html').send(await new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR).getErrorPage());
-            }
+            return await sendErrorPage(error, nickname, request, reply);
         }
+        return await sendView(view, nickname, request, reply);
     });
 }
 
