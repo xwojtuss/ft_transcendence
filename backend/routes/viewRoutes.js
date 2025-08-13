@@ -105,7 +105,7 @@ export default async function viewsRoutes(fastify) {
         if (!nickname)
             return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), nickname, request, reply);
         try {
-            view = await getProfile(nickname);
+            view = await getProfile(nickname, nickname);
         } catch (error) {
             return await sendErrorPage(error, nickname, request, reply);
         }
@@ -117,7 +117,7 @@ export default async function viewsRoutes(fastify) {
         if (!nickname)
             return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), nickname, request, reply);
         try {
-            view = await getProfile(request.params.login);
+            view = await getProfile(nickname, request.params.login);
         } catch (error) {
             return await sendErrorPage(error, nickname, request, reply);
         }

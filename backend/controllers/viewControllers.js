@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, getUserMatchHistory } from "../db/dbQuery.js";
+import { getUser, getUserMatchHistory, areFriends } from "../db/dbQuery.js";
 import { cheerio } from '../server.js';
 import HTTPError from "../utils/error.js";
 
@@ -79,16 +79,18 @@ function getMobileMatchHTML(match, currentUser) {
     return row.html();
 }
 
-export async function getProfile(login) {
-    if (!login)
+export async function getProfile(loggedInNickname, toFetchNickname) {
+    if (!loggedInNickname)
         throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
     const cachedProfileHtml = await cachedProfileHtmlPromise;
-    const user = await getUser(login);
+    const user = await getUser(toFetchNickname);
     if (!user)
         throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
     const profilePage = cheerio.load(cachedProfileHtml, null, false);
     profilePage('.user-stats span.nickname span.user-nickname').text(user.nickname);
-    if (user.isOnline === false) {
+    if (loggedInNickname != toFetchNickname && !(await areFriends(loggedInNickname, toFetchNickname))) {
+        profilePage('.tooltip').html('');
+    } else if (user.isOnline === false) {
         profilePage('.tooltip .tooltiptext').text('Offline');
         profilePage('.tooltip svg').removeClass('online-indicator');
         profilePage('.tooltip svg').addClass('offline-indicator');
@@ -99,8 +101,8 @@ export async function getProfile(login) {
     profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
     const userMatches = await getUserMatchHistory(user.nickname);
     userMatches.forEach(match => {
-        profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, login));
-        profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, login));
+        profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, loggedInNickname));
+        profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, loggedInNickname));
     });
     return profilePage.html();
 }

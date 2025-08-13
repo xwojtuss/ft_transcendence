@@ -165,3 +165,22 @@ export async function addMatch(match) {
         throw new Error("Insert failed");
     }
 }
+
+export async function areFriends(userOne, userTwo) {
+    const relationship = await db.get(`
+        SELECT u1.nickname AS originator_nickname,
+            u2.nickname AS friended_nickname
+        FROM friends_with
+        JOIN users u1 ON u1.user_id = friends_with.originator
+        JOIN users u2 ON u2.user_id = friends_with.friended
+        WHERE is_invite = false
+        AND ((u1.nickname = ? AND u2.nickname = ?) OR (u1.nickname = ? AND u2.nickname = ?))`,
+        userOne, userTwo, userTwo, userOne);
+    console.log(relationship);
+    if (relationship === undefined) {
+        console.log('false');
+        return false;
+    }
+    console.log('true');
+    return true;
+}
