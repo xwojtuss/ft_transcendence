@@ -4,13 +4,11 @@ import { getUser, getUserMatchHistory } from "../db/dbQuery.js";
 import { cheerio } from '../server.js';
 import HTTPError from "../utils/error.js";
 
-const allowedNames = new Set(["", "home", "friends", "login", "register", "update"]);
+const allowedNames = new Set(["login", "register"]);
 
-export async function getView(name) {
+export async function getStaticView(name) {
     if (allowedNames.has(name) === false)
         throw new HTTPError(StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND);
-    if (name === "")
-        name = "home";
     try {
         return await fs.readFile(`./backend/views/${name}.html`, "utf-8");
     } catch (error) {

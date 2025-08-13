@@ -1,5 +1,5 @@
 import { checkAuthHeader, checkRefreshToken } from "../controllers/authControllers.js";
-import { getView, getProfile } from "../controllers/viewControllers.js";
+import { getStaticView, getProfile } from "../controllers/viewControllers.js";
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fs from "fs/promises";
@@ -41,7 +41,7 @@ export async function sendErrorPage(error, isLoggedIn, request, reply) {
     } else {
         errorPage = await (new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR).getErrorPage());
     }
-    return reply.type('text/html').code(error.code | StatusCodes.INTERNAL_SERVER_ERROR).send(await prepareHTML(errorPage, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
+    return reply.type('text/html').code(error.code || StatusCodes.INTERNAL_SERVER_ERROR).send(await prepareHTML(errorPage, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
 }
 
 /**
@@ -75,14 +75,37 @@ async function getUserSession(fastify, refreshToken, headers) {
  * @param {*} fastify the fastify instance
  */
 export default async function viewsRoutes(fastify) {
-    // for non-dynamic sites: login, register
     fastify.get("/login", async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         if (nickname)
             return await sendErrorPage(new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST), nickname, request, reply);
         try {
-            view = await getView('login');
+            view = await getStaticView('login');
+        } catch (error) {
+            return await sendErrorPage(error, nickname, request, reply);
+        }
+        return await sendView(view, nickname, request, reply);
+    });
+    fastify.get("/register", async (request, reply) => {
+        let view;
+        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (nickname)
+            return await sendErrorPage(new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST), nickname, request, reply);
+        try {
+            view = await getStaticView('register');
+        } catch (error) {
+            return await sendErrorPage(error, nickname, request, reply);
+        }
+        return await sendView(view, nickname, request, reply);
+    });
+    fastify.get("/profile", async (request, reply) => {
+        let view;
+        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (!nickname)
+            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), nickname, request, reply);
+        try {
+            view = await getProfile(nickname);
         } catch (error) {
             return await sendErrorPage(error, nickname, request, reply);
         }

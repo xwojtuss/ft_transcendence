@@ -39,8 +39,12 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
         if (response.status === 400) {
             console.log('redirecting to /')
             return renderPage('/', true);
-        } else if (response.status === 401 && await refreshAccessToken() === false) {
-            return renderPage('/login', true);
+        } else if (response.status === 401) {
+            if (await refreshAccessToken() === false) {
+                return renderPage('/login', true);
+            } else {
+                return renderPage(pathURL, requestNavBar);
+            }
         }
         let view: string;
         if (requestNavBar && navigation) {
