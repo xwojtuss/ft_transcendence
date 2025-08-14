@@ -11,6 +11,11 @@ export default class User {
     _won_games = 0;
     _lost_games = 0;
 
+    /**
+     * Create the user 
+     * @param {string} nickname User nickname
+     * @param {string} password Optional, you should only pass the hashed password here!
+     */
     constructor(nickname, password) {
         this._nickname = nickname;
         if (password)
@@ -29,10 +34,19 @@ export default class User {
         return this._isOnline;
     }
 
+    /**
+     * Adds a password to the user and hashes it
+     * @param {string} password Unhashed password
+     */
     async setPassword(password) {
         this._password = await bcrypt.hash(password, SALT_ROUNDS);
     }
 
+    /**
+     * Check if the password is correct
+     * @param {string} passwordTry Unhashed password to check
+     * @returns {Promise<boolean>} Whether the password is correct or not
+     */
     async validatePassword(passwordTry) {
         let isCorrect = false;
         try {

@@ -1,22 +1,24 @@
-import path from "path";
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, getUserMatchHistory } from "../db/dbQuery.js";
+import { getUser, getUserMatchHistory, areFriends } from "../db/dbQuery.js";
 import { cheerio } from '../server.js';
+import HTTPError from "../utils/error.js";
 
-const allowedNames = new Set(["", "home", "friends", "login", "register", "update"]);
+const allowedNames = new Set(["login", "register", "home"]);// TEMP delete home, add a separate function for '/'
 
-export async function getView(name) {
+/**
+ * Gets the static views e.g. login
+ * @param {string} name Name of the view to get
+ * @returns {Promise<string>} The rendered static view
+ * @throws {HTTPError} NOT_FOUND if the view was not found, INTERNAL_SERVER_ERROR when there has been an Error thrown
+ */
+export async function getStaticView(name) {
     if (allowedNames.has(name) === false)
-        return [StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND];
-    if (name === "")
-        name = "home";
-    const viewPath = path.join(process.cwd(), `backend/views/${name}.html`);
+        throw new HTTPError(StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND);
     try {
-        const view = await fs.readFile(viewPath, "utf-8");
-        return [StatusCodes.OK, view];
+        return await fs.readFile(`./backend/views/${name}.html`, "utf-8");
     } catch (error) {
-        return [StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR];
+        throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR);
     }
 }
 
@@ -83,33 +85,45 @@ function getMobileMatchHTML(match, currentUser) {
     return row.html();
 }
 
-export async function getProfile(login) {
-    if (!login)
-        return [StatusCodes.NOT_FOUND, 'Requested resource does not exist.'];
-    try {
-        const cachedProfileHtml = await cachedProfileHtmlPromise;
-        const user = await getUser(login);
-        if (!user)
-            return [StatusCodes.NOT_FOUND, 'Requested resource does not exist.'];
-        const profilePage = cheerio.load(cachedProfileHtml, null, false);
-        profilePage('.user-stats span.nickname span.user-nickname').text(user.nickname);
-        if (user.isOnline === false) {
-            profilePage('.tooltip .tooltiptext').text('Offline');
-            profilePage('.tooltip svg').removeClass('online-indicator');
-            profilePage('.tooltip svg').addClass('offline-indicator');
-        }
-        profilePage('.wins-losses div:first-child span:first-child').text(user.won_games);
-        profilePage('.wins-losses div:last-child span:first-child').text(user.lost_games);
-        profilePage('.user-info .avatar img').attr('src', user.avatar || '/assets/default-avatar.svg');
-        profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
-        const userMatches = await getUserMatchHistory(user.nickname);
-        userMatches.forEach(match => {
-            profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, login));
-            profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, login));
-        });
-        return [StatusCodes.OK, profilePage.html()];
-    } catch (error) {
-        console.error(error);
-        return [StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR];
+function getEmptyMatchHistory(user) {
+    const empty = cheerio.load(`
+        <p>${user.nickname || user}'s Match History</p>
+        <p class="empty-list">No matches yet!</p>
+        `, null, false)
+    return empty.html();
+}
+
+export async function getProfile(loggedInNickname, toFetchNickname) {
+    if (!loggedInNickname)
+        throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
+    const cachedProfileHtml = await cachedProfileHtmlPromise;
+    const user = await getUser(toFetchNickname);
+    if (!user)
+        throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
+    const profilePage = cheerio.load(cachedProfileHtml, null, false);
+    profilePage('.user-stats span.nickname span.user-nickname').text(user.nickname);
+    if (loggedInNickname != toFetchNickname && !(await areFriends(loggedInNickname, toFetchNickname))) {
+        profilePage('.tooltip').html('');
+    } else if (user.isOnline === false) {
+        profilePage('.tooltip .tooltiptext').text('Offline');
+        profilePage('.tooltip svg').removeClass('online-indicator');
+        profilePage('.tooltip svg').addClass('offline-indicator');
     }
+    if (loggedInNickname !== toFetchNickname) {
+        profilePage('.avatar p').remove();
+    }
+    profilePage('.wins-losses div:first-child span:first-child').text(user.won_games);
+    profilePage('.wins-losses div:last-child span:first-child').text(user.lost_games);
+    profilePage('.user-info .avatar img').attr('src', user.avatar || '/assets/default-avatar.svg');
+    profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
+    const userMatches = await getUserMatchHistory(user.nickname);
+    userMatches.forEach(match => {
+        profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, loggedInNickname));
+        profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, loggedInNickname));
+    });
+    if (userMatches.size === 0) {
+        profilePage('.match-history-desktop').html(getEmptyMatchHistory(toFetchNickname));
+        profilePage('.match-history-mobile').html(getEmptyMatchHistory(toFetchNickname));
+    }
+    return profilePage.html();
 }

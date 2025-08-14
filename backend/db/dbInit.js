@@ -4,6 +4,11 @@ import fs from "fs/promises";
 
 sqlite3.verbose();
 
+/**
+ * Initialize the database, run the schema.sql script
+ * @param {string} filename The filename of the database e.g. test.sqlite
+ * @returns {Promise<Database>} The database instance
+ */
 export async function initDb(filename) {
   const db = await open({
     filename: './backend/db/' + filename,
