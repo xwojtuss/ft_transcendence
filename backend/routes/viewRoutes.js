@@ -142,7 +142,7 @@ export default async function viewsRoutes(fastify) {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         try {
-            view = await getView('');
+            view = await getStaticView('');
         } catch (error) {
             return await sendErrorPage(error, nickname, request, reply);
         }

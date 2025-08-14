@@ -44,7 +44,8 @@ export default class Match {
 
     /**
      * Add participants before we end the match
-     * @param {string | User} user The user to add
+     * Remove a participant before the match ends
+     * @param {string | User} user The user to remove
      * @throws {Error} when the match has ended or when the user is not defined
      */
     removeParticipant(user) {
@@ -98,7 +99,7 @@ export default class Match {
     /**
      * Get the rank of a user
      * @param {string | User} participant The user whose rank to get
-     * @returns 
+     * @returns {number|undefined} The rank of the participant, or undefined if not found.
      */
     getRank(participant) {
         return this._participants.get(participant);

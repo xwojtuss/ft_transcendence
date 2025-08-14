@@ -79,6 +79,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
             break;
         case '/register':
             formPasswordVisibility();
+            break;
         default:
             break;
     }
