@@ -40,39 +40,13 @@ export async function getAllMatchHistory() {
     }
 }
 
-/*
-<th>Date</th>
-<th>Player Count</th>
-<th>Opponents</th>
-<th>Initiator</th>
-<th>Rank</th>
-
-CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY,
-    nickname TEXT NOT NULL UNIQUE,
-    is_online BOOLEAN DEFAULT true,
-    password TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    avatar TEXT,
-    won_games INTEGER DEFAULT 0,
-    lost_games INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS match_history (
-    match_id INTEGER PRIMARY KEY,
-    ended_at TIMESTAMP NOT NULL,
-    num_of_players INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS matches (
-    match_id INTEGER NOT NULL REFERENCES match_history(match_id),
-    participant INTEGER NOT NULL REFERENCES users(user_id),
-    is_originator BOOLEAN NOT NULL,
-    rank INTEGER NOT NULL,
-    PRIMARY KEY (match_id, participant)
-);
-*/
-export async function getUserMatchHistory(nickname) {
+/**
+ * Get the match history of a user
+ * @param {string | User} user The user nickname or User
+ * @returns {Promise<Map<number, Match>>} A map of [match.match_id, Match]
+ * @throws {Error} if query failed
+ */
+export async function getUserMatchHistory(user) {
     const matchesMap = new Map();
     try {
         const matches = await db.all(`
@@ -93,7 +67,7 @@ export async function getUserMatchHistory(nickname) {
                 WHERE m2.match_id = match_history.match_id
                 AND u2.nickname = ?
             )
-            ORDER BY matches.is_originator DESC;`, nickname);
+            ORDER BY matches.is_originator DESC;`, user.nickname || user);
         matches.forEach(match => {
             let matchInstance;
             if (matchesMap.has(match.match_id) === false) {
@@ -166,6 +140,12 @@ export async function addMatch(match) {
     }
 }
 
+/**
+ * Check if two users are friends
+ * @param {string | User} userOne Nickname of user or the User
+ * @param {string | User} userTwo Nickname of the second user or the the second User
+ * @returns {Promise<boolean>} Whether they are friends
+ */
 export async function areFriends(userOne, userTwo) {
     const relationship = await db.get(`
         SELECT u1.nickname AS originator_nickname,
@@ -175,7 +155,7 @@ export async function areFriends(userOne, userTwo) {
         JOIN users u2 ON u2.user_id = friends_with.friended
         WHERE is_invite = false
         AND ((u1.nickname = ? AND u2.nickname = ?) OR (u1.nickname = ? AND u2.nickname = ?))`,
-        userOne, userTwo, userTwo, userOne);
+        userOne.nickname || userOne, userTwo.nickname || userTwo, userTwo.nickname || userTwo, userOne.nickname || userOne);
     console.log(relationship);
     if (relationship === undefined) {
         console.log('false');

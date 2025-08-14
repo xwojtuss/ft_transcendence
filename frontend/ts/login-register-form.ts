@@ -1,3 +1,7 @@
+/**
+ * Sets up the listeners for the change password visibility buttons
+ * @returns
+ */
 export default function formPasswordVisibility() {
     const passwordField = document.getElementById('password-input') as HTMLInputElement;
     if (!passwordField) {

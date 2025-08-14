@@ -2,6 +2,9 @@ import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getU
 import User from "./utils/User.js";
 import Match from "./utils/Match.js";
 
+/**
+ * Adds test users and test matches
+ */
 export default async function testDatabase() {
     try {
         let newuser = new User("wkornato");

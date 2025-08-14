@@ -10,6 +10,7 @@ import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
 import loginRoute, { refreshRoute } from "./routes/authRoutes.js";
 
+// setup fastify and use the console logger
 const fastify = Fastify({
     logger: true
 });
@@ -23,16 +24,18 @@ fastify.register(cookie, {
     parseOptions: {}
 });
 
-// await deleteDatabase("test.sqlite");
-export const db = await initDb("test.sqlite");
+// await deleteDatabase("database.sqlite");
+export const db = await initDb("database.sqlite");
 export const cheerio = Cheerio;
 
 fastify.register(fastifyStatic, {
     root: path.join(process.cwd(), 'frontend')
 });
 
-testDatabase();
+if (process.env.IS_PRODUCTION !== 'true')
+    testDatabase();// TEMP delete on PROD
 
+// register the server routes
 fastify.register(loginRoute);
 fastify.register(refreshRoute);
 fastify.register(viewsRoutes);

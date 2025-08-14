@@ -5,7 +5,12 @@ export default class Match {
     _numOfPlayers = 0;
     _maxNumOfPlayers = -1;
 
-    // maxNumOfPlayers can be null, then we don't limit the number of players
+    /**
+     * Create a match
+     * @param {string | User} originator The person who created the match
+     * @param {number | null} maxNumOfPlayers null if we don't limit the number of players, otherwise the max num of players
+     * @throws {Error} originator is not defined or when maxNumOfPlayers is less than 2
+     */
     constructor(originator, maxNumOfPlayers) {
         if (!originator)
             throw new Error("Originator must exist");
@@ -23,7 +28,11 @@ export default class Match {
         return this._originator;
     }
 
-    // before the scores are known
+    /**
+     * Add participants before we end the match
+     * @param {string | User} user The user to add
+     * @throws {Error} When user is not defined or when there's too many players
+     */
     addParticipant(user) {
         if (!user)
             throw new Error("User must exist");
@@ -33,6 +42,11 @@ export default class Match {
         this._numOfPlayers++;
     }
 
+    /**
+     * Add participants before we end the match
+     * @param {string | User} user The user to add
+     * @throws {Error} when the match has ended or when the user is not defined
+     */
     removeParticipant(user) {
         if (this._endedAt)
             throw new Error("Match has ended");
@@ -42,13 +56,20 @@ export default class Match {
         this._numOfPlayers--;
     }
 
-    // after the scores are known
+    /**
+     * Set the rank of a user
+     * @param {string | User} user The user which rank to set
+     * @param {number} rank The rank of the user, 1 being the highest
+     */
     addRank(user, rank) {
         if (rank < 1 || (this._maxNumOfPlayers !== -1 && rank > this._maxNumOfPlayers))
             throw new Error("Rank is invalid");
         this._participants.set(user, rank);
     }
 
+    /**
+     * End the match, set the EndedAt timestamp
+     */
     endMatch() {
         this._endedAt = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
     }
@@ -74,6 +95,11 @@ export default class Match {
         return this._endedAt;
     }
 
+    /**
+     * Get the rank of a user
+     * @param {string | User} participant The user whose rank to get
+     * @returns 
+     */
     getRank(participant) {
         return this._participants.get(participant);
     }

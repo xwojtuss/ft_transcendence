@@ -1,6 +1,10 @@
 import { renderPage } from "./app.js";
 export let accessToken: string | null = null;
 
+/**
+ * Tries to refresh the access token
+ * @returns false if session is not active or has expired, true if the tokens have been refreshed
+ */
 export async function refreshAccessToken(): Promise<boolean> {
     const result = await fetch('/api/auth/refresh', {
         method: 'POST',
@@ -18,6 +22,10 @@ export async function refreshAccessToken(): Promise<boolean> {
     return true;
 }
 
+/**
+ * Sets up the listeners for the login page,
+ * Makes the submit buttons fetch /api/auth/login
+ */
 export async function loginHandler() {
     document.getElementById('login-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();

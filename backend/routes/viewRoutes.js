@@ -75,6 +75,17 @@ async function getUserSession(fastify, refreshToken, headers) {
  * @param {*} fastify the fastify instance
  */
 export default async function viewsRoutes(fastify) {
+    fastify.get("/", async (request, reply) => {
+        let view;
+        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        try {
+            view = await getStaticView('home');
+        } catch (error) {
+            return await sendErrorPage(error, nickname, request, reply);
+        }
+        return await sendView(view, nickname, request, reply);
+    });
+
     fastify.get("/login", async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
@@ -87,6 +98,7 @@ export default async function viewsRoutes(fastify) {
         }
         return await sendView(view, nickname, request, reply);
     });
+
     fastify.get("/register", async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
@@ -99,6 +111,7 @@ export default async function viewsRoutes(fastify) {
         }
         return await sendView(view, nickname, request, reply);
     });
+
     fastify.get("/profile", async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
@@ -111,6 +124,7 @@ export default async function viewsRoutes(fastify) {
         }
         return await sendView(view, nickname, request, reply);
     });
+
     fastify.get("/profile/:login", async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
@@ -123,6 +137,7 @@ export default async function viewsRoutes(fastify) {
         }
         return await sendView(view, nickname, request, reply);
     });
+
     fastify.setNotFoundHandler(async (request, reply) => {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);

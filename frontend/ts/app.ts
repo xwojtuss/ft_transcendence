@@ -5,6 +5,7 @@ import formPasswordVisibility from "./login-register-form.js";
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
 
+// to make the <a> links render different views in <main>
 document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
 
@@ -19,10 +20,18 @@ document.addEventListener('click', (e) => {
     }
 })
 
+// to make the back and forward buttons function
 window.addEventListener('popstate', handleRouteChange);
 
+// change the nav bar style on load
 changeActiveStyle();
 
+/**
+ * Render the view or the whole document
+ * @param pathURL the path to the view e.g. /login
+ * @param requestNavBar whether to also refresh the nav bar
+ * @returns
+ */
 export async function renderPage(pathURL: string, requestNavBar: boolean) {
     if (!app)
         return;
@@ -36,10 +45,10 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
                 'X-Request-Navigation-Bar': `${requestNavBar}`
             }
         });
-        if (response.status === 400) {
+        if (response.status === 400) {// bad request e.g. to /login if user is logged in already
             console.log('redirecting to /')
             return renderPage('/', true);
-        } else if (response.status === 401) {
+        } else if (response.status === 401) {// unauthorized e.g. to a /profile if the user is not logged in
             if (await refreshAccessToken() === false) {
                 return renderPage('/login', true);
             } else {
@@ -75,10 +84,17 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
     }
 }
 
+/**
+ * Render the view of window.location.pathname
+ */
 async function handleRouteChange() {
     await renderPage(window.location.pathname, true);
 }
 
+/**
+ * Change the style of the nav bar buttons
+ * @param pathURL path to find in the href attr in <a>
+ */
 function changeActiveStyle(pathURL?: string) {
     const path: string = pathURL || window.location.pathname;
     document.querySelectorAll('.nav-link').forEach(link => {

@@ -10,6 +10,10 @@ export default class HTTPError extends Error {
         this.message = message;
     }
 
+    /**
+     * Get the error page HTML of a particular error
+     * @returns {Promise<string>} The rendered error page
+     */
     async getErrorPage() {
         const cachedErrorHtml = await cachedErrorHtmlPromise;
         const errorPage = cheerio.load(cachedErrorHtml, null, false);
