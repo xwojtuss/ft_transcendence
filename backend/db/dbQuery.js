@@ -156,11 +156,8 @@ export async function areFriends(userOne, userTwo) {
         WHERE is_invite = false
         AND ((u1.nickname = ? AND u2.nickname = ?) OR (u1.nickname = ? AND u2.nickname = ?))`,
         userOne.nickname || userOne, userTwo.nickname || userTwo, userTwo.nickname || userTwo, userOne.nickname || userOne);
-    console.log(relationship);
     if (relationship === undefined) {
-        console.log('false');
         return false;
     }
-    console.log('true');
     return true;
 }

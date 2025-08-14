@@ -46,7 +46,6 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
             }
         });
         if (response.status === 400) {// bad request e.g. to /login if user is logged in already
-            console.log('redirecting to /')
             return renderPage('/', true);
         } else if (response.status === 401) {// unauthorized e.g. to a /profile if the user is not logged in
             if (await refreshAccessToken() === false) {
