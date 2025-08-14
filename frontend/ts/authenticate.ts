@@ -11,7 +11,7 @@ export async function refreshAccessToken(): Promise<boolean> {
         headers: { Authorization: `Bearer ${accessToken}` },
         credentials: 'include'
     });
-    if (result.status === 400) {
+    if (result.status === 403) {
         return true;// if the access token was already valid
     }
     if (!result.ok) {
@@ -39,10 +39,38 @@ export async function loginHandler() {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${accessToken}`
             },
-            body: JSON.stringify(data),
-
+            body: JSON.stringify(data)
         });
-        if (result.status === 400) {// user is already logged in
+        if (result.status === 403) {// user is already logged in
+            return await renderPage('/', true);
+        } else if (!result.ok) {
+            return alert((await result.json()).message);
+        }
+        accessToken = (await result.json()).accessToken;
+        return await renderPage('/', true);
+    });
+}
+
+/**
+ * Sets up the listeners for the register page,
+ * Makes the submit buttons fetch /api/auth/register
+ */
+export async function registerHandler() {
+    document.getElementById('register-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target as HTMLFormElement);
+        const data = Object.fromEntries(formData.entries());
+
+        const result = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`
+            },
+            body: JSON.stringify(data)
+        });
+        if (result.status === 403) {// user is already logged in
             return await renderPage('/', true);
         } else if (!result.ok) {
             return alert((await result.json()).message);

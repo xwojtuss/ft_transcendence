@@ -30,6 +30,24 @@ export async function getUser(nickname) {
     }
 }
 
+export async function getUserByEmail(email) {
+    try {
+        const user = await db.get("SELECT * FROM users WHERE email=? LIMIT 1", email);
+        if (!user || user.empty)
+            return null;
+        const userInstance = new User(user.nickname, user.password);
+        userInstance.email = user.email;
+        userInstance.isOnline = user.is_online;
+        userInstance.avatar = user.avatar;
+        userInstance.won_games = user.won_games;
+        userInstance.lost_games = user.lost_games;
+        return userInstance;
+    } catch (error) {
+        console.error("Failed to fetch user:", error.message);
+        throw new Error("Database query failed");
+    }
+}
+
 export async function getAllMatchHistory() {
     try {
         const matches = await db.all("SELECT * FROM match_history");

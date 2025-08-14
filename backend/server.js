@@ -8,7 +8,7 @@ import testDatabase from "./test.js";
 import * as Cheerio from 'cheerio';
 import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
-import loginRoute, { refreshRoute } from "./routes/authRoutes.js";
+import loginRoute, { refreshRoute, registerRoute } from "./routes/authRoutes.js";
 
 // setup fastify and use the console logger
 const fastify = Fastify({
@@ -37,6 +37,7 @@ if (process.env.IS_PRODUCTION !== 'true')
 
 // register the server routes
 fastify.register(loginRoute);
+fastify.register(registerRoute);
 fastify.register(refreshRoute);
 fastify.register(viewsRoutes);
 
