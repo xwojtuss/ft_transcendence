@@ -1,17 +1,29 @@
-// const nicknameSchema = z
-//     .string()
-//     .min(4, "Username must have at least 4 characters")
-//     .max(12, "Username must have at most 12 characters")
-//     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores");
-// const emailSchema = z
-//     .email("Invalid email address");
-// const nicknameOrEmailRefine = z
-//     .string()
-//     .refine((val) => nicknameSchema.safeParse(val).success || emailSchema.safeParse(val).success, {
-//         message: "Nickname or email must be valid",
-//     });
+export function getErrorLogin(login: string): string | undefined {
+    if (getErrorNickname(login) && getErrorEmail(login)) {
+        return "Nickname or email must be valid";
+    }
+    return undefined;
+}
 
-export default function getErrorForPassword(password: string): string | undefined {
+export function getErrorEmail(email: string): string | undefined {
+    if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/g.test(email)) {
+        return "Invalid email address";
+    }
+    return undefined;
+}
+
+export function getErrorNickname(nickname: string): string | undefined {
+    if (nickname.length < 4) {
+        return "Username must have at least 4 characters";
+    } else if (nickname.length > 12) {
+        return "Username must have at most 12 characters";
+    } else if (!/^[a-zA-Z0-9_]+$/.test(nickname)) {
+        return "Username can only contain letters, numbers, and underscores";
+    }
+    return undefined;
+}
+
+export function getErrorPassword(password: string): string | undefined {
     if (password.length < 8) {
         return "Password must have at least 8 characters";
     } else if (password.length > 30) {
