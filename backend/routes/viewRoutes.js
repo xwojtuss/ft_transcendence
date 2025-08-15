@@ -90,7 +90,7 @@ export default async function viewsRoutes(fastify) {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         if (nickname)
-            return await sendErrorPage(new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST), nickname, request, reply);
+            return await sendErrorPage(new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN), nickname, request, reply);
         try {
             view = await getStaticView('login');
         } catch (error) {
@@ -103,7 +103,7 @@ export default async function viewsRoutes(fastify) {
         let view;
         const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         if (nickname)
-            return await sendErrorPage(new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST), nickname, request, reply);
+            return await sendErrorPage(new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN), nickname, request, reply);
         try {
             view = await getStaticView('register');
         } catch (error) {

@@ -1,4 +1,4 @@
-import { loginHandler, refreshAccessToken } from "./authenticate.js";
+import { loginHandler, registerHandler, refreshAccessToken } from "./authenticate.js";
 import { accessToken } from "./authenticate.js";
 import formPasswordVisibility from "./login-register-form.js";
 
@@ -45,24 +45,31 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
                 'X-Request-Navigation-Bar': `${requestNavBar}`
             }
         });
-        if (response.status === 400) {// bad request e.g. to /login if user is logged in already
-            return renderPage('/', true);
-        } else if (response.status === 401) {// unauthorized e.g. to a /profile if the user is not logged in
-            if (await refreshAccessToken() === false) {
-                return renderPage('/login', true);
-            } else {
+        switch (response.status) {
+            case 400:// bad request
+                alert((await response.json()).message);
+                break;
+            case 401:// unauthorized
+                // e.g. to a /profile if the user is not logged in
+                if (await refreshAccessToken() === false) {
+                    return renderPage('/login', true);
+                }
                 return renderPage(pathURL, requestNavBar);
-            }
+            case 403:// forbidden
+                // e.g. to /login if user is logged in already
+                return renderPage('/', true);
+            default:
+                break;
         }
         let view: string;
         if (requestNavBar && navigation) {
             const jsonHTML = await response.json();
             view = jsonHTML.app;
-            navigation.innerHTML = jsonHTML.nav;
+            navigation.innerHTML = DOMPurify.sanitize(jsonHTML.nav);
         } else {
             view = await response.text();
         }
-        app.innerHTML = view;
+        app.innerHTML = DOMPurify.sanitize(view);
         const newUrl = new URL(pathURL, window.location.origin).pathname;
         if (window.location.pathname !== newUrl) {
             window.history.pushState({}, '', newUrl);
@@ -77,6 +84,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
             formPasswordVisibility();
             break;
         case '/register':
+            await registerHandler();
             formPasswordVisibility();
             break;
         default:
