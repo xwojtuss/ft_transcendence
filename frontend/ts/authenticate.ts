@@ -37,7 +37,7 @@ export async function loginHandler() {
         let errorMessage = getErrorLogin(data.login as string);
         if (errorMessage) {
             return alert(errorMessage);
-        } else if (errorMessage = getErrorPassword(data.password as string)) {
+        } else if ((errorMessage = getErrorPassword(data.password as string))) {
             return alert(errorMessage);
         }
         const result = await fetch('/api/auth/login', {
@@ -72,9 +72,9 @@ export async function registerHandler() {
         let errorMessage = getErrorNickname(data.nickname as string);
         if (errorMessage) {
             return alert(errorMessage);
-        } else if (errorMessage = getErrorEmail(data.email as string)) {
+        } else if ((errorMessage = getErrorEmail(data.email as string))) {
             return alert(errorMessage);
-        } else if (errorMessage = getErrorPassword(data.password as string)) {
+        } else if ((errorMessage = getErrorPassword(data.password as string))) {
             return alert(errorMessage);
         }
         const result = await fetch('/api/auth/register', {

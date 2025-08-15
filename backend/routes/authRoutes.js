@@ -16,7 +16,7 @@ const passwordSchema = z
     .string()
     .min(8, "Password must have at least 8 characters")
     .max(30, "Password must have at most 30 characters")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).+$/, "Password must include uppercase letter, lowercase letter, number and a special character");
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).+$/, "Password must include an uppercase letter, a lowercase letter, a number and a special character");
 const nicknameOrEmailRefine = z
     .string()
     .refine((val) => nicknameSchema.safeParse(val).success || emailSchema.safeParse(val).success, {

@@ -32,7 +32,7 @@ export function getErrorPassword(password: string): string | undefined {
             || !/[A-Z]/.test(password)
             || !/\d/.test(password)
             || !/[!@#$%^&*]/.test(password)) {
-        return "Password must include uppercase letter, lowercase letter, number and a special character"
+        return "Password must include an uppercase letter, a lowercase letter, a number and a special character"
     }
     return undefined;
 }
