@@ -1,4 +1,5 @@
 import { renderPage } from "./app.js";
+import getErrorForPassword from "./validateInput.js";
 export let accessToken: string | null = null;
 
 /**
@@ -33,6 +34,10 @@ export async function loginHandler() {
         const formData = new FormData(e.target as HTMLFormElement);
         const data = Object.fromEntries(formData.entries());
 
+        let errorMessage = getErrorForPassword(data.password as string);
+        if (errorMessage) {
+            return alert(errorMessage);
+        }
         const result = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {
@@ -62,6 +67,10 @@ export async function registerHandler() {
         const formData = new FormData(e.target as HTMLFormElement);
         const data = Object.fromEntries(formData.entries());
 
+        let errorMessage = getErrorForPassword(data.password as string);
+        if (errorMessage) {
+            return alert(errorMessage);
+        }
         const result = await fetch('/api/auth/register', {
             method: 'POST',
             headers: {
