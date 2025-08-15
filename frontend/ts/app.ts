@@ -65,11 +65,11 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
         if (requestNavBar && navigation) {
             const jsonHTML = await response.json();
             view = jsonHTML.app;
-            navigation.innerHTML = jsonHTML.nav;
+            navigation.innerHTML = DOMPurify.sanitize(jsonHTML.nav);
         } else {
             view = await response.text();
         }
-        app.innerHTML = view;
+        app.innerHTML = DOMPurify.sanitize(view);
         const newUrl = new URL(pathURL, window.location.origin).pathname;
         if (window.location.pathname !== newUrl) {
             window.history.pushState({}, '', newUrl);
