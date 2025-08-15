@@ -1,4 +1,8 @@
 .env
+secrets/.env
+secrets/*.key
+secrets/*.csr
+secrets/*.crt
 .vs*
 node_modules
 build

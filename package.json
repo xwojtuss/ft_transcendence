@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx tsc && npx tailwindcss -i frontend/css_styles.css -o frontend/css/output.css && node --env-file=.env --watch backend/server.js"
+    "dev": "npx tsc && npx tailwindcss -i frontend/css_styles.css -o frontend/css/output.css && ./generate_certs.sh && node --env-file=secrets/.env --watch backend/server.js"
   },
   "repository": {
     "type": "git",

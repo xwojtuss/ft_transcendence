@@ -9,10 +9,15 @@ import * as Cheerio from 'cheerio';
 import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
 import loginRoute, { refreshRoute, registerRoute } from "./routes/authRoutes.js";
+import fs from "fs";
 
 // setup fastify and use the console logger
 const fastify = Fastify({
-    logger: true
+    logger: true,
+    https: {
+        key: fs.readFileSync('./secrets/ft_transcendence.key'),
+        cert: fs.readFileSync('./secrets/ft_transcendence.crt')
+    }
 });
 
 fastify.register(fastifyJwt, {
