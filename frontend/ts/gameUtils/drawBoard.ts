@@ -22,16 +22,23 @@ export function initCanvas(): boolean {
 	return false;
 }
 
-export function calculateCanvasSize(maxHeight: number) {
+function calculateCanvasSize(maxHeight: number) {
 	if (!canvas || !ctx) {
 		console.error("Canvas or context is not initialized");
 		return { width: 0, height: 0 };
 	}
-	const width = window.innerWidth * 0.9;
-	let height = width / 2;
 
-	if (height > maxHeight) {
-		height = maxHeight
+	const aspectRatio = 16 / 9;
+
+	const availableWidth = window.innerWidth * 0.9;
+	const availableHeight = window.innerHeight * 0.8;
+
+	let width = availableWidth;
+	let height = width / aspectRatio;
+
+	if (height > availableHeight || height > maxHeight) {
+		height = Math.min(availableHeight, maxHeight);
+		width = height * aspectRatio;
 	}
 
 	return { width, height };

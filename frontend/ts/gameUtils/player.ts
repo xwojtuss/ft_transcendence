@@ -1,7 +1,7 @@
 // calculate player dimensions
 function calculatePlayerDimensions(canvas: HTMLCanvasElement): { width: number; height: number } {
 	const height = canvas.height * 0.2;
-	const width = height * 0.3;
+	const width = canvas.width * 0.03;
 
 	return { width, height };
 }

@@ -18,6 +18,10 @@ export function initGameIfHome() {
 		const player1 = new Player(canvas);
 		const player2 = new Player(canvas);
 
+		player1.updateScore(5);
+		player2.updateScore(9);
+
+		// Align ich na podstawie ich szerokosci, na wiekszym ekranie sa troche bardziej przesunieci w lewo
 		player1.align(getDynamicLineWidth() * 2.5);
 		player2.align(canvas.width - getDynamicLineWidth() * 2.5);
 
