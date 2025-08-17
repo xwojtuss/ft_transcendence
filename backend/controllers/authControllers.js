@@ -63,7 +63,7 @@ export function generateTokens(fastify, nickname, reply) {
     reply.setCookie('refreshToken', refreshToken, {
         path: '/',
         httpOnly: true,
-        secure: process.env.IS_PRODUCTION === 'true',
+        secure: true,
         sameSite: 'Strict',
         maxAge: REFRESH_TOKEN_EXPIRY_SECONDS
     });

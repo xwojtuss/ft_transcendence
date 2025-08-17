@@ -1,18 +1,42 @@
 import { initDb } from "./db/dbInit.js";
-import deleteDatabase from "./db/dbDev.js";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static"
 import path from "path";
 import viewsRoutes from "./routes/viewRoutes.js";
-import testDatabase from "./test.js";
 import * as Cheerio from 'cheerio';
 import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
 import loginRoute, { refreshRoute, registerRoute } from "./routes/authRoutes.js";
+import fs from "fs";
+
+let httpsSecrets = undefined;
+let keySSL;
+let certSSL;
+
+try {
+    if (fs.existsSync("./secrets/ft_transcendence.key") && fs.existsSync("./secrets/ft_transcendence.crt")) {
+        httpsSecrets = {
+            key: fs.readFileSync("./secrets/ft_transcendence.key"),
+            cert: fs.readFileSync("./secrets/ft_transcendence.crt")
+        };
+    } else {
+        console.error("SSL cert or key not found, exiting...");
+        exit(1);
+    }
+    keySSL = fs.readFileSync("./secrets/ft_transcendence.key");
+    certSSL = fs.readFileSync("./secrets/ft_transcendence.crt");
+} catch (error) {
+    console.error("Failed to read SSL cert or key, exiting...");
+    exit(1);
+}
 
 // setup fastify and use the console logger
 const fastify = Fastify({
-    logger: true
+    logger: true,
+    https: {
+        key: keySSL,
+        cert: certSSL
+    }
 });
 
 fastify.register(fastifyJwt, {
@@ -31,9 +55,6 @@ export const cheerio = Cheerio;
 fastify.register(fastifyStatic, {
     root: path.join(process.cwd(), 'frontend')
 });
-
-if (process.env.IS_PRODUCTION !== 'true')
-    testDatabase();// TEMP delete on PROD
 
 // register the server routes
 fastify.register(loginRoute);
