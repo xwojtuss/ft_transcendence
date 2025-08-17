@@ -6,7 +6,11 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx tsc && npx tailwindcss -i frontend/css_styles.css -o frontend/css/output.css && ./generate_certs.sh && node --env-file=secrets/.env --watch backend/server.js"
+    "build:ts": "npx tsc",
+    "build:css": "npx tailwindcss -i frontend/css_styles.css -o frontend/css/output.css",
+    "certs": "./generate_certs.sh",
+    "start": "node --env-file=secrets/.env --watch backend/server.js",
+    "dev": "npm run build:ts && npm run build:css && npm run certs && npm run start"
   },
   "repository": {
     "type": "git",
