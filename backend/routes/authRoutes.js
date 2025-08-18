@@ -1,9 +1,10 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, addUser, getUserByEmail } from "../db/dbQuery.js";
+import { getUser, addUser, getUserByEmail, updateUser } from "../db/dbQuery.js";
 import { checkAuthHeader, checkRefreshToken, generateTokens } from "../controllers/authControllers.js";
 import HTTPError from "../utils/error.js";
 import User from "../utils/User.js";
 import z from "zod";
+import { getUserSession } from "./viewRoutes.js";
 
 const nicknameSchema = z
     .string()
@@ -33,6 +34,19 @@ const loginSchema = z.object({
     login: nicknameOrEmailRefine,
     password: passwordSchema
 });
+
+const updateSchema = z.object({
+    nickname: nicknameSchema,
+    email: emailSchema,
+    currentPassword: passwordSchema
+})
+
+const updateNewPasswordSchema = z.object({
+    nickname: nicknameSchema,
+    email: emailSchema,
+    currentPassword: passwordSchema,
+    newPassword: passwordSchema
+})
 
 export default async function loginRoute(fastify) {
     fastify.post('/api/auth/login', {
@@ -133,6 +147,71 @@ export async function refreshRoute(fastify) {
                     return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Refresh token is invalid' });
                 }
                 const accessToken = generateTokens(fastify, payload.nickname, reply);
+                return reply.send({ accessToken });
+            } catch (error) {
+                if (error instanceof HTTPError) {
+                    return reply.code(error.code).send({ message: error.message });
+                }
+                console.error(error);
+                return reply.code(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+            }
+        }
+    });
+}
+
+export async function updateRoute(fastify) {
+    fastify.post('/api/auth/update', {
+        schema: {
+            body: {
+                type: 'object',
+                properties: {
+                    nickname: { type: 'string' },
+                    email: { type: 'string' },
+                    currentPassword: { type: 'string' },
+                    newPassword: { 
+                        anyOf: [
+                            { type: 'string' },
+                            { type: 'null' }
+                        ]
+                    }
+                },
+                required: ['currentPassword'],
+                additionalProperties: false
+            }
+        },
+        handler: async (req, reply) => {
+            try {
+                const user = await getUserSession(fastify, req.cookies.refreshToken, req.headers);
+                if (!user) {
+                    throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
+                }
+                let zodResult;
+                let updatedUser;
+                if (req.body.newPassword) {
+                    zodResult = updateNewPasswordSchema.safeParse(req.body);
+                    updatedUser = new User(req.body.nickname);
+                    updatedUser.setPassword(req.body.newPassword);
+                } else {
+                    zodResult = updateSchema.safeParse({
+                        nickname: req.body.nickname,
+                        email: req.body.email,
+                        currentPassword: req.body.currentPassword
+                    });
+                    updatedUser = new User(req.body.nickname, user.password);
+                }
+                if (!zodResult.success) {
+                    throw new HTTPError(StatusCodes.BAD_REQUEST, zodResult.error.issues.at(0).message);
+                }
+                if (await user.validatePassword(req.body.currentPassword) == false) {
+                    return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Invalid credentials' });
+                }
+                updatedUser.email = req.body.email;
+                if ((user.nickname !== updatedUser.nickname && await getUser(req.body.nickname))
+                    || (user.email !== updatedUser.email && await getUserByEmail(req.body.email))) {
+                    return reply.code(StatusCodes.CONFLICT).send({ message: 'Nickname or Email already taken' });
+                }
+                await updateUser(user, updatedUser);
+                const accessToken = generateTokens(fastify, updatedUser.nickname, reply);
                 return reply.send({ accessToken });
             } catch (error) {
                 if (error instanceof HTTPError) {

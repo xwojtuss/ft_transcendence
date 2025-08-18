@@ -94,3 +94,44 @@ export async function registerHandler() {
         return await renderPage('/', true);
     });
 }
+
+export async function updateSubmitHandler() {
+    document.getElementById('update-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target as HTMLFormElement;
+        const data: Record<string, string> = {};
+
+        for (let i = 0; i < form.elements.length; i++) {
+            const input = form.elements.item(i) as HTMLInputElement;
+            if (!input.name)
+                continue;
+            data[input.name] = input.value;
+        }
+        let errorMessage = getErrorNickname(data.nickname as string);
+        if (errorMessage) {
+            return alert(errorMessage);
+        } else if ((errorMessage = getErrorEmail(data.email as string))) {
+            return alert(errorMessage);
+        } else if ((errorMessage = getErrorPassword(data.currentPassword as string))) {
+            return alert(errorMessage);
+        } else if (data.newPassword && (errorMessage = getErrorPassword(data.newPassword as string))) {
+            return alert(errorMessage);
+        }
+        // compress the image or resize it or limit the file size
+        const result = await fetch('/api/auth/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`
+            },
+            body: JSON.stringify(data)
+        });
+        if (result.status === 403) {
+            return await renderPage('/', true);
+        } else if (!result.ok) {
+            return alert((await result.json()).message);
+        }
+        accessToken = (await result.json()).accessToken;
+        return await renderPage('/profile', true);
+    });
+}

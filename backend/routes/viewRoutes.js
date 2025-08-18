@@ -1,9 +1,10 @@
 import { checkAuthHeader, checkRefreshToken } from "../controllers/authControllers.js";
-import { getStaticView, getProfile } from "../controllers/viewControllers.js";
+import { getStaticView, getProfile, getUpdate } from "../controllers/viewControllers.js";
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fs from "fs/promises";
 import { cheerio } from "../server.js";
+import { getUser } from "../db/dbQuery.js";
 
 const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
 const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html', "utf-8");
@@ -49,21 +50,28 @@ export async function sendErrorPage(error, isLoggedIn, request, reply) {
  * @param {*} fastify the fastify instance
  * @param {string} refreshToken the refresh token
  * @param {*} headers headers from the request
- * @returns {Promise<string> | Promise<null>} returns the user nickname if logged in
+ * @returns {Promise<User> | Promise<null>} returns the user nickname if logged in
  */
-async function getUserSession(fastify, refreshToken, headers) {
+export async function getUserSession(fastify, refreshToken, headers) {
     let payload = null;
+    let user = null;
     try {
         if (refreshToken && headers['x-partial-load']) {
             payload = await checkAuthHeader(fastify, headers['authorization']);
             if (!payload || !payload.nickname)
                 return null;
-            return payload.nickname;
+            user = await getUser(payload.nickname);
+            if (!user)
+                return null;
+            return user;
         } else if (refreshToken) {
             payload = await checkRefreshToken(fastify, refreshToken);
             if (!payload || !payload.nickname)
                 return null;
-            return payload.nickname;
+            user = await getUser(payload.nickname);
+            if (!user)
+                return null;
+            return user;
         }
     } catch (error) {
         return null;
@@ -77,76 +85,89 @@ async function getUserSession(fastify, refreshToken, headers) {
 export default async function viewsRoutes(fastify) {
     fastify.get("/", async (request, reply) => {
         let view;
-        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         try {
             view = await getStaticView('home');
         } catch (error) {
-            return await sendErrorPage(error, nickname, request, reply);
+            return await sendErrorPage(error, user, request, reply);
         }
-        return await sendView(view, nickname, request, reply);
+        return await sendView(view, user, request, reply);
     });
 
     fastify.get("/login", async (request, reply) => {
         let view;
-        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (nickname)
-            return await sendErrorPage(new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN), nickname, request, reply);
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (user)
+            return await sendErrorPage(new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN), user.nickname, request, reply);
         try {
             view = await getStaticView('login');
         } catch (error) {
-            return await sendErrorPage(error, nickname, request, reply);
+            return await sendErrorPage(error, user, request, reply);
         }
-        return await sendView(view, nickname, request, reply);
+        return await sendView(view, user, request, reply);
     });
 
     fastify.get("/register", async (request, reply) => {
         let view;
-        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (nickname)
-            return await sendErrorPage(new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN), nickname, request, reply);
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (user)
+            return await sendErrorPage(new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN), user.nickname, request, reply);
         try {
             view = await getStaticView('register');
         } catch (error) {
-            return await sendErrorPage(error, nickname, request, reply);
+            return await sendErrorPage(error, user, request, reply);
         }
-        return await sendView(view, nickname, request, reply);
+        return await sendView(view, user, request, reply);
     });
 
     fastify.get("/profile", async (request, reply) => {
         let view;
-        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (!nickname)
-            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), nickname, request, reply);
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (!user)
+            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
         try {
-            view = await getProfile(nickname, nickname);
+            view = await getProfile(user.nickname, user.nickname);
         } catch (error) {
-            return await sendErrorPage(error, nickname, request, reply);
+            return await sendErrorPage(error, user, request, reply);
         }
-        return await sendView(view, nickname, request, reply);
+        return await sendView(view, user, request, reply);
     });
 
     fastify.get("/profile/:login", async (request, reply) => {
         let view;
-        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (!nickname)
-            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), nickname, request, reply);
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (!user)
+            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
         try {
-            view = await getProfile(nickname, request.params.login);
+            view = await getProfile(user.nickname, request.params.login);
         } catch (error) {
-            return await sendErrorPage(error, nickname, request, reply);
+            return await sendErrorPage(error, user, request, reply);
         }
-        return await sendView(view, nickname, request, reply);
+        return await sendView(view, user, request, reply);
+    });
+
+    fastify.get("/update", async (request, reply) => {
+        let view;
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        if (!user)
+            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
+        try {
+            view = await getUpdate(user.nickname);
+        } catch (error) {
+            return await sendErrorPage(error, user, request, reply);
+        }
+        return await sendView(view, user, request, reply);
     });
 
     fastify.setNotFoundHandler(async (request, reply) => {
         let view;
-        const nickname = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         try {
             view = await getStaticView('');
         } catch (error) {
-            return await sendErrorPage(error, nickname, request, reply);
+            return await sendErrorPage(error, user, request, reply);
         }
-        return await sendView(view, nickname, request, reply);
+        return await sendView(view, user, request, reply);
     });
 }
 

@@ -40,10 +40,9 @@ function getOrdinalIndicator(number) {
     }
 }
 
-function getDesktopMatchHTML(match, currentUser) {
+function getDesktopMatchHTML(match, profileOwner) {
     let count = 1;
     let delim;
-    let originator = false;
     const row = cheerio.load(`
         <tr>
             <td>${match.endedAt}</td>
@@ -54,33 +53,30 @@ function getDesktopMatchHTML(match, currentUser) {
         </tr>`, null, false)
     match.participants.forEach((key, participant) => {
         delim = ', ';
-        if (count === match.maxNumOfPlayers || (count === match.maxNumOfPlayers - 1 && originator === false)) delim = '';
-        if (participant === currentUser || participant === currentUser.nickname) {
+        if (count === match.maxNumOfPlayers) delim = '';
+        if (participant === profileOwner || participant === profileOwner.nickname) {
             row('tr td:nth-child(5)').text(`${key + getOrdinalIndicator(key)}`);
-            originator = true;
-        } else {
-            row('tr td:nth-child(3)').append(`<a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant) + delim}</a>`);
         }
+        row('tr td:nth-child(3)').append(`<a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant) + delim}</a>`);
         count++;
     })
     return row.html();
 }
 
-function getMobileMatchHTML(match, currentUser) {
+function getMobileMatchHTML(match, profileOwner) {
     const row = cheerio.load(`
         <li class="mobile-match-list"><b>at ${match.endedAt}:</b><ul>
             <li>Player Count: ${match.numOfPlayers}</li>
-            <li>Opponents:<ul>
+            <li>Players:<ul>
             </ul></li>
             <li>Initiator: <a href="/profile/${match.originator.nickname || match.originator}">${match.originator.nickname || match.originator}</a></li>
             <li>Rank: 1st</li>
         </ul></li>`, null, false)
     match.participants.forEach((key, participant) => {
-        if (participant === currentUser || participant === currentUser.nickname) {
+        if ((participant === profileOwner || participant === profileOwner.nickname)) {
             row('li.mobile-match-list > ul > li:last-child').text(`Rank: ${key + getOrdinalIndicator(key)}`);
-        } else {
-            row('li.mobile-match-list ul li ul').append(`<li><a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant)}</a></li>`);
         }
+        row('li.mobile-match-list ul li ul').append(`<li><a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant)}</a></li>`);
     })
     return row.html();
 }
@@ -118,12 +114,25 @@ export async function getProfile(loggedInNickname, toFetchNickname) {
     profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
     const userMatches = await getUserMatchHistory(user.nickname);
     userMatches.forEach(match => {
-        profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, loggedInNickname));
-        profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, loggedInNickname));
+        profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, toFetchNickname));
+        profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, toFetchNickname));
     });
     if (userMatches.size === 0) {
         profilePage('.match-history-desktop').html(getEmptyMatchHistory(toFetchNickname));
         profilePage('.match-history-mobile').html(getEmptyMatchHistory(toFetchNickname));
     }
     return profilePage.html();
+}
+
+let cachedUpdateHtmlPromise = fs.readFile('./backend/views/update.html', 'utf8');
+
+export async function getUpdate(loggedInNickname) {
+    if (!loggedInNickname)
+        throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
+    const cachedUpdateHtml = await cachedUpdateHtmlPromise;
+    const user = await getUser(loggedInNickname);
+    const updatePage = cheerio.load(cachedUpdateHtml, null, false);
+    updatePage('#nickname-input').attr('value', user.nickname);
+    updatePage('#email-input').attr('value', user.email);
+    return updatePage.html();
 }
