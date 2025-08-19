@@ -179,3 +179,12 @@ export async function areFriends(userOne, userTwo) {
     }
     return true;
 }
+
+export async function updateUser(originalUser, updatedUser) {
+    await db.get(`
+        UPDATE users
+        SET nickname = ?, password = ?, email = ?
+        WHERE nickname = ? AND email = ?`,
+        updatedUser.nickname, updatedUser.password, updatedUser.email, originalUser.nickname, originalUser.email
+    );
+}

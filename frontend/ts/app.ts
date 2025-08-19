@@ -1,6 +1,7 @@
-import { loginHandler, registerHandler, refreshAccessToken } from "./authenticate.js";
+import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler } from "./authenticate.js";
 import { accessToken } from "./authenticate.js";
 import formPasswordVisibility from "./login-register-form.js";
+import { profileHandler, updateHandler } from "./userProfile.js";
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
@@ -87,7 +88,18 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
             await registerHandler();
             formPasswordVisibility();
             break;
+        case '/profile':
+            await profileHandler();
+            break;
+        case '/update':
+            updateHandler();
+            updateSubmitHandler();
+            break;
         default:
+            if (pathURL.startsWith('/profile/')) {
+                profileHandler();
+                break;
+            }
             break;
     }
 }

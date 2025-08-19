@@ -1,6 +1,7 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { ACCESS_TOKEN_EXPIRY, ACCESS_TOKEN_EXPIRY_SECONDS, REFRESH_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY_SECONDS } from "../utils/config.js";
 import HTTPError from "../utils/error.js";
+import { getUser } from "../db/dbQuery.js";
 
 /**
  * Checks whether the access token is valid with fastify.jwd.verify
@@ -16,7 +17,11 @@ export async function checkAuthHeader(fastify, authHeader) {
     const userAccessToken = authHeader.split(' ')[1];
 
     try {
-        return await fastify.jwt.verify(userAccessToken, process.env.ACCESS_TOKEN_SECRET);
+        const payload = await fastify.jwt.verify(userAccessToken, process.env.ACCESS_TOKEN_SECRET);
+        if (!payload.nickname || !await getUser(payload.nickname)) {
+            throw new Error();
+        }
+        return payload;
     } catch (error) {
         throw new HTTPError(StatusCodes.UNAUTHORIZED, 'Invalid or expired access token');
     }
@@ -34,7 +39,11 @@ export async function checkRefreshToken(fastify, refreshToken) {
         throw new HTTPError(StatusCodes.UNAUTHORIZED, 'Missing or invalid refresh token');
     }
     try {
-        return await fastify.jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const payload = await fastify.jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        if (!payload.nickname || !await getUser(payload.nickname)) {
+            throw new Error();
+        }
+        return payload;
     } catch (error) {
         throw new HTTPError(StatusCodes.UNAUTHORIZED, 'Invalid or expired refresh token');
     }

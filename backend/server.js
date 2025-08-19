@@ -6,7 +6,7 @@ import viewsRoutes from "./routes/viewRoutes.js";
 import * as Cheerio from 'cheerio';
 import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
-import loginRoute, { refreshRoute, registerRoute } from "./routes/authRoutes.js";
+import loginRoute, { refreshRoute, registerRoute, updateRoute } from "./routes/authRoutes.js";
 import fs from "fs";
 
 let httpsSecrets = undefined;
@@ -60,6 +60,7 @@ fastify.register(fastifyStatic, {
 fastify.register(loginRoute);
 fastify.register(registerRoute);
 fastify.register(refreshRoute);
+fastify.register(updateRoute);
 fastify.register(viewsRoutes);
 
 fastify.listen({ port: process.env.PORT || 3000 }, (err, address) => {

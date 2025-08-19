@@ -8,19 +8,19 @@ import Match from "./utils/Match.js";
 export default async function testDatabase() {
     try {
         let newuser = new User("wkornato");
-        await newuser.setPassword("test");
+        await newuser.setPassword("zaq1@WSX");
         newuser.email = "wkornatoemail@gmail.com";
 
         await addUser(newuser);
 
         let pzurawic = new User("pzurawic");
-        await pzurawic.setPassword("hastobehashed");
+        await pzurawic.setPassword("zaq1@WSX");
         pzurawic.email = "pzurawicemail@gmail.com";
 
         await addUser(pzurawic);
 
         let pingwin = new User("pingwin");
-        await pingwin.setPassword("itishashed");
+        await pingwin.setPassword("zaq1@WSX");
         pingwin.email = "pingwinemail@gmail.com";
 
         await addUser(pingwin);

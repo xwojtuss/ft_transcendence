@@ -1,4 +1,3 @@
-import fastify from "fastify";
 import { SALT_ROUNDS } from "./config.js";
 import bcrypt from "bcrypt";
 
@@ -53,7 +52,6 @@ export default class User {
             isCorrect = await bcrypt.compare(passwordTry, this._password);
         } catch (error) {
             isCorrect = false;
-            console.error(error);
             return false;
         }
         return isCorrect;
