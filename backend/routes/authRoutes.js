@@ -190,7 +190,7 @@ export async function updateRoute(fastify) {
                 if (req.body.newPassword) {
                     zodResult = updateNewPasswordSchema.safeParse(req.body);
                     updatedUser = new User(req.body.nickname);
-                    updatedUser.setPassword(req.body.newPassword);
+                    await updatedUser.setPassword(req.body.newPassword);
                 } else {
                     zodResult = updateSchema.safeParse({
                         nickname: req.body.nickname,

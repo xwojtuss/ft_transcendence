@@ -25,7 +25,10 @@ export function updateHandler() {
         if (!image || !input.files || input.files.length === 0) return;
         image.src = URL.createObjectURL(input.files[0]);
         image.onload = () => {
-            URL.revokeObjectURL(image.src);
+        const blobUrl = URL.createObjectURL(input.files[0]);
+        image.src = blobUrl;
+        image.onload = () => {
+            URL.revokeObjectURL(blobUrl);
         }
     });
     document.querySelector('form#update-form #cancel-form')?.addEventListener('click', (e) => {
