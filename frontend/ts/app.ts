@@ -49,7 +49,7 @@ async function runHandlers(pathURL: string) {
             break;
         default:
             if (pathURL.startsWith('/profile/')) {
-                profileHandler();
+                await profileHandler();
                 break;
             }
             break;
