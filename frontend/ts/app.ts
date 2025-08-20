@@ -27,6 +27,35 @@ window.addEventListener('popstate', handleRouteChange);
 // change the nav bar style on load
 changeActiveStyle();
 
+// make the page functional
+runHandlers(window.location.pathname);
+
+async function runHandlers(pathURL: string) {
+    switch (pathURL) {
+        case '/login':
+            await loginHandler();
+            formPasswordVisibility();
+            break;
+        case '/register':
+            await registerHandler();
+            formPasswordVisibility();
+            break;
+        case '/profile':
+            await profileHandler();
+            break;
+        case '/update':
+            updateHandler();
+            updateSubmitHandler();
+            break;
+        default:
+            if (pathURL.startsWith('/profile/')) {
+                await profileHandler();
+                break;
+            }
+            break;
+    }
+}
+
 /**
  * Render the view or the whole document
  * @param pathURL the path to the view e.g. /login
@@ -79,29 +108,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
         console.error(error);
     }
     changeActiveStyle(pathURL);
-    switch (pathURL) {
-        case '/login':
-            await loginHandler();
-            formPasswordVisibility();
-            break;
-        case '/register':
-            await registerHandler();
-            formPasswordVisibility();
-            break;
-        case '/profile':
-            await profileHandler();
-            break;
-        case '/update':
-            updateHandler();
-            updateSubmitHandler();
-            break;
-        default:
-            if (pathURL.startsWith('/profile/')) {
-                profileHandler();
-                break;
-            }
-            break;
-    }
+    await runHandlers(pathURL);
 }
 
 /**

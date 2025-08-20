@@ -55,11 +55,11 @@
 }
 
 .avatar img {
-    @apply w-[100px] h-[100px] object-cover rounded-full border-1 border-gray-200 shadow-gray-200 shadow-sm;
+    @apply w-[120px] h-[120px] object-cover rounded-full border-1 border-gray-200 shadow-gray-200 shadow-sm;
 }
 
 .avatar p button {
-    @apply font-light transition-colors ease-in-out delay-50 duration-300 border-1 border-gray-200 rounded-xl px-3 py-1 max-w-[100px] shadow-gray-200 shadow-sm;
+    @apply font-light text-xs transition-colors ease-in-out delay-50 duration-300 border-1 border-gray-200 rounded-xl px-2 py-1 max-w-[100px] shadow-gray-200 shadow-sm;
 }
 
 .avatar p button:hover {
