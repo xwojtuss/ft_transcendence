@@ -23,6 +23,7 @@ export async function getUser(nickname) {
         userInstance.avatar = user.avatar;
         userInstance.won_games = user.won_games;
         userInstance.lost_games = user.lost_games;
+        userInstance.id = user.user_id;
         return userInstance;
     } catch (error) {
         console.error("Failed to fetch user:", error.message);
