@@ -1,10 +1,20 @@
 import { renderPage } from "./app.js";
+import { invalidateAccessToken } from "./authenticate.js";
 
 export async function profileHandler() {
     document.getElementById('edit-profile')?.addEventListener("click", async (e) => {
         e.preventDefault();
 
         return await renderPage('/update', false);
+    });
+    document.getElementById('log-out')?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        invalidateAccessToken();
+        await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        return await renderPage('/', true);
     });
 }
 
@@ -23,8 +33,7 @@ export function updateHandler() {
     document.getElementById('file-input')?.addEventListener('change', (e) => {
         const input = e.target as HTMLInputElement;
         if (!image || !input.files || input.files.length === 0) return;
-        image.src = URL.createObjectURL(input.files[0]);
-        image.onload = () => {
+
         const blobUrl = URL.createObjectURL(input.files[0]);
         image.src = blobUrl;
         image.onload = () => {

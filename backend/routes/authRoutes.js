@@ -223,3 +223,22 @@ export async function updateRoute(fastify) {
         }
     });
 }
+
+export async function logoutRoute(fastify) {
+    fastify.post('/api/auth/logout', {
+        schema: {},
+        handler: async (req, reply) => {
+            try {
+                reply.clearCookie('refreshToken', {
+                        path: '/',
+                        httpOnly: true,
+                        secure: true,
+                        sameSite: 'Strict'
+                    });
+            } catch (error) {
+                fastify.log.error(error);
+            }
+            reply.code(StatusCodes.OK).send(ReasonPhrases.OK);
+        }
+    });
+}

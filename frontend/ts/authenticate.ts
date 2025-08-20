@@ -135,3 +135,7 @@ export async function updateSubmitHandler() {
         return await renderPage('/profile', true);
     });
 }
+
+export function invalidateAccessToken() {
+    accessToken = null;
+}
