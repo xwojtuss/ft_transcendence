@@ -15,7 +15,11 @@ export default function avatarRoute(fastify) {
             if (parseInt(userId) != userId || userId <= 0) {
                 throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
             }
-            const avatarOwner = await getUserById(userId);
+            const parsedUserId = parseInt(userId, 10);
+            if (Number.isNaN(parsedUserId) || parsedUserId <= 0) {
+                throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
+            }
+            const avatarOwner = await getUserById(parsedUserId);
             if (!avatarOwner) {
                 throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
             }

@@ -169,7 +169,7 @@ async function saveImage(imageFile, user) {
             .resize({ width: 256, height: 256, fit: 'cover' })
             .webp({ quality: 80 })
             .toFile(`./backend/avatars/${user.id}_${timestamp}.webp`);
-        user.avatar = `./backend/avatars/${user.id}_${timestamp}.webp`
+        user.avatar = `./backend/avatars/${user.id}_${timestamp}.webp`;
     } catch (error) {
         console.log(error);
         throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, 'Could not save avatar');
@@ -196,9 +196,9 @@ export async function updateRoute(fastify) {
                             if (!['image/jpeg', 'image/png', 'image/webp'].includes(part.mimetype)) {
                                 throw new HTTPError(StatusCodes.UNSUPPORTED_MEDIA_TYPE, 'Only JPEG, PNG and WEBP files are allowed');
                             }
-                            buffer = await part.toBuffer()
+                            buffer = await part.toBuffer();
                         } else {
-                            // part.type === 'field
+                            // part.type === 'field'
                             fields[part.fieldname] = part.value;
                         }
                     }
