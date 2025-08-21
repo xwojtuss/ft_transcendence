@@ -1,5 +1,5 @@
 import { renderPage } from "./app.js";
-import { getErrorNickname, getErrorPassword, getErrorEmail, getErrorLogin } from "./validateInput.js";
+import { checkFile, checkNickname, checkPassword, checkEmail, checkLogin } from "./validateInput.js";
 export let accessToken: string | null = null;
 
 /**
@@ -34,11 +34,11 @@ export async function loginHandler() {
         const formData = new FormData(e.target as HTMLFormElement);
         const data = Object.fromEntries(formData.entries());
 
-        let errorMessage = getErrorLogin(data.login as string);
-        if (errorMessage) {
-            return alert(errorMessage);
-        } else if ((errorMessage = getErrorPassword(data.password as string))) {
-            return alert(errorMessage);
+        try {
+            checkLogin(data.login as string);
+            checkPassword(data.password as string);
+        } catch (error) {
+            return alert(error);
         }
         const result = await fetch('/api/auth/login', {
             method: 'POST',
@@ -69,13 +69,12 @@ export async function registerHandler() {
         const formData = new FormData(e.target as HTMLFormElement);
         const data = Object.fromEntries(formData.entries());
 
-        let errorMessage = getErrorNickname(data.nickname as string);
-        if (errorMessage) {
-            return alert(errorMessage);
-        } else if ((errorMessage = getErrorEmail(data.email as string))) {
-            return alert(errorMessage);
-        } else if ((errorMessage = getErrorPassword(data.password as string))) {
-            return alert(errorMessage);
+        try {
+            checkNickname(data.nickname as string);
+            checkEmail(data.email as string);
+            checkPassword(data.password as string);
+        } catch (error) {
+            return alert(error);
         }
         const result = await fetch('/api/auth/register', {
             method: 'POST',
@@ -103,28 +102,35 @@ export async function updateSubmitHandler() {
 
         for (let i = 0; i < form.elements.length; i++) {
             const input = form.elements.item(i) as HTMLInputElement;
-            if (!input.name)
+            if (!input.name || input.name === 'avatar')
                 continue;
             data[input.name] = input.value;
         }
-        let errorMessage = getErrorNickname(data.nickname as string);
-        if (errorMessage) {
-            return alert(errorMessage);
-        } else if ((errorMessage = getErrorEmail(data.email as string))) {
-            return alert(errorMessage);
-        } else if ((errorMessage = getErrorPassword(data.currentPassword as string))) {
-            return alert(errorMessage);
-        } else if (data.newPassword && (errorMessage = getErrorPassword(data.newPassword as string))) {
-            return alert(errorMessage);
+        const fileInput = document.getElementById('file-input') as HTMLInputElement | null | undefined;
+        try {
+            checkFile(fileInput);
+            checkNickname(data.nickname as string);
+            checkEmail(data.email as string);
+            checkPassword(data.currentPassword as string);
+            if (data.newPassword) checkPassword(data.newPassword as string);
+        } catch (error) {
+            return alert(error);
         }
+        const formData = new FormData();
+        if (fileInput && fileInput.files?.[0]) {
+            formData.append('avatar', fileInput.files[0]);
+        }
+        formData.append('nickname', data.nickname);
+        formData.append('email', data.email);
+        formData.append('currentPassword', data.currentPassword);
+        formData.append('newPassword', data.newPassword);
         // compress the image or resize it or limit the file size
         const result = await fetch('/api/auth/update', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 Authorization: `Bearer ${accessToken}`
             },
-            body: JSON.stringify(data)
+            body: formData
         });
         if (result.status === 403) {
             return await renderPage('/', true);

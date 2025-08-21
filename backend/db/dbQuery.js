@@ -23,6 +23,7 @@ export async function getUser(nickname) {
         userInstance.avatar = user.avatar;
         userInstance.won_games = user.won_games;
         userInstance.lost_games = user.lost_games;
+        userInstance.id = user.user_id;
         return userInstance;
     } catch (error) {
         console.error("Failed to fetch user:", error.message);
@@ -41,6 +42,7 @@ export async function getUserByEmail(email) {
         userInstance.avatar = user.avatar;
         userInstance.won_games = user.won_games;
         userInstance.lost_games = user.lost_games;
+        userInstance.id = user.user_id;
         return userInstance;
     } catch (error) {
         console.error("Failed to fetch user:", error.message);
@@ -183,8 +185,27 @@ export async function areFriends(userOne, userTwo) {
 export async function updateUser(originalUser, updatedUser) {
     await db.get(`
         UPDATE users
-        SET nickname = ?, password = ?, email = ?
+        SET nickname = ?, password = ?, email = ?, avatar = ?
         WHERE nickname = ? AND email = ?`,
-        updatedUser.nickname, updatedUser.password, updatedUser.email, originalUser.nickname, originalUser.email
+        updatedUser.nickname, updatedUser.password, updatedUser.email, updatedUser.avatar, originalUser.nickname, originalUser.email
     );
+}
+
+export async function getUserById(userId) {
+    try {
+        const user = await db.get("SELECT * FROM users WHERE user_id=? LIMIT 1", userId);
+        if (!user || user.empty)
+            return null;
+        const userInstance = new User(user.nickname, user.password);
+        userInstance.email = user.email;
+        userInstance.isOnline = user.is_online;
+        userInstance.avatar = user.avatar;
+        userInstance.won_games = user.won_games;
+        userInstance.lost_games = user.lost_games;
+        userInstance.id = user.user_id;
+        return userInstance;
+    } catch (error) {
+        console.error("Failed to fetch user:", error.message);
+        throw new Error("Database query failed");
+    }
 }

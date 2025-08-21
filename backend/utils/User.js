@@ -9,6 +9,7 @@ export default class User {
     _avatar = null;
     _won_games = 0;
     _lost_games = 0;
+    _id = -42;
 
     /**
      * Create the user 
@@ -91,5 +92,13 @@ export default class User {
 
     get lost_games () {
         return this._lost_games;
+    }
+
+    set id(id) {
+        this._id = id;
+    }
+
+    get id() {
+        return this._id;
     }
 }

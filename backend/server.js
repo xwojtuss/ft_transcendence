@@ -8,18 +8,14 @@ import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
 import loginRoute, { logoutRoute, refreshRoute, registerRoute, updateRoute } from "./routes/authRoutes.js";
 import fs from "fs";
+import multipart from "@fastify/multipart";
+import avatarRoute from "./routes/protectedFilesRoutes.js";
 
-let httpsSecrets = undefined;
 let keySSL;
 let certSSL;
 
 try {
-    if (fs.existsSync("./secrets/ft_transcendence.key") && fs.existsSync("./secrets/ft_transcendence.crt")) {
-        httpsSecrets = {
-            key: fs.readFileSync("./secrets/ft_transcendence.key"),
-            cert: fs.readFileSync("./secrets/ft_transcendence.crt")
-        };
-    } else {
+    if (!fs.existsSync("./secrets/ft_transcendence.key") || !fs.existsSync("./secrets/ft_transcendence.crt")) {
         console.error("SSL cert or key not found, exiting...");
         exit(1);
     }
@@ -48,6 +44,18 @@ fastify.register(cookie, {
     parseOptions: {}
 });
 
+fastify.register(multipart, {
+    limits: {
+        fieldNameSize: 100, // Max field name size in bytes
+        fieldSize: 100,     // Max field value size in bytes
+        fields: 10,         // Max number of non-file fields
+        fileSize: 5242880,  // For multipart forms, the max file size in bytes
+        files: 1,           // Max number of file fields
+        headerPairs: 2000,  // Max number of header key=>value pairs
+        parts: 1000         // For multipart forms, the max number of parts (fields + files)
+  }
+});
+
 // await deleteDatabase("database.sqlite");
 export const db = await initDb("database.sqlite");
 export const cheerio = Cheerio;
@@ -62,6 +70,7 @@ fastify.register(registerRoute);
 fastify.register(refreshRoute);
 fastify.register(logoutRoute);
 fastify.register(updateRoute);
+fastify.register(avatarRoute);
 fastify.register(viewsRoutes);
 
 fastify.listen({ port: process.env.PORT || 3000 }, (err, address) => {

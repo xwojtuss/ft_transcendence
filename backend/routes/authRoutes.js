@@ -5,6 +5,8 @@ import HTTPError from "../utils/error.js";
 import User from "../utils/User.js";
 import z from "zod";
 import { getUserSession } from "./viewRoutes.js";
+import sharp from "sharp";
+import fs from "fs";
 
 const nicknameSchema = z
     .string()
@@ -159,57 +161,79 @@ export async function refreshRoute(fastify) {
     });
 }
 
+async function saveImage(imageFile, user) {
+    const oldAvatar = user.avatar;
+    try {
+        const timestamp = Date.now();
+        await sharp(imageFile)
+            .resize({ width: 256, height: 256, fit: 'cover' })
+            .webp({ quality: 80 })
+            .toFile(`./backend/avatars/${user.id}_${timestamp}.webp`);
+        user.avatar = `./backend/avatars/${user.id}_${timestamp}.webp`;
+    } catch (error) {
+        console.log(error);
+        throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, 'Could not save avatar');
+    }
+    try {
+        if (oldAvatar) fs.unlinkSync(oldAvatar);
+    } catch (error) {}
+}
+
 export async function updateRoute(fastify) {
     fastify.post('/api/auth/update', {
-        schema: {
-            body: {
-                type: 'object',
-                properties: {
-                    nickname: { type: 'string' },
-                    email: { type: 'string' },
-                    currentPassword: { type: 'string' },
-                    newPassword: { 
-                        anyOf: [
-                            { type: 'string' },
-                            { type: 'null' }
-                        ]
-                    }
-                },
-                required: ['currentPassword'],
-                additionalProperties: false
-            }
-        },
         handler: async (req, reply) => {
             try {
                 const user = await getUserSession(fastify, req.cookies.refreshToken, req.headers);
                 if (!user) {
                     throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
                 }
-                let zodResult;
-                let updatedUser;
-                if (req.body.newPassword) {
-                    zodResult = updateNewPasswordSchema.safeParse(req.body);
-                    updatedUser = new User(req.body.nickname);
-                    await updatedUser.setPassword(req.body.newPassword);
+                let zodResult, updatedUser, parts, buffer = null;
+                const fields = {};
+                try {
+                    parts = req.parts();
+                    for await (const part of parts) {
+                        if (part.type === 'file') {
+                            if (!['image/jpeg', 'image/png', 'image/webp'].includes(part.mimetype)) {
+                                throw new HTTPError(StatusCodes.UNSUPPORTED_MEDIA_TYPE, 'Only JPEG, PNG and WEBP files are allowed');
+                            }
+                            buffer = await part.toBuffer();
+                        } else {
+                            // part.type === 'field'
+                            fields[part.fieldname] = part.value;
+                        }
+                    }
+                } catch (error) {
+                    if (error instanceof HTTPError) throw new HTTPError(error.code, error.message);
+                    console.log(error);
+                    throw new HTTPError(StatusCodes.REQUEST_TOO_LONG, 'Image must be smaller than 5MB');
+                }
+                if (fields.newPassword) {
+                    zodResult = updateNewPasswordSchema.safeParse(fields);
+                    updatedUser = new User(fields.nickname);
+                    await updatedUser.setPassword(fields.newPassword);
                 } else {
                     zodResult = updateSchema.safeParse({
-                        nickname: req.body.nickname,
-                        email: req.body.email,
-                        currentPassword: req.body.currentPassword
+                        nickname: fields.nickname,
+                        email: fields.email,
+                        currentPassword: fields.currentPassword
                     });
-                    updatedUser = new User(req.body.nickname, user.password);
+                    updatedUser = new User(fields.nickname, user.password);
                 }
                 if (!zodResult.success) {
                     throw new HTTPError(StatusCodes.BAD_REQUEST, zodResult.error.issues.at(0).message);
                 }
-                if (await user.validatePassword(req.body.currentPassword) == false) {
+                if (await user.validatePassword(fields.currentPassword) == false) {
                     return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Invalid credentials' });
                 }
-                updatedUser.email = req.body.email;
-                if ((user.nickname !== updatedUser.nickname && await getUser(req.body.nickname))
-                    || (user.email !== updatedUser.email && await getUserByEmail(req.body.email))) {
+                updatedUser.email = fields.email;
+                if ((user.nickname !== updatedUser.nickname && await getUser(fields.nickname))
+                    || (user.email !== updatedUser.email && await getUserByEmail(fields.email))) {
                     return reply.code(StatusCodes.CONFLICT).send({ message: 'Nickname or Email already taken' });
                 }
+                if (buffer) {
+                    await saveImage(buffer, user);
+                }
+                updatedUser.avatar = user.avatar;
                 await updateUser(user, updatedUser);
                 const accessToken = generateTokens(fastify, updatedUser.nickname, reply);
                 return reply.send({ accessToken });

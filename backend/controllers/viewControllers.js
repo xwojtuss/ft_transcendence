@@ -110,7 +110,7 @@ export async function getProfile(loggedInNickname, toFetchNickname) {
     }
     profilePage('.wins-losses div:first-child span:first-child').text(user.won_games);
     profilePage('.wins-losses div:last-child span:first-child').text(user.lost_games);
-    profilePage('.user-info .avatar img').attr('src', user.avatar || '/assets/default-avatar.svg');
+    profilePage('.user-info .avatar img').attr('src', user.avatar ? `/api/avatars/${user.id}?t=${Date.now()}` : '/assets/default-avatar.svg');
     profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
     const userMatches = await getUserMatchHistory(user.nickname);
     userMatches.forEach(match => {
@@ -132,6 +132,7 @@ export async function getUpdate(loggedInNickname) {
     const cachedUpdateHtml = await cachedUpdateHtmlPromise;
     const user = await getUser(loggedInNickname);
     const updatePage = cheerio.load(cachedUpdateHtml, null, false);
+    updatePage('.avatar img#preview-avatar').attr('src', user.avatar ? `/api/avatars/${user.id}?t=${Date.now()}` : '/assets/default-avatar.svg');
     updatePage('#nickname-input').attr('value', user.nickname);
     updatePage('#email-input').attr('value', user.email);
     return updatePage.html();

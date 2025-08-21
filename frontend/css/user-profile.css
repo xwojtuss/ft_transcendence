@@ -55,7 +55,7 @@
 }
 
 .avatar img {
-    @apply w-[120px] h-[120px] object-cover rounded-full border-1 border-gray-200 shadow-gray-200 shadow-sm;
+    @apply w-[120px] h-[120px] min-w-[120px] min-h-[120px] object-cover rounded-full border-1 border-gray-200 shadow-gray-200 shadow-sm;
 }
 
 .avatar p button {
