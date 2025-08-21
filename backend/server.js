@@ -9,6 +9,7 @@ import cookie from "@fastify/cookie";
 import loginRoute, { logoutRoute, refreshRoute, registerRoute, updateRoute } from "./routes/authRoutes.js";
 import fs from "fs";
 import multipart from "@fastify/multipart";
+import avatarRoute from "./routes/protectedFilesRoutes.js";
 
 let keySSL;
 let certSSL;
@@ -69,6 +70,7 @@ fastify.register(registerRoute);
 fastify.register(refreshRoute);
 fastify.register(logoutRoute);
 fastify.register(updateRoute);
+fastify.register(avatarRoute);
 fastify.register(viewsRoutes);
 
 fastify.listen({ port: process.env.PORT || 3000 }, (err, address) => {

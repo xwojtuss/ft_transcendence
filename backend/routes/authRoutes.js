@@ -6,6 +6,7 @@ import User from "../utils/User.js";
 import z from "zod";
 import { getUserSession } from "./viewRoutes.js";
 import sharp from "sharp";
+import fs from "fs";
 
 const nicknameSchema = z
     .string()
@@ -161,15 +162,21 @@ export async function refreshRoute(fastify) {
 }
 
 async function saveImage(imageFile, user) {
+    const oldAvatar = user.avatar;
     try {
+        const timestamp = Date.now();
         await sharp(imageFile)
             .resize({ width: 256, height: 256, fit: 'cover' })
             .webp({ quality: 80 })
-            .toFile(`./backend/avatars/${user.id}.webp`);
+            .toFile(`./backend/avatars/${user.id}_${timestamp}.webp`);
+        user.avatar = `./backend/avatars/${user.id}_${timestamp}.webp`
     } catch (error) {
         console.log(error);
         throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, 'Could not save avatar');
     }
+    try {
+        if (oldAvatar) fs.unlinkSync(oldAvatar);
+    } catch (error) {}
 }
 
 export async function updateRoute(fastify) {
@@ -182,11 +189,13 @@ export async function updateRoute(fastify) {
                 }
                 let zodResult, updatedUser, parts, buffer = null;
                 const fields = {};
-                console.log("WTF");
                 try {
                     parts = req.parts();
                     for await (const part of parts) {
                         if (part.type === 'file') {
+                            if (!['image/jpeg', 'image/png', 'image/webp'].includes(part.mimetype)) {
+                                throw new HTTPError(StatusCodes.UNSUPPORTED_MEDIA_TYPE, 'Only JPEG, PNG and WEBP files are allowed');
+                            }
                             buffer = await part.toBuffer()
                         } else {
                             // part.type === 'field
@@ -194,6 +203,7 @@ export async function updateRoute(fastify) {
                         }
                     }
                 } catch (error) {
+                    if (error instanceof HTTPError) throw new HTTPError(error.code, error.message);
                     console.log(error);
                     throw new HTTPError(StatusCodes.REQUEST_TOO_LONG, 'Image must be smaller than 5MB');
                 }
@@ -223,6 +233,7 @@ export async function updateRoute(fastify) {
                 if (buffer) {
                     await saveImage(buffer, user);
                 }
+                updatedUser.avatar = user.avatar;
                 await updateUser(user, updatedUser);
                 const accessToken = generateTokens(fastify, updatedUser.nickname, reply);
                 return reply.send({ accessToken });
