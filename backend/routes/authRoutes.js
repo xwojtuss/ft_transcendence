@@ -89,8 +89,13 @@ export default async function loginRoute(fastify) {
                 if (user === null || await user.validatePassword(req.body.password) == false) {
                     return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Invalid credentials' });
                 }
-                const accessToken = generateTokens(fastify, user.nickname, reply);
-                return reply.send({ accessToken });
+                if (user.typeOfTFA === 'disabled') {
+                    const accessToken = generateTokens(fastify, user.nickname, reply);
+                    return reply.send({ accessToken });
+                } else {
+                    const tfaToken = generateTempTFAToken(fastify, user.nickname, user.typeOfTFA, 'check');
+                    return reply.code(StatusCodes.ACCEPTED).send({ tfaToken });
+                }
             } catch (error) {
                 if (error instanceof HTTPError) {
                     return reply.code(error.code).send({ message: error.message });

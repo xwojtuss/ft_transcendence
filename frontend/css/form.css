@@ -42,6 +42,10 @@ form.update input[type=submit]:not(.no-margin), form.update .cancel:not(.no-marg
     @apply mt-3;
 }
 
+form#tfa-form input[type=submit]:not(.no-margin), form.update .cancel:not(.no-margin) {
+    @apply mt-8;
+}
+
 form input[type=submit], form .cancel {
     @apply font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300;
 }

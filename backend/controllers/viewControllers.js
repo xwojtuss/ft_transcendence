@@ -169,6 +169,7 @@ export async function get2FAview(payload) {
         tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
     } else if (payload.status === 'check') {
         tfaPage('div#qr-wrapper').html('');
+        tfaPage('form#tfa-form legend').text('Verify Your Identity');
     } else {
         throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
     }

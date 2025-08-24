@@ -53,6 +53,9 @@ export async function loginHandler() {
             return await renderPage('/', true);
         } else if (!result.ok) {
             return alert((await result.json()).message);
+        } else if (result.status === 202) { // 2FA REQUIRED
+            tfaTempToken = (await result.json()).tfaToken;
+            return await renderPage('/2fa', false);
         }
         accessToken = (await result.json()).accessToken;
         return await renderPage('/', true);
@@ -177,7 +180,7 @@ export async function update2FASubmitHandler() {
             return alert((await result.json()).message);
         }
         tfaTempToken = null;
-        return await renderPage('/profile', true);
+        return await renderPage('/', true);
     });
 }
 
