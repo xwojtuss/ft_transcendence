@@ -10,6 +10,8 @@ export default class User {
     _won_games = 0;
     _lost_games = 0;
     _id = -42;
+    _typeOfTFA = "disabled";
+    _TFAsecret = null;
 
     /**
      * Create the user 
@@ -100,5 +102,21 @@ export default class User {
 
     get id() {
         return this._id;
+    }
+
+    set typeOfTFA(type) {
+        this._typeOfTFA = type;
+    }
+
+    get typeOfTFA() {
+        return this._typeOfTFA;
+    }
+
+    set TFAsecret(secret) {
+        this._TFAsecret = secret;
+    }
+
+    get TFAsecret() {
+        return this._TFAsecret;
     }
 }

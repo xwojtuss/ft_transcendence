@@ -10,11 +10,19 @@ form legend, .floater > legend  {
     @apply text-center mb-8 md:mb-10 lg:mb-12 text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-700;
 }
 
-form input, form .cancel, form label.file-input {
+form.update legend {
+    @apply mb-6 md:mb-7 lg:mb-8 lg:text-3xl;
+}
+
+form select {
+    @apply cursor-pointer appearance-none;
+}
+
+form input, form .cancel, form label.file-input, form select {
     @apply bg-white rounded-xl px-4 sm:px-5 py-2 sm:py-3 text-sm sm:text-base border-slate-300 border sm:mx-10 shadow-xs;
 }
 
-form input:not([type=submit]) {
+form input:not([type=submit]), form select {
     @apply w-full focus:outline-2 focus:outline-blue-300;
 }
 
@@ -28,6 +36,10 @@ form input#password-input, form.labeled input {
 
 form input[type=submit]:not(.no-margin), form .cancel:not(.no-margin) {
     @apply mt-6;
+}
+
+form.update input[type=submit]:not(.no-margin), form.update .cancel:not(.no-margin) {
+    @apply mt-3;
 }
 
 form input[type=submit], form .cancel {
@@ -82,7 +94,7 @@ form.labeled label:not(.file-input) {
     @apply left-5 absolute text-xs sm:text-sm font-light text-gray-500 -translate-y-[8px] bg-white;
 }
 
-form.update input, form.update button {
+form.update input, form.update button, form.update select {
     @apply mx-0;
 }
 
@@ -98,7 +110,7 @@ form.update button img {
     @apply w-[20px] sm:w-[25px];
 }
 
-form input.input-not-allowed {
+form input.input-not-allowed, select.input-not-allowed {
     @apply cursor-not-allowed;
 }
 
@@ -124,4 +136,20 @@ form label.file-input {
 
 form.update {
     @apply px-[20px] sm:px-[40px];
+}
+
+form div.digit-wrapper {
+    @apply flex items-center space-x-2;
+}
+
+form input.digit {
+    @apply w-9 h-8 sm:w-10 sm:h-10 px-1 py-1 bg-transparent text-center placeholder:text-slate-400 text-slate-700 text-lg border border-slate-200 rounded-md transition duration-300 focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow;
+}
+
+form span.digit-dash {
+    @apply text-2xl mx-2 text-gray-600;
+}
+
+form div#qr-wrapper img {
+    @apply w-[150px] sm:w-[200px] md:w-[300px] h-auto;
 }

@@ -1,7 +1,7 @@
-import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler } from "./authenticate.js";
-import { accessToken } from "./authenticate.js";
+import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler } from "./authenticate.js";
+import { accessToken, tfaTempToken } from "./authenticate.js";
 import formPasswordVisibility from "./login-register-form.js";
-import { profileHandler, updateHandler } from "./userProfile.js";
+import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
@@ -45,7 +45,11 @@ async function runHandlers(pathURL: string) {
             break;
         case '/update':
             updateHandler();
-            updateSubmitHandler();
+            await updateSubmitHandler();
+            break;
+        case '/2fa':
+            update2FAHandler();
+            await update2FASubmitHandler();
             break;
         default:
             if (pathURL.startsWith('/profile/')) {
@@ -70,7 +74,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
     try {
         const response = await fetch(`${pathURL}`, {
             headers: {
-                Authorization: `Bearer ${accessToken}`,
+                Authorization: `Bearer ${tfaTempToken || accessToken}`,
                 'X-Partial-Load': 'true',
                 'X-Request-Navigation-Bar': `${requestNavBar}`
             }

@@ -24,6 +24,8 @@ export async function getUser(nickname) {
         userInstance.won_games = user.won_games;
         userInstance.lost_games = user.lost_games;
         userInstance.id = user.user_id;
+        userInstance.TFAsecret = user.tfa_secret;
+        userInstance.typeOfTFA = user.tfa_type;
         return userInstance;
     } catch (error) {
         console.error("Failed to fetch user:", error.message);
@@ -187,8 +189,68 @@ export async function updateUser(originalUser, updatedUser) {
         UPDATE users
         SET nickname = ?, password = ?, email = ?, avatar = ?
         WHERE nickname = ? AND email = ?`,
-        updatedUser.nickname, updatedUser.password, updatedUser.email, updatedUser.avatar, originalUser.nickname, originalUser.email
+        updatedUser.nickname, updatedUser.password, updatedUser.email, updatedUser.avatar,
+        originalUser.nickname, originalUser.email
     );
+}
+
+export async function disableTFA(user) {
+    await db.get(`
+        UPDATE users
+        SET tfa_secret = NULL, tfa_secret_temp = NULL, tfa_type = "disabled"
+        WHERE nickname = ? AND email = ?`,
+        user.nickname, user.email
+    );
+}
+
+export async function prepareTFAChange(user, newSecret) {
+    await db.get(`
+        UPDATE users
+        SET tfa_secret_temp = ?
+        WHERE nickname = ? AND email = ?`,
+        newSecret,
+        user.nickname, user.email
+    );
+}
+
+export async function commitTFAChange(user) {
+    await db.get(`
+        UPDATE users
+        SET tfa_secret = tfa_secret_temp, tfa_secret_temp = NULL, tfa_type = ?
+        WHERE nickname = ? AND email = ?`,
+        user.typeOfTFA,
+        user.nickname, user.email
+    );
+}
+
+export async function getTemp2FAsecret(nickname) {
+    try {
+        const result = await db.get(`
+            SELECT tfa_secret_temp
+            FROM users
+            WHERE nickname = ?`,
+            nickname
+        );
+        return result.tfa_secret_temp;
+    } catch (error) {
+        console.error("Failed to fetch user:", error.message);
+        throw new Error("Database query failed");
+    }
+}
+
+export async function get2FAsecret(nickname) {
+    try {
+        const result = await db.get(`
+            SELECT tfa_secret
+            FROM users
+            WHERE nickname = ?`,
+            nickname
+        );
+        return result.tfa_secret;
+    } catch (error) {
+        console.error("Failed to fetch user:", error.message);
+        throw new Error("Database query failed");
+    }
 }
 
 export async function getUserById(userId) {
@@ -203,6 +265,8 @@ export async function getUserById(userId) {
         userInstance.won_games = user.won_games;
         userInstance.lost_games = user.lost_games;
         userInstance.id = user.user_id;
+        userInstance.TFAsecret = user.tfa_secret;
+        userInstance.typeOfTFA = user.tfa_type;
         return userInstance;
     } catch (error) {
         console.error("Failed to fetch user:", error.message);

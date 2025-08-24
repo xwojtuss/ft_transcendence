@@ -6,7 +6,10 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL UNIQUE,
     avatar TEXT,
     won_games INTEGER DEFAULT 0,
-    lost_games INTEGER DEFAULT 0
+    lost_games INTEGER DEFAULT 0,
+    tfa_secret TEXT DEFAULT NULL,
+    tfa_secret_temp TEXT DEFAULT NULL,
+    tfa_type VARCHAR(10) NOT NULL DEFAULT "disabled"
 );
 
 CREATE TABLE IF NOT EXISTS friends_with (

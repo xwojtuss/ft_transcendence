@@ -1,5 +1,5 @@
-import { checkAuthHeader, checkRefreshToken } from "../controllers/authControllers.js";
-import { getStaticView, getProfile, getUpdate } from "../controllers/viewControllers.js";
+import { check2FAHeader, checkAuthHeader, checkRefreshToken } from "../controllers/authControllers.js";
+import { getStaticView, getProfile, getUpdate, get2FAview } from "../controllers/viewControllers.js";
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fs from "fs/promises";
@@ -56,8 +56,8 @@ export async function getUserSession(fastify, refreshToken, headers) {
     let payload = null;
     let user = null;
     try {
-        if (refreshToken && headers['x-partial-load']) {
-            payload = await checkAuthHeader(fastify, headers['authorization']);
+        if (refreshToken && !headers['x-partial-load'] && (!headers['authorization'] || headers['authorization'] === 'Bearer null')) {
+            payload = await checkRefreshToken(fastify, refreshToken);
             if (!payload || !payload.nickname)
                 return null;
             user = await getUser(payload.nickname);
@@ -65,7 +65,7 @@ export async function getUserSession(fastify, refreshToken, headers) {
                 return null;
             return user;
         } else if (refreshToken) {
-            payload = await checkRefreshToken(fastify, refreshToken);
+            payload = await checkAuthHeader(fastify, headers['authorization']);
             if (!payload || !payload.nickname)
                 return null;
             user = await getUser(payload.nickname);
@@ -76,6 +76,7 @@ export async function getUserSession(fastify, refreshToken, headers) {
     } catch (error) {
         return null;
     }
+    return null;
 }
 
 /**
@@ -151,12 +152,26 @@ export default async function viewsRoutes(fastify) {
         const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         if (!user)
             return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
+        console.log(user);
         try {
             view = await getUpdate(user.nickname);
         } catch (error) {
+            console.log(error);
             return await sendErrorPage(error, user, request, reply);
         }
         return await sendView(view, user, request, reply);
+    });
+
+    fastify.get("/2fa", async (request, reply) => {
+        let view;
+        let payload;
+        try {
+            payload = await check2FAHeader(fastify, request.headers['authorization']);
+            view = await get2FAview(payload);
+        } catch (error) {
+            return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
+        }
+        return await sendView(view, payload, request, reply);
     });
 
     fastify.setNotFoundHandler(async (request, reply) => {

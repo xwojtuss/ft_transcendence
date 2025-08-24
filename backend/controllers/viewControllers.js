@@ -1,8 +1,17 @@
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, getUserMatchHistory, areFriends } from "../db/dbQuery.js";
+import { getUser, getUserMatchHistory, areFriends, getTemp2FAsecret, get2FAsecret } from "../db/dbQuery.js";
 import { cheerio } from '../server.js';
 import HTTPError from "../utils/error.js";
+import QRCode from "qrcode";
+import { authenticator } from "otplib";
+import { TFAtypes } from "../routes/authRoutes.js";
+
+// authenticator.options = {
+//     algorithm: 'sha256',
+//     digits: 6,
+//     step: 30
+// };
 
 const allowedNames = new Set(["login", "register", "home"]);// TEMP delete home, add a separate function for '/'
 
@@ -135,5 +144,33 @@ export async function getUpdate(loggedInNickname) {
     updatePage('.avatar img#preview-avatar').attr('src', user.avatar ? `/api/avatars/${user.id}?t=${Date.now()}` : '/assets/default-avatar.svg');
     updatePage('#nickname-input').attr('value', user.nickname);
     updatePage('#email-input').attr('value', user.email);
+    
+    updatePage('#tfa-select').append(`<option value="${user.typeOfTFA}">${TFAtypes.get(user.typeOfTFA)}</option>`);
+    TFAtypes.forEach((value, key) => {
+        if (key !== user.typeOfTFA) {
+            updatePage('#tfa-select').append(`<option value="${key}">${TFAtypes.get(key)}</option>`);
+        }
+    });
+    updatePage('#tfa-select').attr('value', user.typeOfTFA);
     return updatePage.html();
+}
+
+let cached2FAHtmlPromise = fs.readFile('./backend/views/2FA.html', 'utf8');
+
+export async function get2FAview(payload) {
+    const cached2FAHtml = await cached2FAHtmlPromise;
+    const tfaPage = cheerio.load(cached2FAHtml, null, false);
+    let tfaSecret;
+
+    if (payload.status === 'update') {
+        tfaSecret = await getTemp2FAsecret(payload.nickname);
+        const uri = authenticator.keyuri(payload.nickname, 'ft_transcendence', tfaSecret);
+        const imageURL = await QRCode.toDataURL(uri);
+        tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
+    } else if (payload.status === 'check') {
+        tfaPage('div#qr-wrapper').html('');
+    } else {
+        throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
+    }
+    return tfaPage.html();
 }

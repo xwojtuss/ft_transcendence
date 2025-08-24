@@ -6,7 +6,7 @@ import viewsRoutes from "./routes/viewRoutes.js";
 import * as Cheerio from 'cheerio';
 import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
-import loginRoute, { logoutRoute, refreshRoute, registerRoute, updateRoute } from "./routes/authRoutes.js";
+import loginRoute, { logoutRoute, refreshRoute, registerRoute, TFARoute, updateRoute } from "./routes/authRoutes.js";
 import fs from "fs";
 import multipart from "@fastify/multipart";
 import avatarRoute from "./routes/protectedFilesRoutes.js";
@@ -70,6 +70,7 @@ fastify.register(registerRoute);
 fastify.register(refreshRoute);
 fastify.register(logoutRoute);
 fastify.register(updateRoute);
+fastify.register(TFARoute);
 fastify.register(avatarRoute);
 fastify.register(viewsRoutes);
 

@@ -1,6 +1,7 @@
 import { renderPage } from "./app.js";
-import { checkFile, checkNickname, checkPassword, checkEmail, checkLogin } from "./validateInput.js";
+import { checkFile, checkNickname, checkPassword, checkEmail, checkLogin, checkOneTimeCode } from "./validateInput.js";
 export let accessToken: string | null = null;
+export let tfaTempToken: string | null = null;
 
 /**
  * Tries to refresh the access token
@@ -101,7 +102,7 @@ export async function updateSubmitHandler() {
         const data: Record<string, string> = {};
 
         for (let i = 0; i < form.elements.length; i++) {
-            const input = form.elements.item(i) as HTMLInputElement;
+            const input = form.elements.item(i) as HTMLInputElement | HTMLSelectElement;
             if (!input.name || input.name === 'avatar')
                 continue;
             data[input.name] = input.value;
@@ -124,7 +125,7 @@ export async function updateSubmitHandler() {
         formData.append('email', data.email);
         formData.append('currentPassword', data.currentPassword);
         formData.append('newPassword', data.newPassword);
-        // compress the image or resize it or limit the file size
+        formData.append('tfa', data.tfa);
         const result = await fetch('/api/auth/update', {
             method: 'POST',
             headers: {
@@ -136,8 +137,46 @@ export async function updateSubmitHandler() {
             return await renderPage('/', true);
         } else if (!result.ok) {
             return alert((await result.json()).message);
+        } else if (result.status === 202) { // 2FA REQUIRED
+            tfaTempToken = (await result.json()).tfaToken;
+            return await renderPage('/2fa', false);
         }
         accessToken = (await result.json()).accessToken;
+        return await renderPage('/profile', false);
+    });
+}
+
+export async function update2FASubmitHandler() {
+    const inputs = document.querySelectorAll('form input.digit');
+
+    document.getElementById('tfa-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        let data = 0;
+
+        inputs.forEach((element) => {
+            const input = element as HTMLInputElement;
+            data *= 10;
+            data += parseInt(input.value);
+        });
+        try {
+            checkOneTimeCode(data);
+        } catch (error) {
+            return alert(error);
+        }
+        const result = await fetch('/api/auth/2fa', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${tfaTempToken}`
+            },
+            body: JSON.stringify({ code: data.toString().padStart(6, '0') })
+        });
+        if (result.status === 403) {
+            return await renderPage('/', true);
+        } else if (!result.ok) {
+            return alert((await result.json()).message);
+        }
+        tfaTempToken = null;
         return await renderPage('/profile', true);
     });
 }

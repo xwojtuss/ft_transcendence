@@ -50,3 +50,9 @@ export function checkFile(inputElement: HTMLInputElement | null | undefined): vo
         throw new Error('Image must be smaller than 5MB');
     }
 }
+
+export function checkOneTimeCode(code: number): void {
+    if (code > 999999 || code < 0 || isNaN(code)) {
+        throw new Error('Invalid code');
+    }
+}
