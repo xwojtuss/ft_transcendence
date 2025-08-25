@@ -1,5 +1,9 @@
 export default class Match {
-    _participants = new Map();// map of users with their score for the tournament
+    /**
+     * Map of users with their corresponding tournament score,
+     * Rank 1 is the highest
+     */
+    _participants = new Map();// 
     _endedAt;
     _originator;
     _numOfPlayers = 0;
@@ -8,7 +12,7 @@ export default class Match {
     /**
      * Create a match
      * @param {string | User} originator The person who created the match
-     * @param {number | null} maxNumOfPlayers null if we don't limit the number of players, otherwise the max num of players
+     * @param {number | null | undefined} [maxNumOfPlayers] the maximum number of players, if there's no limit - null
      * @throws {Error} originator is not defined or when maxNumOfPlayers is less than 2
      */
     constructor(originator, maxNumOfPlayers) {
@@ -74,7 +78,9 @@ export default class Match {
         this._endedAt = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
     }
 
-    // only for reassembling data from database
+    /**
+     * This is only for recreating the Match from the database data
+     */
     set endedAt(endedAt) {
         this._endedAt = endedAt;
     }

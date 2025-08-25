@@ -50,7 +50,7 @@ export async function sendErrorPage(error, isLoggedIn, request, reply) {
  * @param {*} fastify the fastify instance
  * @param {string} refreshToken the refresh token
  * @param {*} headers headers from the request
- * @returns {Promise<User> | Promise<null>} returns the user nickname if logged in
+ * @returns {Promise<User | null>} returns the user nickname if logged in
  */
 export async function getUserSession(fastify, refreshToken, headers) {
     let payload = null;
@@ -191,7 +191,7 @@ export default async function viewsRoutes(fastify) {
  * @param {string} XPartialLoadHeader the x-partial-load header
  * @param {boolean} isLoggedIn whether the user is logged in
  * @param {boolean} appendNavBar whether to also include the nav bar to refresh it
- * @returns the view HTML, document HTML or the view with nav bar in JSON
+ * @returns {Promise<string | { nav: string, app: string }>} the view HTML, document HTML or the view with nav bar in JSON
  */
 async function prepareHTML(viewHTML, XPartialLoadHeader, isLoggedIn, appendNavBar) {
     if (!XPartialLoadHeader || XPartialLoadHeader === 'false') {

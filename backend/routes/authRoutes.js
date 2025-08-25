@@ -1,18 +1,12 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUser, addUser, getUserByEmail, updateUser, getTemp2FAsecret, commitTFAChange } from "../db/dbQuery.js";
-import { check2FAHeader, checkAuthHeader, checkRefreshToken, generateTempTFAToken, generateTokens, setupTFAupdate } from "../controllers/authControllers.js";
+import { check2FAHeader, checkAuthHeader, checkRefreshToken, generateTempTFAToken, generateTokens, setupTFAupdate, saveImage } from "../controllers/authControllers.js";
 import HTTPError from "../utils/error.js";
 import User from "../utils/User.js";
 import { getUserSession } from "./viewRoutes.js";
 import fs from "fs";
 import { authenticator } from "otplib";
 import { loginSchema, updateSchema, registerSchema, updateNewPasswordSchema, TFAtypes } from '../utils/inputValidation.js';
-
-// authenticator.options = {
-//     algorithm: 'sha256',
-//     digits: 6,
-//     step: 30
-// };
 
 /**
  * A map of 2FA user id's to their pending update

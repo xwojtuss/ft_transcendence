@@ -305,7 +305,7 @@ export async function get2FAsecret(nickname) {
 /**
  * Get the user instance by using an id
  * @param {number} userId the user index
- * @returns {Promise<User> | Promise<null>} the user or null if not found
+ * @returns {Promise<User | null>} the user or null if not found
  * @throws {Error} if the query fails
  */
 export async function getUserById(userId) {

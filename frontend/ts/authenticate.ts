@@ -1,14 +1,14 @@
 import { renderPage } from "./app.js";
 import { checkFile, checkNickname, checkPassword, checkEmail, checkLogin, checkOneTimeCode } from "./validateInput.js";
-export let accessToken: string | null = null;
-export let tfaTempToken: string | null = null;
+export let accessToken: string | null | undefined = null;
+export let tfaTempToken: string | null | undefined = null;
 
 /**
  * Tries to refresh the access token
  * @returns false if session is not active or has expired, true if the tokens have been refreshed
  */
 export async function refreshAccessToken(): Promise<boolean> {
-    const result = await fetch('/api/auth/refresh', {
+    const result: Response = await fetch('/api/auth/refresh', {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}` },
         credentials: 'include'
@@ -28,12 +28,12 @@ export async function refreshAccessToken(): Promise<boolean> {
  * Sets up the listeners for the login page,
  * Makes the submit buttons fetch /api/auth/login
  */
-export async function loginHandler() {
+export async function loginHandler(): Promise<void> {
     document.getElementById('login-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const formData = new FormData(e.target as HTMLFormElement);
-        const data = Object.fromEntries(formData.entries());
+        const formData: FormData = new FormData(e.target as HTMLFormElement);
+        const data: { [k: string]: FormDataEntryValue } = Object.fromEntries(formData.entries());
 
         try {
             checkLogin(data.login as string);
@@ -41,7 +41,7 @@ export async function loginHandler() {
         } catch (error) {
             return alert(error);
         }
-        const result = await fetch('/api/auth/login', {
+        const result: Response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -66,12 +66,12 @@ export async function loginHandler() {
  * Sets up the listeners for the register page,
  * Makes the submit buttons fetch /api/auth/register
  */
-export async function registerHandler() {
+export async function registerHandler(): Promise<void> {
     document.getElementById('register-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const formData = new FormData(e.target as HTMLFormElement);
-        const data = Object.fromEntries(formData.entries());
+        const formData: FormData = new FormData(e.target as HTMLFormElement);
+        const data: { [k: string]: FormDataEntryValue } = Object.fromEntries(formData.entries());
 
         try {
             checkNickname(data.nickname as string);
@@ -98,19 +98,22 @@ export async function registerHandler() {
     });
 }
 
-export async function updateSubmitHandler() {
+export async function updateSubmitHandler(): Promise<void> {
     document.getElementById('update-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const form = e.target as HTMLFormElement;
+        const form: HTMLFormElement = e.target as HTMLFormElement;
         const data: Record<string, string> = {};
 
+        if (!form) return;
         for (let i = 0; i < form.elements.length; i++) {
-            const input = form.elements.item(i) as HTMLInputElement | HTMLSelectElement;
+            const input: Element | null = form.elements.item(i);
+            if (!(input instanceof HTMLInputElement) && !(input instanceof HTMLSelectElement)) continue;
             if (!input.name || input.name === 'avatar')
                 continue;
             data[input.name] = input.value;
         }
-        const fileInput = document.getElementById('file-input') as HTMLInputElement | null | undefined;
+        const fileInput: HTMLElement | null = document.getElementById('file-input');
+        if (!(fileInput instanceof HTMLInputElement)) return;
         try {
             checkFile(fileInput);
             checkNickname(data.nickname as string);
@@ -120,7 +123,7 @@ export async function updateSubmitHandler() {
         } catch (error) {
             return alert(error);
         }
-        const formData = new FormData();
+        const formData: FormData = new FormData();
         if (fileInput && fileInput.files?.[0]) {
             formData.append('avatar', fileInput.files[0]);
         }
@@ -129,7 +132,7 @@ export async function updateSubmitHandler() {
         formData.append('currentPassword', data.currentPassword);
         formData.append('newPassword', data.newPassword);
         formData.append('tfa', data.tfa);
-        const result = await fetch('/api/auth/update', {
+        const result: Response = await fetch('/api/auth/update', {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${accessToken}`
@@ -149,24 +152,24 @@ export async function updateSubmitHandler() {
     });
 }
 
-export async function update2FASubmitHandler() {
-    const inputs = document.querySelectorAll('form input.digit');
+export async function update2FASubmitHandler(): Promise<void> {
+    const inputs: NodeListOf<Element> = document.querySelectorAll('form input.digit');
 
     document.getElementById('tfa-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        let data = 0;
+        let data: number = 0;
 
         inputs.forEach((element) => {
-            const input = element as HTMLInputElement;
+            if (!(element instanceof HTMLInputElement)) return;
             data *= 10;
-            data += parseInt(input.value);
+            data += parseInt(element.value);
         });
         try {
             checkOneTimeCode(data);
         } catch (error) {
             return alert(error);
         }
-        const result = await fetch('/api/auth/2fa', {
+        const result: Response = await fetch('/api/auth/2fa', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -180,7 +183,7 @@ export async function update2FASubmitHandler() {
             return alert((await result.json()).message);
         }
         tfaTempToken = null;
-        const responseAccess = (await result.json()).accessToken;
+        const responseAccess: string | undefined | null = (await result.json()).accessToken;
         if (responseAccess !== null && responseAccess !== undefined) {
             accessToken = responseAccess;
         }
@@ -188,6 +191,6 @@ export async function update2FASubmitHandler() {
     });
 }
 
-export function invalidateAccessToken() {
+export function invalidateAccessToken(): void {
     accessToken = null;
 }

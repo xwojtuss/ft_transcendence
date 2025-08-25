@@ -150,7 +150,7 @@ export async function setupTFAupdate(fastify, currentUser, updatedUser) {
  * @param {User} updatedUser the updated user instance, this function updates updatedUser.avatar
  * @throws {HTTPError} INTERNAL_SERVER_ERROR when could not save the avatar
  */
-async function saveImage(imageFile, updatedUser) {
+export async function saveImage(imageFile, updatedUser) {
     try {
         const timestamp = Date.now();
         await sharp(imageFile)

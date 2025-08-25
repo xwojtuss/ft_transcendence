@@ -1,9 +1,15 @@
+import { ReasonPhrases, StatusCodes } from 'http-status-codes';
 import { cheerio } from '../server.js';
 import fs from 'fs/promises';
 
 let cachedErrorHtmlPromise = fs.readFile('./backend/views/error.html', 'utf8');
 
 export default class HTTPError extends Error {
+    /**
+     * Create a HTTP error
+     * @param {StatusCodes} code the status code the reply will have
+     * @param {ReasonPhrases | string} message the message sent to the client in the reply
+     */
     constructor(code, message) {
         super(message);
         this.code = code;

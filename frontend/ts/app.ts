@@ -8,10 +8,9 @@ const navigation: HTMLElement | null = document.getElementById('navigation');
 
 // to make the <a> links render different views in <main>
 document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
+    const target: EventTarget | null = e.target;
 
-    if (!target)
-        return;
+    if (!target || !(target instanceof HTMLElement)) return;
     if (target.tagName === 'A') {
         const href: string | null = target.getAttribute('href');
         if (href) {
@@ -19,7 +18,7 @@ document.addEventListener('click', (e) => {
             renderPage(href, false);
         }
     }
-})
+});
 
 // to make the back and forward buttons function
 window.addEventListener('popstate', handleRouteChange);
@@ -30,7 +29,7 @@ changeActiveStyle();
 // make the page functional
 runHandlers(window.location.pathname);
 
-async function runHandlers(pathURL: string) {
+async function runHandlers(pathURL: string): Promise<void> {
     switch (pathURL) {
         case '/login':
             await loginHandler();
@@ -66,13 +65,13 @@ async function runHandlers(pathURL: string) {
  * @param requestNavBar whether to also refresh the nav bar
  * @returns
  */
-export async function renderPage(pathURL: string, requestNavBar: boolean) {
+export async function renderPage(pathURL: string, requestNavBar: boolean): Promise<void> {
     if (!app)
         return;
     if ((pathURL === '/login' || pathURL === '/register') && accessToken !== null)
         return renderPage('/', true);
     try {
-        const response = await fetch(`${pathURL}`, {
+        const response: Response = await fetch(`${pathURL}`, {
             headers: {
                 Authorization: `Bearer ${tfaTempToken || accessToken}`,
                 'X-Partial-Load': 'true',
@@ -97,14 +96,14 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
         }
         let view: string;
         if (requestNavBar && navigation) {
-            const jsonHTML = await response.json();
+            const jsonHTML: { nav: string, app: string } = await response.json();
             view = jsonHTML.app;
             navigation.innerHTML = DOMPurify.sanitize(jsonHTML.nav);
         } else {
             view = await response.text();
         }
         app.innerHTML = DOMPurify.sanitize(view);
-        const newUrl = new URL(pathURL, window.location.origin).pathname;
+        const newUrl: string = new URL(pathURL, window.location.origin).pathname;
         if (window.location.pathname !== newUrl) {
             window.history.pushState({}, '', newUrl);
         }
@@ -118,7 +117,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean) {
 /**
  * Render the view of window.location.pathname
  */
-async function handleRouteChange() {
+async function handleRouteChange(): Promise<void> {
     await renderPage(window.location.pathname, true);
 }
 
@@ -126,7 +125,7 @@ async function handleRouteChange() {
  * Change the style of the nav bar buttons
  * @param pathURL path to find in the href attr in <a>
  */
-function changeActiveStyle(pathURL?: string) {
+function changeActiveStyle(pathURL?: string): void {
     const path: string = pathURL || window.location.pathname;
     document.querySelectorAll('.nav-link').forEach(link => {
         if (link.getAttribute('href') === path) {
