@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 
 export default class User {
     _nickname = null;
-    _isOnline = true;
+    _isOnline = 1;
     _password = null;
     _email = null;
     _avatar = null;

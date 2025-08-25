@@ -180,6 +180,10 @@ export async function update2FASubmitHandler() {
             return alert((await result.json()).message);
         }
         tfaTempToken = null;
+        const responseAccess = (await result.json()).accessToken;
+        if (responseAccess !== null && responseAccess !== undefined) {
+            accessToken = responseAccess;
+        }
         return await renderPage('/', true);
     });
 }

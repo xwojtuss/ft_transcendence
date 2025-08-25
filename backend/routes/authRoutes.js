@@ -1,13 +1,12 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, addUser, getUserByEmail, updateUser, disableTFA, prepareTFAChange, getTemp2FAsecret, commitTFAChange } from "../db/dbQuery.js";
-import { check2FAHeader, checkAuthHeader, checkRefreshToken, generateTempTFAToken, generateTokens } from "../controllers/authControllers.js";
+import { getUser, addUser, getUserByEmail, updateUser, getTemp2FAsecret, commitTFAChange } from "../db/dbQuery.js";
+import { check2FAHeader, checkAuthHeader, checkRefreshToken, generateTempTFAToken, generateTokens, setupTFAupdate } from "../controllers/authControllers.js";
 import HTTPError from "../utils/error.js";
 import User from "../utils/User.js";
-import z from "zod";
 import { getUserSession } from "./viewRoutes.js";
-import sharp from "sharp";
 import fs from "fs";
 import { authenticator } from "otplib";
+import { loginSchema, updateSchema, registerSchema, updateNewPasswordSchema, TFAtypes } from '../utils/inputValidation.js';
 
 // authenticator.options = {
 //     algorithm: 'sha256',
@@ -15,52 +14,12 @@ import { authenticator } from "otplib";
 //     step: 30
 // };
 
-export const TFAtypes = new Map([["disabled", "Disabled"], ["totp", "Authenticator App"], ["email", "Email"]]);
-
-const nicknameSchema = z
-    .string()
-    .min(4, "Username must have at least 4 characters")
-    .max(12, "Username must have at most 12 characters")
-    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores");
-const emailSchema = z
-    .email("Invalid email address");
-const passwordSchema = z
-    .string()
-    .min(8, "Password must have at least 8 characters")
-    .max(30, "Password must have at most 30 characters")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).+$/, "Password must include an uppercase letter, a lowercase letter, a number and a special character");
-const nicknameOrEmailRefine = z
-    .string()
-    .refine((val) => nicknameSchema.safeParse(val).success || emailSchema.safeParse(val).success, {
-        message: "Nickname or email must be valid",
-    });
-const tfaSchema = z
-    .literal(Array.from(TFAtypes.keys()));
-
-const registerSchema = z.object({
-    nickname: nicknameSchema,
-    email: emailSchema,
-    password: passwordSchema
-});
-
-const loginSchema = z.object({
-    login: nicknameOrEmailRefine,
-    password: passwordSchema
-});
-
-const updateSchema = z.object({
-    nickname: nicknameSchema,
-    email: emailSchema,
-    tfa: tfaSchema,
-    currentPassword: passwordSchema
-})
-
-const updateNewPasswordSchema = z.object({
-    nickname: nicknameSchema,
-    email: emailSchema,
-    currentPassword: passwordSchema,
-    newPassword: passwordSchema
-})
+/**
+ * A map of 2FA user id's to their pending update
+ * Key: {number}
+ * Value: {User}
+ */
+const pendingUpdates = new Map();
 
 export default async function loginRoute(fastify) {
     fastify.post('/api/auth/login', {
@@ -178,24 +137,6 @@ export async function refreshRoute(fastify) {
     });
 }
 
-async function saveImage(imageFile, user) {
-    const oldAvatar = user.avatar;
-    try {
-        const timestamp = Date.now();
-        await sharp(imageFile)
-            .resize({ width: 256, height: 256, fit: 'cover' })
-            .webp({ quality: 80 })
-            .toFile(`./backend/avatars/${user.id}_${timestamp}.webp`);
-        user.avatar = `./backend/avatars/${user.id}_${timestamp}.webp`;
-    } catch (error) {
-        console.log(error);
-        throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, 'Could not save avatar');
-    }
-    try {
-        if (oldAvatar) fs.unlinkSync(oldAvatar);
-    } catch (error) {}
-}
-
 export async function updateRoute(fastify) {
     fastify.post('/api/auth/update', {
         handler: async (req, reply) => {
@@ -243,7 +184,15 @@ export async function updateRoute(fastify) {
                 if (await user.validatePassword(fields.currentPassword) == false) {
                     return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Invalid credentials' });
                 }
+                updatedUser.id = user.id;
                 updatedUser.email = fields.email;
+                updatedUser.typeOfTFA = fields.tfa;
+                updatedUser.avatar = user.avatar;
+                if (user.nickname === updatedUser.nickname && user.password === updatedUser.password
+                    && user.email === updatedUser.email && user.typeOfTFA === updatedUser.typeOfTFA && !buffer) {
+                    // if there are no changes to be made do not refresh the token
+                    return reply.send({ accessToken: req.headers['authorization'].split(' ')[1] });
+                }
                 if ((user.nickname !== updatedUser.nickname && await getUser(fields.nickname))
                     || (user.email !== updatedUser.email && await getUserByEmail(fields.email))) {
                     return reply.code(StatusCodes.CONFLICT).send({ message: 'Nickname or Email already taken' });
@@ -252,17 +201,19 @@ export async function updateRoute(fastify) {
                     throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
                 }
                 if (buffer) {
-                    await saveImage(buffer, user);
+                    await saveImage(buffer, updatedUser);
                 }
-                updatedUser.avatar = user.avatar;
-                await updateUser(user, updatedUser);
-                if (fields.tfa !== user.typeOfTFA && fields.tfa === 'disabled') {
-                    await disableTFA(user);
-                } else if (fields.tfa !== user.typeOfTFA && fields.tfa === 'totp') {
-                    const newSecret = authenticator.generateSecret();
-                    await prepareTFAChange(user, newSecret);
-                    const tfaToken = generateTempTFAToken(fastify, updatedUser.nickname, 'totp', 'update');
+                if (user.typeOfTFA !== 'disabled') {
+                    pendingUpdates.set(user.id, updatedUser);
+                    const tfaToken = generateTempTFAToken(fastify, user.nickname, 'totp', 'check');
                     return reply.code(StatusCodes.ACCEPTED).send({ tfaToken });
+                } else {
+                    await updateUser(user, updatedUser);
+                    try {
+                        if (user.avatar && user.avatar !== updatedUser.avatar) fs.unlinkSync(user.avatar);
+                    } catch (error) {}
+                    const tfaToken = await setupTFAupdate(fastify, user, updatedUser);
+                    if (tfaToken) return reply.code(StatusCodes.ACCEPTED).send({ tfaToken });
                 }
                 const accessToken = generateTokens(fastify, updatedUser.nickname, reply);
                 return reply.send({ accessToken });
@@ -330,17 +281,34 @@ export async function TFARoute(fastify) {
                 const token = String(req.body.code).padStart(6, '0');
                 const temp2FAsecret = await getTemp2FAsecret(user.nickname);
                 console.log(token);
-                if ((payloadRefresh && payloadTFA.status === 'check') || (!payloadRefresh && payloadTFA.status === 'update')) {
+                if (!payloadRefresh && payloadTFA.status === 'update') {
+                    // user updating 2FA but logged out
                     throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
                 } else if (!payloadRefresh && authenticator.check(token, user.TFAsecret)) {
+                    // user logging in - valid code
                     const accessToken = generateTokens(fastify, user.nickname, reply);
                     return reply.send({ accessToken });
                 } else if (!payloadRefresh) {
+                    // user logging in - invalid code
                     throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
+                } else if (payloadRefresh && payloadTFA.status === 'check' && !pendingUpdates.has(user.id)) {
+                    // verifying 2FA for /update changes but there is no update pending
+                    throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
+                } else if (payloadRefresh && payloadTFA.status === 'check') {
+                    // verifying 2FA for /update changes
+                    const updatedUser = pendingUpdates.get(user.id);
+                    await updateUser(user, updatedUser);
+                    const tfaToken = await setupTFAupdate(fastify, user, updatedUser);
+                    pendingUpdates.delete(user);
+                    if (tfaToken) return reply.code(StatusCodes.ACCEPTED).send({ tfaToken });
+                    const accessToken = generateTokens(fastify, updatedUser.nickname, reply);
+                    return reply.send({ accessToken });
                 } else if (authenticator.check(token, temp2FAsecret)) {
+                    // user updating 2FA - valid code
                     user.typeOfTFA = payloadTFA.type;
                     await commitTFAChange(user);
                 } else {
+                    // user updating 2FA - invalid code
                     throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
                 }
                 return reply.send({ message: "OK" });

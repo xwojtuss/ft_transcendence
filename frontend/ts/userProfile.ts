@@ -50,6 +50,7 @@ export function updateHandler() {
 export function update2FAHandler() {
     const inputs = document.querySelectorAll('form input.digit');
 
+    (inputs[0] as HTMLInputElement)?.focus();
     inputs.forEach((element, key) => {
         const input = element as HTMLInputElement;
 

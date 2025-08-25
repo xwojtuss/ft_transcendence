@@ -152,7 +152,6 @@ export default async function viewsRoutes(fastify) {
         const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
         if (!user)
             return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
-        console.log(user);
         try {
             view = await getUpdate(user.nickname);
         } catch (error) {

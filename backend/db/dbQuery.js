@@ -238,6 +238,11 @@ export async function getTemp2FAsecret(nickname) {
     }
 }
 
+/**
+ * Get the 2FA secret from the database
+ * @param {string} nickname the nickname of a user whose data to fetch
+ * @returns {Promise<string>} the 2FA secret
+ */
 export async function get2FAsecret(nickname) {
     try {
         const result = await db.get(`
@@ -253,6 +258,12 @@ export async function get2FAsecret(nickname) {
     }
 }
 
+/**
+ * Get the user instance by using an id
+ * @param {number} userId the user index
+ * @returns {Promise<User> | Promise<null>} the user or null if not found
+ * @throws {Error} if the query fails
+ */
 export async function getUserById(userId) {
     try {
         const user = await db.get("SELECT * FROM users WHERE user_id=? LIMIT 1", userId);

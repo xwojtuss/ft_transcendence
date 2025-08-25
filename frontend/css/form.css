@@ -42,7 +42,7 @@ form.update input[type=submit]:not(.no-margin), form.update .cancel:not(.no-marg
     @apply mt-3;
 }
 
-form#tfa-form input[type=submit]:not(.no-margin), form.update .cancel:not(.no-margin) {
+form#tfa-form input[type=submit]:not(.no-margin), form#tfa-form .cancel:not(.no-margin) {
     @apply mt-8;
 }
 

@@ -1,7 +1,10 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { ACCESS_TOKEN_EXPIRY, ACCESS_TOKEN_EXPIRY_SECONDS, REFRESH_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY_SECONDS, TFA_TOKEN_EXPIRY } from "../utils/config.js";
 import HTTPError from "../utils/error.js";
-import { getUser } from "../db/dbQuery.js";
+import { getUser, disableTFA, prepareTFAChange } from "../db/dbQuery.js";
+import User from "../utils/User.js";
+import { authenticator } from "otplib";
+import sharp from "sharp";
 
 /**
  * Checks whether the access token is valid with fastify.jwd.verify
@@ -103,6 +106,14 @@ export function generateTokens(fastify, nickname, reply) {
     return accessToken;
 }
 
+/**
+ * Create a new 2FA authorization token
+ * @param {*} fastify the fastify instance
+ * @param {string} nickname user nickname
+ * @param {string} typeOfTFA the type of 2FA, one of TFAtypes
+ * @param {string} status whether it is to 'check' an existing 2FA or to 'update' or setup the 2FA
+ * @returns the 2FA authorization token
+ */
 export function generateTempTFAToken(fastify, nickname, typeOfTFA, status) {
     const tfaToken = fastify.jwt.sign({
         nickname: nickname,
@@ -112,4 +123,43 @@ export function generateTempTFAToken(fastify, nickname, typeOfTFA, status) {
         expiresIn: TFA_TOKEN_EXPIRY
     });
     return tfaToken;
+}
+
+/**
+ * Function to setup the new 2FA method if there are updates to commit, this has to be ran AFTER the updatedUsers' credentials have been commited to the db
+ * @param {*} fastify the fastify instance
+ * @param {User} currentUser the original user with old information
+ * @param {User} updatedUser user instance with updated information, nickname and email must match with what's in the db when this function is called
+ * @returns the tfaToken if the 2FA has to be set up via another request or null if that's it for the 2FA update flow
+ */
+export async function setupTFAupdate(fastify, currentUser, updatedUser) {
+    if (updatedUser.typeOfTFA !== currentUser.typeOfTFA && updatedUser.typeOfTFA === 'disabled') {
+        await disableTFA(updatedUser);
+    } else if (updatedUser.typeOfTFA !== currentUser.typeOfTFA && updatedUser.typeOfTFA === 'totp') {
+        const newSecret = authenticator.generateSecret();
+        await prepareTFAChange(updatedUser, newSecret);
+        const tfaToken = generateTempTFAToken(fastify, updatedUser.nickname, 'totp', 'update');
+        return tfaToken;
+    }
+    return null;
+}
+
+/**
+ * Safe the image from the buffer to a file
+ * @param {Buffer} imageFile the buffer of the image to save
+ * @param {User} updatedUser the updated user instance, this function updates updatedUser.avatar
+ * @throws {HTTPError} INTERNAL_SERVER_ERROR when could not save the avatar
+ */
+async function saveImage(imageFile, updatedUser) {
+    try {
+        const timestamp = Date.now();
+        await sharp(imageFile)
+            .resize({ width: 256, height: 256, fit: 'cover' })
+            .webp({ quality: 80 })
+            .toFile(`./backend/avatars/${updatedUser.id}_${timestamp}.webp`);
+        updatedUser.avatar = `./backend/avatars/${updatedUser.id}_${timestamp}.webp`;
+    } catch (error) {
+        console.log(error);
+        throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, 'Could not save avatar');
+    }
 }
