@@ -1,60 +1,51 @@
-import { initCanvas, resizeCanvas, drawBackground, drawOutline, drawDottedLine, drawPongText, getDynamicLineWidth, drawScore } from "./gameUtils/drawBoard.js";
-import { Player, dynamicallyAdjustPlayer } from "./gameUtils/player.js";
-import { Ball, dynamicallyAdjustBall } from "./gameUtils/ball.js";
+import { initCanvas, resizeCanvas, setGameDimensions } from "./gameUtils/drawBoard.js";
+import { GameWebSocket } from "./gameUtils/websocketManager.js";
+import { InputHandler } from "./gameUtils/inputHandler.js";
+import { GameRenderer } from "./gameUtils/gameRenderer.js";
 
 export function initGameIfHome() {
-	if (window.location.pathname === '/' || window.location.pathname === '/home') {
-		const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
-		const ctx = canvas.getContext("2d");
+    if (window.location.pathname !== '/' && window.location.pathname !== '/home') {
+        return;
+    }
 
-		if (!canvas || !ctx) {
-			throw new Error("Failed to get canvas");
-		}
+    const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
+    const ctx = canvas.getContext("2d");
 
-		initCanvas();
+    if (!canvas || !ctx) {
+        throw new Error("Failed to get canvas");
+    }
 
-		const ball = new Ball(canvas);
+    initCanvas();
 
-		const player1 = new Player(canvas);
-		const player2 = new Player(canvas);
+    let gameState: any = null;
+    const renderer = new GameRenderer(canvas, ctx);
 
-		// Align ich na podstawie ich szerokosci, na wiekszym ekranie sa troche bardziej przesunieci w lewo
-		player1.align(getDynamicLineWidth() * 2.5);
-		player2.align(canvas.width - getDynamicLineWidth() * 2.5);
+    // Setup WebSocket
+    const gameWs = new GameWebSocket(
+        `ws://localhost:3000/ws/localGame`,
+        (config) => {
+            setGameDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
+            renderer.setFieldDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
+            console.log("Game dimensions set:", config.FIELD_WIDTH, config.FIELD_HEIGHT);
+        },
+        (state) => {
+            gameState = state;
+        }
+    );
 
-		function gameLoop() {
-			drawBackground();
-			drawOutline();
-			drawDottedLine();
-			drawPongText();
+    // Setup input handling
+    new InputHandler(gameWs);
 
-			if (!ctx) {
-				throw new Error("Failed to get canvas context");
-			}
+    // Game loop
+    function gameLoop() {
+        renderer.render(gameState);
+        requestAnimationFrame(gameLoop);
+    }
 
-			ball.draw(ctx);
-			player1.draw(ctx);
-			player2.draw(ctx);
-			drawScore(ctx, player1.getScore(), player2.getScore());
+    gameLoop();
 
-			requestAnimationFrame(gameLoop);
-		}
-		gameLoop();
-
-		window.addEventListener("resize", () => {
-			const oldWidth = canvas.width;
-			const oldHeight = canvas.height;
-
-			resizeCanvas();
-			
-			dynamicallyAdjustPlayer(player1, oldHeight);
-			dynamicallyAdjustPlayer(player2, oldHeight);
-			player1.align(getDynamicLineWidth() * 2.5);
-			player2.align(canvas.width - getDynamicLineWidth() * 2.5);
-
-			dynamicallyAdjustBall(ball, oldWidth, oldHeight);
-
-			gameLoop();
-		});
-	}
+    // Handle resize
+    const handleResize = () => resizeCanvas();
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("fullscreenchange", handleResize);
 }

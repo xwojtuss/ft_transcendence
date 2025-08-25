@@ -6,4 +6,6 @@ npm-debug.log
 .DS_Store
 frontend/css/output.css
 frontend/ts/*.js
+frontend/ts/gameUtils/*.js
 backend/db/*.sqlite
+TODO
