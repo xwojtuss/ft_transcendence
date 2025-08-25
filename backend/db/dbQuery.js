@@ -12,40 +12,52 @@ export default async function getAllUsers() {
     }
 }
 
+/**
+ * Recreate a user from an Object
+ * @param {Object} userObject the Object, for example the result of a db query
+ * @example
+ * const result = await db.get('SELECT * FROM users WHERE user_id = 1');
+ * const user = createUserFromObject(result);
+ * // user is a User instance
+ * user.validatePassword(...);
+ * @returns the User instance
+ */
+function createUserFromObject(userObject) {
+    const userInstance = new User(userObject.nickname, userObject.password);
+    userInstance.email = userObject.email;
+    userInstance.isOnline = userObject.is_online;
+    userInstance.avatar = userObject.avatar;
+    userInstance.won_games = userObject.won_games;
+    userInstance.lost_games = userObject.lost_games;
+    userInstance.id = userObject.user_id;
+    userInstance.TFAsecret = userObject.tfa_secret;
+    userInstance.typeOfTFA = userObject.tfa_type;
+    return userInstance;
+}
+
 export async function getUser(nickname) {
     try {
         const user = await db.get("SELECT * FROM users WHERE nickname=? LIMIT 1", nickname);
         if (!user || user.empty)
             return null;
-        const userInstance = new User(user.nickname, user.password);
-        userInstance.email = user.email;
-        userInstance.isOnline = user.is_online;
-        userInstance.avatar = user.avatar;
-        userInstance.won_games = user.won_games;
-        userInstance.lost_games = user.lost_games;
-        userInstance.id = user.user_id;
-        userInstance.TFAsecret = user.tfa_secret;
-        userInstance.typeOfTFA = user.tfa_type;
-        return userInstance;
+        return createUserFromObject(user);
     } catch (error) {
         console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
     }
 }
 
+/**
+ * Get a user from db by using an email
+ * @param {string} email the email of the user to get
+ * @returns {Promise<User>} 
+ */
 export async function getUserByEmail(email) {
     try {
         const user = await db.get("SELECT * FROM users WHERE email=? LIMIT 1", email);
         if (!user || user.empty)
             return null;
-        const userInstance = new User(user.nickname, user.password);
-        userInstance.email = user.email;
-        userInstance.isOnline = user.is_online;
-        userInstance.avatar = user.avatar;
-        userInstance.won_games = user.won_games;
-        userInstance.lost_games = user.lost_games;
-        userInstance.id = user.user_id;
-        return userInstance;
+        return createUserFromObject(user);
     } catch (error) {
         console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
@@ -119,6 +131,10 @@ export async function getAllMatches() {
     }
 }
 
+/**
+ * Adds a user to the db, they have to have: nickname, password and email assigned
+ * @param {User} user the user instance
+ */
 export async function addUser(user) {
     try {
         await db.run(
@@ -133,6 +149,11 @@ export async function addUser(user) {
     }
 }
 
+/**
+ * Add a match to the db, the match has to be valid and has to have ended
+ * @param {Match} match the match to add
+ * @throws {Error} if insert has failed, rollbacks the changes
+ */
 export async function addMatch(match) {
     await db.exec("BEGIN TRANSACTION");
     try {
@@ -184,6 +205,11 @@ export async function areFriends(userOne, userTwo) {
     return true;
 }
 
+/**
+ * Updates the non-2FA data related to a user, this updates nickname, email, password and avatar
+ * @param {User} originalUser the instance of a user with unchanged data (nickname and email must match with db)
+ * @param {User} updatedUser the instance of a user with the changes to commit
+ */
 export async function updateUser(originalUser, updatedUser) {
     await db.get(`
         UPDATE users
@@ -194,6 +220,10 @@ export async function updateUser(originalUser, updatedUser) {
     );
 }
 
+/**
+ * Disables the 2FA for a user
+ * @param {User} user the instance of a user whose data to update
+ */
 export async function disableTFA(user) {
     await db.get(`
         UPDATE users
@@ -203,6 +233,11 @@ export async function disableTFA(user) {
     );
 }
 
+/**
+ * Prepare the 2FA change, makes the newSecret the pending 2FA secret
+ * @param {User} user the user instance whose data to update
+ * @param {string} newSecret the new secret, this becomes the tfa_secret_temp
+ */
 export async function prepareTFAChange(user, newSecret) {
     await db.get(`
         UPDATE users
@@ -213,6 +248,10 @@ export async function prepareTFAChange(user, newSecret) {
     );
 }
 
+/**
+ * Commit the 2FA change, makes the pending 2FA secret the current 2FA secret, commits the type of 2FA to the db
+ * @param {User} user the user instance whose data to update
+ */
 export async function commitTFAChange(user) {
     await db.get(`
         UPDATE users
@@ -223,6 +262,11 @@ export async function commitTFAChange(user) {
     );
 }
 
+/**
+ * Get the pending 2FA secret from the database (tfa_secret_temp)
+ * @param {string} nickname the nickname of a user whose data to fetch
+ * @returns {Promise<string>} the pending 2FA secret
+ */
 export async function getTemp2FAsecret(nickname) {
     try {
         const result = await db.get(`
@@ -269,16 +313,7 @@ export async function getUserById(userId) {
         const user = await db.get("SELECT * FROM users WHERE user_id=? LIMIT 1", userId);
         if (!user || user.empty)
             return null;
-        const userInstance = new User(user.nickname, user.password);
-        userInstance.email = user.email;
-        userInstance.isOnline = user.is_online;
-        userInstance.avatar = user.avatar;
-        userInstance.won_games = user.won_games;
-        userInstance.lost_games = user.lost_games;
-        userInstance.id = user.user_id;
-        userInstance.TFAsecret = user.tfa_secret;
-        userInstance.typeOfTFA = user.tfa_type;
-        return userInstance;
+        return createUserFromObject(user);
     } catch (error) {
         console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
