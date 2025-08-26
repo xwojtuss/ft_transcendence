@@ -1,6 +1,8 @@
 import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getUserMatchHistory } from "./db/dbQuery.js";
 import User from "./utils/User.js";
 import Match from "./utils/Match.js";
+import assert from "assert";
+import fs from "fs";
 
 /**
  * Adds test users and test matches
@@ -49,5 +51,19 @@ export default async function testDatabase() {
         console.log(await getUserMatchHistory('wkornato'));
     } catch (error) {
         console.log(error);
+    }
+}
+
+export function runSecretsTest() {
+    assert(fs.existsSync("./secrets/ft_transcendence.key"), "SSL key not found");
+    assert(fs.existsSync("./secrets/ft_transcendence.crt"), "SSL cert not found");
+    assert(process.env.COOKIE_SECRET, "Cookie secret not found in .env");
+    assert(process.env.ACCESS_TOKEN_SECRET, "Access token secret not found in .env");
+    assert(process.env.REFRESH_TOKEN_SECRET, "Refresh token secret not found in .env");
+    assert(process.env.TFA_TOKEN_SECRET, "2FA authorization token secret not found in .env");
+    assert(process.env.CRYPTO_TFA_KEY, "2FA secret encryption key not found in .env");
+    assert(Buffer.from(process.env.CRYPTO_TFA_KEY, 'base64').length === 32, "2FA secret encryption key is not 256-bit/32-byte");
+    if (!process.env.PORT) {
+        console.log("Port not found in .env, defaulting to 3000");
     }
 }

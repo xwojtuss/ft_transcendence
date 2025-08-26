@@ -295,8 +295,6 @@ export async function TFARoute(fastify) {
                 } else if (payloadRefresh && payloadTFA.status === 'check') {
                     // verifying 2FA for /update changes
 
-                    // const updatedUser = pendingUpdates.get(user.id);
-                    // await updateUser(user, updatedUser);
                     await commitPendingUpdate(user);
                     const updatedUser = await getUserById(user.id);
 

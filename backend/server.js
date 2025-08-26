@@ -7,24 +7,15 @@ import * as Cheerio from 'cheerio';
 import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
 import loginRoute, { logoutRoute, refreshRoute, registerRoute, TFARoute, updateRoute } from "./routes/authRoutes.js";
-import fs from "fs";
 import multipart from "@fastify/multipart";
 import avatarRoute from "./routes/protectedFilesRoutes.js";
+import { runSecretsTest } from "./test.js";
+import fs from "fs";
 
-let keySSL;
-let certSSL;
+runSecretsTest();
 
-try {
-    if (!fs.existsSync("./secrets/ft_transcendence.key") || !fs.existsSync("./secrets/ft_transcendence.crt")) {
-        console.error("SSL cert or key not found, exiting...");
-        exit(1);
-    }
-    keySSL = fs.readFileSync("./secrets/ft_transcendence.key");
-    certSSL = fs.readFileSync("./secrets/ft_transcendence.crt");
-} catch (error) {
-    console.error("Failed to read SSL cert or key, exiting...");
-    exit(1);
-}
+const keySSL = fs.readFileSync("./secrets/ft_transcendence.key");
+const certSSL = fs.readFileSync("./secrets/ft_transcendence.crt");
 
 // setup fastify and use the console logger
 const fastify = Fastify({
