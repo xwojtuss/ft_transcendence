@@ -184,7 +184,7 @@ export async function updateRoute(fastify) {
                 }
                 await removePendingUpdate(user.id); // to stop previous "Cancel" from blocking the email or nickname
                 if ((user.nickname !== updatedUser.nickname && (await getUser(fields.nickname) || await isNicknamePending(fields.nickname)))
-                    || (user.email !== updatedUser.email && (await getUserByEmail(fields.email) || await isEmailPending(fields.nickname)))) {
+                    || (user.email !== updatedUser.email && (await getUserByEmail(fields.email) || await isEmailPending(fields.email)))) {
                     return reply.code(StatusCodes.CONFLICT).send({ message: 'Nickname or Email already taken' });
                 }
                 if (!TFA.TFAtypes.has(fields.tfa)) {

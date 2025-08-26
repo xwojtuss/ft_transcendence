@@ -155,7 +155,7 @@ export default async function viewsRoutes(fastify) {
         try {
             view = await getUpdate(user.nickname);
         } catch (error) {
-            console.log(error);
+            console.error(error);
             return await sendErrorPage(error, user, request, reply);
         }
         return await sendView(view, user, request, reply);
