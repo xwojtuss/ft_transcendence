@@ -36,7 +36,7 @@ export default async function loginRoute(fastify) {
                     return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Invalid credentials' });
                 }
                 const currentTFA = await TFA.getUsersTFA(user.id);
-                if (currentTFA.typeOfTFA === 'disabled') {
+                if (currentTFA.type === 'disabled') {
                     const accessToken = generateTokens(fastify, user.id, reply);
                     return reply.send({ accessToken });
                 } else {
@@ -276,10 +276,9 @@ export async function TFARoute(fastify) {
                 }
                 const token = String(req.body.code).padStart(6, '0');
                 const pendingTFA = await TFA.getUsersPendingTFA(user.id);
-                console.log(pendingTFA.secret, pendingTFA.type);
                 const currentTFA = await TFA.getUsersTFA(user.id);
-                if (!payloadRefresh && payloadTFA.status === 'update') {
-                    // user updating 2FA but logged out
+                if (!payloadRefresh && (payloadTFA.status === 'update' || currentTFA.type === 'disabled')) {
+                    // user updating 2FA or doesnt have 2FA set up but logged out
                     throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
                 } else if (!payloadRefresh && currentTFA.verify(token)) {
                     // user logging in - valid code

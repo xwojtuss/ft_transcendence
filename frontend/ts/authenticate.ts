@@ -179,6 +179,9 @@ export async function update2FASubmitHandler(): Promise<void> {
         });
         if (result.status === 403) {
             return await renderPage('/', true);
+        } else if (result.status === 400) {
+            await renderPage('/', true);
+            return alert((await result.json()).message);
         } else if (!result.ok) {
             return alert((await result.json()).message);
         }

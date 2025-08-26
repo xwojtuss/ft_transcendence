@@ -30,8 +30,6 @@ function createUserFromObject(userObject) {
     userInstance.won_games = userObject.won_games;
     userInstance.lost_games = userObject.lost_games;
     userInstance.id = userObject.user_id;
-    userInstance.TFAsecret = userObject.tfa_secret;
-    userInstance.typeOfTFA = userObject.tfa_type;
     return userInstance;
 }
 
