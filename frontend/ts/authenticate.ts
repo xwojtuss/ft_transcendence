@@ -152,6 +152,8 @@ export async function updateSubmitHandler(): Promise<void> {
     });
 }
 
+export const TOTP_CODE_DIGITS = 6;
+
 export async function update2FASubmitHandler(): Promise<void> {
     const inputs: NodeListOf<Element> = document.querySelectorAll('form input.digit');
 
@@ -175,7 +177,7 @@ export async function update2FASubmitHandler(): Promise<void> {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${tfaTempToken}`
             },
-            body: JSON.stringify({ code: data.toString().padStart(6, '0') })
+            body: JSON.stringify({ code: data.toString().padStart(TOTP_CODE_DIGITS, '0') })
         });
         if (result.status === 403) {
             return await renderPage('/', true);

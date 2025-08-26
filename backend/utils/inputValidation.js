@@ -19,7 +19,7 @@ const nicknameOrEmailRefine = z
         message: "Nickname or email must be valid",
     });
 const tfaSchema = z
-    .literal(Array.from(TFA.TFAtypes.keys()));
+    .enum(Array.from(TFA.TFAtypes.keys()));
 
 export const registerSchema = z.object({
     nickname: nicknameSchema,
