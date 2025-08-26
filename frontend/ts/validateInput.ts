@@ -41,12 +41,18 @@ export function checkPassword(password: string): void {
 
 export function checkFile(inputElement: HTMLInputElement | null | undefined): void {
     if (!inputElement) return;
-    const imageFile = inputElement.files?.[0];
+    const imageFile: File | undefined = inputElement.files?.[0];
     if (!imageFile) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(imageFile.type)) {
         throw new Error('Only JPEG, PNG and WEBP files are allowed');
     }
     if (imageFile.size > 5 * 1024 * 1024) {
         throw new Error('Image must be smaller than 5MB');
+    }
+}
+
+export function checkOneTimeCode(code: number): void {
+    if (code > 999999 || code < 0 || isNaN(code)) {
+        throw new Error('Invalid code');
     }
 }

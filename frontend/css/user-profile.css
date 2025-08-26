@@ -1,5 +1,5 @@
 .floater {
-    @apply flex w-auto max-h-3/4 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
+    @apply flex w-auto max-h-7/8 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
 }
 
 .floater .floater {

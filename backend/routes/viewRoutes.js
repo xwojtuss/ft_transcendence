@@ -1,10 +1,10 @@
-import { checkAuthHeader, checkRefreshToken } from "../controllers/authControllers.js";
-import { getStaticView, getProfile, getUpdate } from "../controllers/viewControllers.js";
+import { check2FAHeader, checkAuthHeader, checkRefreshToken } from "../controllers/authControllers.js";
+import { getStaticView, getProfile, getUpdate, get2FAview } from "../controllers/viewControllers.js";
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fs from "fs/promises";
 import { cheerio } from "../server.js";
-import { getUser } from "../db/dbQuery.js";
+import { getUserById } from "../db/dbQuery.js";
 
 const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
 const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html', "utf-8");
@@ -50,25 +50,25 @@ export async function sendErrorPage(error, isLoggedIn, request, reply) {
  * @param {*} fastify the fastify instance
  * @param {string} refreshToken the refresh token
  * @param {*} headers headers from the request
- * @returns {Promise<User> | Promise<null>} returns the user nickname if logged in
+ * @returns {Promise<User | null>} returns the user nickname if logged in
  */
 export async function getUserSession(fastify, refreshToken, headers) {
     let payload = null;
     let user = null;
     try {
-        if (refreshToken && headers['x-partial-load']) {
-            payload = await checkAuthHeader(fastify, headers['authorization']);
-            if (!payload || !payload.nickname)
+        if (refreshToken && !headers['x-partial-load'] && (!headers['authorization'] || headers['authorization'] === 'Bearer null')) {
+            payload = await checkRefreshToken(fastify, refreshToken);
+            if (!payload || !payload.id)
                 return null;
-            user = await getUser(payload.nickname);
+            user = await getUserById(payload.id);
             if (!user)
                 return null;
             return user;
         } else if (refreshToken) {
-            payload = await checkRefreshToken(fastify, refreshToken);
-            if (!payload || !payload.nickname)
+            payload = await checkAuthHeader(fastify, headers['authorization']);
+            if (!payload || !payload.id)
                 return null;
-            user = await getUser(payload.nickname);
+            user = await getUserById(payload.id);
             if (!user)
                 return null;
             return user;
@@ -76,6 +76,7 @@ export async function getUserSession(fastify, refreshToken, headers) {
     } catch (error) {
         return null;
     }
+    return null;
 }
 
 /**
@@ -89,9 +90,9 @@ export default async function viewsRoutes(fastify) {
         try {
             view = await getStaticView('home');
         } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
+            return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
         }
-        return await sendView(view, user, request, reply);
+        return await sendView(view, request.cookies.refreshToken, request, reply);
     });
 
     fastify.get("/login", async (request, reply) => {
@@ -154,9 +155,24 @@ export default async function viewsRoutes(fastify) {
         try {
             view = await getUpdate(user.nickname);
         } catch (error) {
+            console.error(error);
             return await sendErrorPage(error, user, request, reply);
         }
         return await sendView(view, user, request, reply);
+    });
+
+    fastify.get("/2fa", async (request, reply) => {
+        let view;
+        let payload;
+        try {
+            payload = await check2FAHeader(fastify, request.headers['authorization']);
+            const user = await getUserById(payload.id);
+            if (!user) throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
+            view = await get2FAview(payload, user.nickname);
+        } catch (error) {
+            return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
+        }
+        return await sendView(view, payload, request, reply);
     });
 
     fastify.setNotFoundHandler(async (request, reply) => {
@@ -177,7 +193,7 @@ export default async function viewsRoutes(fastify) {
  * @param {string} XPartialLoadHeader the x-partial-load header
  * @param {boolean} isLoggedIn whether the user is logged in
  * @param {boolean} appendNavBar whether to also include the nav bar to refresh it
- * @returns the view HTML, document HTML or the view with nav bar in JSON
+ * @returns {Promise<string | { nav: string, app: string }>} the view HTML, document HTML or the view with nav bar in JSON
  */
 async function prepareHTML(viewHTML, XPartialLoadHeader, isLoggedIn, appendNavBar) {
     if (!XPartialLoadHeader || XPartialLoadHeader === 'false') {

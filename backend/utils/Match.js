@@ -1,14 +1,18 @@
 export default class Match {
-    _participants = new Map();// map of users with their score for the tournament
-    _endedAt;
-    _originator;
-    _numOfPlayers = 0;
-    _maxNumOfPlayers = -1;
+    /**
+     * Map of users with their corresponding tournament score,
+     * Rank 1 is the highest
+     */
+    #participants = new Map();// 
+    #endedAt;
+    #originator;
+    #numOfPlayers = 0;
+    #maxNumOfPlayers = -1;
 
     /**
      * Create a match
      * @param {string | User} originator The person who created the match
-     * @param {number | null} maxNumOfPlayers null if we don't limit the number of players, otherwise the max num of players
+     * @param {number | null | undefined} [maxNumOfPlayers] the maximum number of players, if there's no limit - null
      * @throws {Error} originator is not defined or when maxNumOfPlayers is less than 2
      */
     constructor(originator, maxNumOfPlayers) {
@@ -16,16 +20,16 @@ export default class Match {
             throw new Error("Originator must exist");
         if (maxNumOfPlayers && maxNumOfPlayers < 2)
             throw new Error("The number of players must be greater than 1");
-        this._originator = originator;
+        this.#originator = originator;
         if (maxNumOfPlayers)
-            this._maxNumOfPlayers = maxNumOfPlayers;
+            this.#maxNumOfPlayers = maxNumOfPlayers;
         else
-            this._maxNumOfPlayers = -1;
+            this.#maxNumOfPlayers = -1;
         this.addParticipant(originator);
     }
 
     get originator() {
-        return this._originator;
+        return this.#originator;
     }
 
     /**
@@ -36,10 +40,10 @@ export default class Match {
     addParticipant(user) {
         if (!user)
             throw new Error("User must exist");
-        if (this._maxNumOfPlayers !== -1 && this._numOfPlayers >= this._maxNumOfPlayers)
+        if (this.#maxNumOfPlayers !== -1 && this.#numOfPlayers >= this.#maxNumOfPlayers)
             throw new Error("Too many players");
-        this._participants.set(user, 0);
-        this._numOfPlayers++;
+        this.#participants.set(user, 0);
+        this.#numOfPlayers++;
     }
 
     /**
@@ -48,12 +52,12 @@ export default class Match {
      * @throws {Error} when the match has ended or when the user is not defined
      */
     removeParticipant(user) {
-        if (this._endedAt)
+        if (this.#endedAt)
             throw new Error("Match has ended");
         if (!user)
             throw new Error("User must exist");
-        this._participants.delete(user);
-        this._numOfPlayers--;
+        this.#participants.delete(user);
+        this.#numOfPlayers--;
     }
 
     /**
@@ -62,37 +66,39 @@ export default class Match {
      * @param {number} rank The rank of the user, 1 being the highest
      */
     addRank(user, rank) {
-        if (rank < 1 || (this._maxNumOfPlayers !== -1 && rank > this._maxNumOfPlayers))
+        if (rank < 1 || (this.#maxNumOfPlayers !== -1 && rank > this.#maxNumOfPlayers))
             throw new Error("Rank is invalid");
-        this._participants.set(user, rank);
+        this.#participants.set(user, rank);
     }
 
     /**
      * End the match, set the EndedAt timestamp
      */
     endMatch() {
-        this._endedAt = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+        this.#endedAt = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
     }
 
-    // only for reassembling data from database
+    /**
+     * This is only for recreating the Match from the database data
+     */
     set endedAt(endedAt) {
-        this._endedAt = endedAt;
+        this.#endedAt = endedAt;
     }
 
     get participants() {
-        return this._participants;
+        return this.#participants;
     }
 
     get numOfPlayers() {
-        return this._numOfPlayers;
+        return this.#numOfPlayers;
     }
 
     get maxNumOfPlayers() {
-        return this._maxNumOfPlayers;
+        return this.#maxNumOfPlayers;
     }
 
     get endedAt() {
-        return this._endedAt;
+        return this.#endedAt;
     }
 
     /**
@@ -101,6 +107,6 @@ export default class Match {
      * @returns {number|undefined} The rank of the participant, or undefined if not found.
      */
     getRank(participant) {
-        return this._participants.get(participant);
+        return this.#participants.get(participant);
     }
 }

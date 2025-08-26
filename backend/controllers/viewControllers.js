@@ -3,6 +3,8 @@ import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUser, getUserMatchHistory, areFriends } from "../db/dbQuery.js";
 import { cheerio } from '../server.js';
 import HTTPError from "../utils/error.js";
+import QRCode from "qrcode";
+import TFA from "../utils/TFA.js";
 
 const allowedNames = new Set(["login", "register", "home"]);// TEMP delete home, add a separate function for '/'
 
@@ -24,6 +26,17 @@ export async function getStaticView(name) {
 
 let cachedProfileHtmlPromise = fs.readFile('./backend/views/profile.html', 'utf8');
 
+/**
+ * Get the ordinal indicator
+ * @param {number} number the number to check
+ * @returns {string} the ordinal indicator
+ * @example
+ * // returns 'st'
+ * getOrdinalIndicator(1);
+ * @example
+ * // returns 'nd'
+ * getOrdinalIndicator(2);
+ */
 function getOrdinalIndicator(number) {
     
     if (number > 10 && number < 14)
@@ -40,6 +53,12 @@ function getOrdinalIndicator(number) {
     }
 }
 
+/**
+ * Get the HTML of the row of a table for one match
+ * @param {Match} match the match to convert to HTML
+ * @param {User | string} profileOwner the user or user nickname who's profile is currently being viewed
+ * @returns {string} the HTML for a row that corresponds to one match
+ */
 function getDesktopMatchHTML(match, profileOwner) {
     let count = 1;
     let delim;
@@ -63,6 +82,12 @@ function getDesktopMatchHTML(match, profileOwner) {
     return row.html();
 }
 
+/**
+ * Get the HTML of one list element for one match
+ * @param {Match} match the match to convert to HTML
+ * @param {User | string} profileOwner the user or user nickname who's profile is currently being viewed
+ * @returns {string} the HTML for one list element that corresponds to one match
+ */
 function getMobileMatchHTML(match, profileOwner) {
     const row = cheerio.load(`
         <li class="mobile-match-list"><b>at ${match.endedAt}:</b><ul>
@@ -81,6 +106,11 @@ function getMobileMatchHTML(match, profileOwner) {
     return row.html();
 }
 
+/**
+ * Return the HTML for when there are no matches
+ * @param {User | string} user the user or user nickname who's profile is being viewed
+ * @returns {string} the HTML for the empty match history
+ */
 function getEmptyMatchHistory(user) {
     const empty = cheerio.load(`
         <p>${user.nickname || user}'s Match History</p>
@@ -89,6 +119,12 @@ function getEmptyMatchHistory(user) {
     return empty.html();
 }
 
+/**
+ * Get the profile view HTML
+ * @param {string} loggedInNickname the nickname of a user who is viewing the profile page
+ * @param {string} toFetchNickname the nickname of a user who's profile is being viewed
+ * @returns {Promise<string>} the HTML for the profile view
+ */
 export async function getProfile(loggedInNickname, toFetchNickname) {
     if (!loggedInNickname)
         throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
@@ -126,14 +162,54 @@ export async function getProfile(loggedInNickname, toFetchNickname) {
 
 let cachedUpdateHtmlPromise = fs.readFile('./backend/views/update.html', 'utf8');
 
+/**
+ * Get the update user info view HTML
+ * @param {string} loggedInNickname the nickname of a user who is viewing the update page
+ * @returns {Promise<string>} the HTML for the update view
+ */
 export async function getUpdate(loggedInNickname) {
     if (!loggedInNickname)
         throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
     const cachedUpdateHtml = await cachedUpdateHtmlPromise;
     const user = await getUser(loggedInNickname);
+    const currentTFA = await TFA.getUsersTFA(user.id);
     const updatePage = cheerio.load(cachedUpdateHtml, null, false);
     updatePage('.avatar img#preview-avatar').attr('src', user.avatar ? `/api/avatars/${user.id}?t=${Date.now()}` : '/assets/default-avatar.svg');
     updatePage('#nickname-input').attr('value', user.nickname);
     updatePage('#email-input').attr('value', user.email);
+    
+    updatePage('#tfa-select').append(`<option value="${currentTFA.type}">${currentTFA.prettyTypeName()}</option>`);
+    TFA.TFAtypes.forEach((value, key) => {
+        if (key !== currentTFA.type) {
+            updatePage('#tfa-select').append(`<option value="${key}">${TFA.TFAtypes.get(key)}</option>`);
+        }
+    });
+    updatePage('#tfa-select').attr('value', currentTFA.type);
     return updatePage.html();
+}
+
+let cached2FAHtmlPromise = fs.readFile('./backend/views/2FA.html', 'utf8');
+
+/**
+ * Get the 2FA verify/setup view HTML
+ * @param {Object} payload the payload of the 2FA token
+ * @param {string} nickname the nickname of the user to pass to the 2FA TOTP
+ * @returns {Promise<string>} the HTML for the 2FA verify/setup view
+ */
+export async function get2FAview(payload, nickname) {
+    const cached2FAHtml = await cached2FAHtmlPromise;
+    const tfaPage = cheerio.load(cached2FAHtml, null, false);
+
+    if (payload.status === 'update') {
+        const pendingTFA = await TFA.getUsersPendingTFA(payload.id);
+        const uri = pendingTFA.getURI(nickname);
+        const imageURL = await QRCode.toDataURL(uri);
+        tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
+    } else if (payload.status === 'check') {
+        tfaPage('div#qr-wrapper').html('');
+        tfaPage('form#tfa-form legend').text('Verify Your Identity');
+    } else {
+        throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
+    }
+    return tfaPage.html();
 }
