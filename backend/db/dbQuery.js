@@ -35,6 +35,12 @@ function createUserFromObject(userObject) {
     return userInstance;
 }
 
+/**
+ * Get a User instance from a nickname
+ * @param {string} nickname the nickname of the user to get
+ * @returns {Promise<User | null>} the User instance or null if doesn't exist
+ * @throws {Error} if query failed
+ */
 export async function getUser(nickname) {
     try {
         const user = await db.get("SELECT * FROM users WHERE nickname=? LIMIT 1", nickname);
@@ -50,7 +56,8 @@ export async function getUser(nickname) {
 /**
  * Get a user from db by using an email
  * @param {string} email the email of the user to get
- * @returns {Promise<User>} 
+ * @returns {Promise<User | null>} the User instance with that email or null if doesn't exist
+ * @throws {Error} if query failed
  */
 export async function getUserByEmail(email) {
     try {
@@ -134,6 +141,8 @@ export async function getAllMatches() {
 /**
  * Adds a user to the db, they have to have: nickname, password and email assigned
  * @param {User} user the user instance
+ * @returns {Promise<number>} the id of the created user
+ * @throws {Error} if query failed
  */
 export async function addUser(user) {
     try {
@@ -222,46 +231,6 @@ export async function updateUser(originalUser, updatedUser) {
 }
 
 /**
- * Get the pending 2FA secret from the database (tfa_secret_temp)
- * @param {string} nickname the nickname of a user whose data to fetch
- * @returns {Promise<string>} the pending 2FA secret
- */
-export async function getTemp2FAsecret(nickname) {
-    try {
-        const result = await db.get(`
-            SELECT tfa_secret_temp
-            FROM users
-            WHERE nickname = ?`,
-            nickname
-        );
-        return result.tfa_secret_temp;
-    } catch (error) {
-        console.error("Failed to fetch user:", error.message);
-        throw new Error("Database query failed");
-    }
-}
-
-/**
- * Get the 2FA secret from the database
- * @param {string} nickname the nickname of a user whose data to fetch
- * @returns {Promise<string>} the 2FA secret
- */
-export async function get2FAsecret(nickname) {
-    try {
-        const result = await db.get(`
-            SELECT tfa_secret
-            FROM users
-            WHERE nickname = ?`,
-            nickname
-        );
-        return result.tfa_secret;
-    } catch (error) {
-        console.error("Failed to fetch user:", error.message);
-        throw new Error("Database query failed");
-    }
-}
-
-/**
  * Get the user instance by using an id
  * @param {number} userId the user index
  * @returns {Promise<User | null>} the user or null if not found
@@ -279,6 +248,12 @@ export async function getUserById(userId) {
     }
 }
 
+/**
+ * Returns the updatedValue if it's different from the originalValue, otherwise null
+ * @param {*} originalValue
+ * @param {*} updatedValue
+ * @returns
+ */
 function getUpdatedValueOrNull(originalValue, updatedValue) {
     if (updatedValue !== null && updatedValue !== undefined && originalValue !== updatedValue) {
         return updatedValue;
@@ -286,6 +261,12 @@ function getUpdatedValueOrNull(originalValue, updatedValue) {
     return null;
 }
 
+/**
+ * Returns the updatedValue if it's different from the originalValue, otherwise originalValue
+ * @param {*} originalValue
+ * @param {*} updatedValue
+ * @returns
+ */
 function getUpdatedValueOrOriginal(originalValue, updatedValue) {
     if (updatedValue !== null && updatedValue !== undefined && originalValue !== updatedValue) {
         return updatedValue;
@@ -293,19 +274,24 @@ function getUpdatedValueOrOriginal(originalValue, updatedValue) {
     return originalValue;
 }
 
-export async function addPendingUpdate(originalUser, updatedUser, currentTFAtype, newTFAtype) {
+/**
+ * Add a pending update to the db, in case we need to authorize the user before commiting the changes
+ * @param {User} originalUser the user whose data match with what is in the database
+ * @param {User} updatedUser the user with the changes made
+ * @throws {Error} if the query fails
+ */
+export async function addPendingUpdate(originalUser, updatedUser) {
     try {
         await db.run("DELETE FROM pending_updates WHERE user_id = ?", originalUser.id);
     } catch (error) {}
     try {
         await db.run(
-            "INSERT INTO pending_updates (user_id, nickname, password, email, avatar, tfa_type) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO pending_updates (user_id, nickname, password, email, avatar) VALUES (?, ?, ?, ?, ?)",
             originalUser.id,
             getUpdatedValueOrNull(originalUser.nickname, updatedUser.nickname),
             getUpdatedValueOrNull(originalUser.password, updatedUser.password),
             getUpdatedValueOrNull(originalUser.email, updatedUser.email),
             getUpdatedValueOrNull(originalUser.avatar, updatedUser.avatar),
-            getUpdatedValueOrNull(currentTFAtype, newTFAtype)
         );
     } catch (error) {
         console.error("Failed to insert pending update:", error.message);
@@ -313,18 +299,32 @@ export async function addPendingUpdate(originalUser, updatedUser, currentTFAtype
     }
 }
 
+/**
+ * Check whether a user has an update pending
+ * @param {number} userId the id of the user to check
+ * @returns {Promise<boolean>}
+ */
 export async function hasPendingUpdate(userId) {
     const response = await db.get("SELECT * FROM pending_updates WHERE user_id = ?", userId);
     if (!response) return false;
     return true;
 }
 
+/**
+ * Remove an update that is pending
+ * @param {number} userId the id of the user whose update request to cancel
+ */
 export async function removePendingUpdate(userId) {
     try {
         await db.run("DELETE FROM pending_updates WHERE user_id = ?", userId);
     } catch (error) {}
 }
 
+/**
+ * Commit the changes in the users' pending update to take effect, removes the pending update
+ * @param {User} user this has to be the user whose data match with what's in the database
+ * @throws {Error} if there is no data to update
+ */
 export async function commitPendingUpdate(user) {
     const response = await db.get("SELECT * FROM pending_updates WHERE user_id = ?", user.id);
     if (!response) throw new Error("No data to update");
@@ -342,12 +342,22 @@ export async function commitPendingUpdate(user) {
     await removePendingUpdate(user.id);
 }
 
+/**
+ * Check whether a pending update request has already taken a nickname
+ * @param {string} nickname the nickname to check
+ * @returns {Promise<boolean>}
+ */
 export async function isNicknamePending(nickname) {
     const response = await db.get("SELECT * FROM pending_updates WHERE nickname = ?", nickname);
     if (!response) return false;
     return true;
 }
 
+/**
+ * Check whether a pending update request has already taken a email
+ * @param {string} email the email to check
+ * @returns {Promise<boolean>}
+ */
 export async function isEmailPending(email) {
     const response = await db.get("SELECT * FROM pending_updates WHERE email = ?", email);
     if (!response) return false;

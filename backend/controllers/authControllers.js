@@ -78,7 +78,7 @@ export async function checkRefreshToken(fastify, refreshToken) {
 /**
  * Generates access and refresh tokens, sets the cookie for the refresh token
  * @param {*} fastify the fastify instance
- * @param {string} nickname user nickname
+ * @param {number} userId user id
  * @param {*} reply the request reply
  * @returns {string} the access token
  */

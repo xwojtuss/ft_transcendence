@@ -5,7 +5,6 @@ import HTTPError from "../utils/error.js";
 import User from "../utils/User.js";
 import { getUserSession } from "./viewRoutes.js";
 import fs from "fs";
-import { authenticator } from "otplib";
 import { loginSchema, updateSchema, registerSchema, updateNewPasswordSchema } from '../utils/inputValidation.js';
 import TFA from "../utils/TFA.js";
 
@@ -196,7 +195,7 @@ export async function updateRoute(fastify) {
                 }
                 const updatedTFA = new TFA(currentTFA.userId, fields.tfa);
                 if (currentTFA.type !== 'disabled') {
-                    await addPendingUpdate(user, updatedUser, currentTFA.type, updatedTFA.type);
+                    await addPendingUpdate(user, updatedUser);
                     return reply.code(StatusCodes.ACCEPTED).send({
                         tfaToken: updatedTFA.generateJWT(fastify, 'check')
                     });
@@ -282,7 +281,7 @@ export async function TFARoute(fastify) {
                 if (!payloadRefresh && payloadTFA.status === 'update') {
                     // user updating 2FA but logged out
                     throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
-                } else if (!payloadRefresh && authenticator.check(token, currentTFA.secret)) {
+                } else if (!payloadRefresh && currentTFA.verify(token)) {
                     // user logging in - valid code
                     const accessToken = generateTokens(fastify, user.id, reply);
                     return reply.send({ accessToken });
@@ -305,7 +304,7 @@ export async function TFARoute(fastify) {
                     }
                     const accessToken = generateTokens(fastify, updatedUser.id, reply);
                     return reply.send({ accessToken });
-                } else if (authenticator.check(token, pendingTFA.secret)) {
+                } else if (pendingTFA.verify(token)) {
                     // user updating 2FA - valid code
                     await pendingTFA.commit();
                 } else {

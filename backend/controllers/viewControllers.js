@@ -4,7 +4,6 @@ import { getUser, getUserMatchHistory, areFriends } from "../db/dbQuery.js";
 import { cheerio } from '../server.js';
 import HTTPError from "../utils/error.js";
 import QRCode from "qrcode";
-import { authenticator } from "otplib";
 import TFA from "../utils/TFA.js";
 
 const allowedNames = new Set(["login", "register", "home"]);// TEMP delete home, add a separate function for '/'
@@ -194,6 +193,7 @@ let cached2FAHtmlPromise = fs.readFile('./backend/views/2FA.html', 'utf8');
 /**
  * Get the 2FA verify/setup view HTML
  * @param {Object} payload the payload of the 2FA token
+ * @param {string} nickname the nickname of the user to pass to the 2FA TOTP
  * @returns {Promise<string>} the HTML for the 2FA verify/setup view
  */
 export async function get2FAview(payload, nickname) {
@@ -202,7 +202,7 @@ export async function get2FAview(payload, nickname) {
 
     if (payload.status === 'update') {
         const pendingTFA = await TFA.getUsersPendingTFA(payload.id);
-        const uri = authenticator.keyuri(nickname, 'ft_transcendence', pendingTFA.secret);
+        const uri = pendingTFA.getURI(nickname);
         const imageURL = await QRCode.toDataURL(uri);
         tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
     } else if (payload.status === 'check') {
