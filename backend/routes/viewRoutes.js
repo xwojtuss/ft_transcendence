@@ -4,7 +4,7 @@ import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fs from "fs/promises";
 import { cheerio } from "../server.js";
-import { getUser } from "../db/dbQuery.js";
+import { getUserById } from "../db/dbQuery.js";
 
 const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
 const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html', "utf-8");
@@ -58,17 +58,17 @@ export async function getUserSession(fastify, refreshToken, headers) {
     try {
         if (refreshToken && !headers['x-partial-load'] && (!headers['authorization'] || headers['authorization'] === 'Bearer null')) {
             payload = await checkRefreshToken(fastify, refreshToken);
-            if (!payload || !payload.nickname)
+            if (!payload || !payload.id)
                 return null;
-            user = await getUser(payload.nickname);
+            user = await getUserById(payload.id);
             if (!user)
                 return null;
             return user;
         } else if (refreshToken) {
             payload = await checkAuthHeader(fastify, headers['authorization']);
-            if (!payload || !payload.nickname)
+            if (!payload || !payload.id)
                 return null;
-            user = await getUser(payload.nickname);
+            user = await getUserById(payload.id);
             if (!user)
                 return null;
             return user;
@@ -90,9 +90,9 @@ export default async function viewsRoutes(fastify) {
         try {
             view = await getStaticView('home');
         } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
+            return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
         }
-        return await sendView(view, user, request, reply);
+        return await sendView(view, request.cookies.refreshToken, request, reply);
     });
 
     fastify.get("/login", async (request, reply) => {
@@ -166,7 +166,9 @@ export default async function viewsRoutes(fastify) {
         let payload;
         try {
             payload = await check2FAHeader(fastify, request.headers['authorization']);
-            view = await get2FAview(payload);
+            const user = await getUserById(payload.id);
+            if (!user) throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
+            view = await get2FAview(payload, user.nickname);
         } catch (error) {
             return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
         }

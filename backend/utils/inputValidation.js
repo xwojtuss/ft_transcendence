@@ -1,11 +1,5 @@
 import z from "zod";
-
-/**
- * A map of 2FA types to their display names.
- * Key: {string}
- * Value: {string}
- */
-export const TFAtypes = new Map([["disabled", "Disabled"], ["totp", "Authenticator App"], ["email", "Email"]]);
+import TFA from "./TFA.js";
 
 const nicknameSchema = z
     .string()
@@ -25,7 +19,7 @@ const nicknameOrEmailRefine = z
         message: "Nickname or email must be valid",
     });
 const tfaSchema = z
-    .literal(Array.from(TFAtypes.keys()));
+    .literal(Array.from(TFA.TFAtypes.keys()));
 
 export const registerSchema = z.object({
     nickname: nicknameSchema,

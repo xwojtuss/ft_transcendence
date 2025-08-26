@@ -2,16 +2,14 @@ import { SALT_ROUNDS } from "./config.js";
 import bcrypt from "bcrypt";
 
 export default class User {
-    _nickname = null;
-    _isOnline = 1;
-    _password = null;
-    _email = null;
-    _avatar = null;
-    _won_games = 0;
-    _lost_games = 0;
-    _id = -42;
-    _typeOfTFA = "disabled";
-    _TFAsecret = null;
+    #nickname = null;
+    #isOnline = 1;
+    #password = null;
+    #email = null;
+    #avatar = null;
+    #won_games = 0;
+    #lost_games = 0;
+    #id = -42;
 
     /**
      * Create the user 
@@ -19,21 +17,21 @@ export default class User {
      * @param {string} password Optional, you should only pass the hashed password here!
      */
     constructor(nickname, password) {
-        this._nickname = nickname;
+        this.#nickname = nickname;
         if (password)
-            this._password = password;
+            this.#password = password;
     }
 
     set isOnline(isOnline) {
-        this._isOnline = isOnline;
+        this.#isOnline = isOnline;
     }
 
     get nickname() {
-        return this._nickname;
+        return this.#nickname;
     }
 
     get isOnline() {
-        return this._isOnline;
+        return this.#isOnline;
     }
 
     /**
@@ -41,7 +39,7 @@ export default class User {
      * @param {string} password Unhashed password
      */
     async setPassword(password) {
-        this._password = await bcrypt.hash(password, SALT_ROUNDS);
+        this.#password = await bcrypt.hash(password, SALT_ROUNDS);
     }
 
     /**
@@ -52,7 +50,7 @@ export default class User {
     async validatePassword(passwordTry) {
         let isCorrect = false;
         try {
-            isCorrect = await bcrypt.compare(passwordTry, this._password);
+            isCorrect = await bcrypt.compare(passwordTry, this.#password);
         } catch (error) {
             isCorrect = false;
             return false;
@@ -61,62 +59,46 @@ export default class User {
     }
 
     get password() {
-        return this._password;
+        return this.#password;
     }
 
     set email(email) {
-        this._email = email;
+        this.#email = email;
     }
 
     get email() {
-        return this._email;
+        return this.#email;
     }
 
     set avatar(avatar) {
-        this._avatar = avatar;
+        this.#avatar = avatar;
     }
 
     get avatar() {
-        return this._avatar;
+        return this.#avatar;
     }
 
     set won_games (won_games) {
-        this._won_games = won_games;
+        this.#won_games = won_games;
     }
 
     get won_games () {
-        return this._won_games;
+        return this.#won_games;
     }
 
     set lost_games (lost_games) {
-        this._lost_games = lost_games;
+        this.#lost_games = lost_games;
     }
 
     get lost_games () {
-        return this._lost_games;
+        return this.#lost_games;
     }
 
     set id(id) {
-        this._id = id;
+        this.#id = id;
     }
 
     get id() {
-        return this._id;
-    }
-
-    set typeOfTFA(type) {
-        this._typeOfTFA = type;
-    }
-
-    get typeOfTFA() {
-        return this._typeOfTFA;
-    }
-
-    set TFAsecret(secret) {
-        this._TFAsecret = secret;
-    }
-
-    get TFAsecret() {
-        return this._TFAsecret;
+        return this.#id;
     }
 }
