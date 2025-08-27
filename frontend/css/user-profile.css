@@ -1,5 +1,5 @@
 .floater {
-    @apply flex w-auto max-h-3/4 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
+    @apply flex w-auto max-h-7/8 text-gray-700 flex-col mx-auto bg-white shadow-lg rounded-xl px-10 pt-10 py-8 sm:pt-16 sm:pb-12 gap-8;
 }
 
 .floater .floater {
@@ -55,11 +55,11 @@
 }
 
 .avatar img {
-    @apply w-[100px] h-[100px] object-cover rounded-full border-1 border-gray-200 shadow-gray-200 shadow-sm;
+    @apply w-[120px] h-[120px] min-w-[120px] min-h-[120px] object-cover rounded-full border-1 border-gray-200 shadow-gray-200 shadow-sm;
 }
 
 .avatar p button {
-    @apply font-light transition-colors ease-in-out delay-50 duration-300 border-1 border-gray-200 rounded-xl px-3 py-1 max-w-[100px] shadow-gray-200 shadow-sm;
+    @apply font-light text-xs transition-colors ease-in-out delay-50 duration-300 border-1 border-gray-200 rounded-xl px-2 py-1 max-w-[100px] shadow-gray-200 shadow-sm;
 }
 
 .avatar p button:hover {
@@ -68,6 +68,10 @@
 
 .avatar p button:active {
     @apply translate-y-[2px] shadow-gray-200/50 shadow-md;
+}
+
+.match-history-desktop *, .match-history-mobile p {
+    @apply text-center;
 }
 
 .match-history-desktop {
@@ -82,8 +86,12 @@
     @apply border-gray-300 border-1 px-2 py-1;
 }
 
-.match-history-desktop caption, .match-history-mobile p {
+.match-history-desktop caption, .match-history-mobile p, .match-history-desktop p {
     @apply text-lg mb-4 font-normal;
+}
+
+.match-history-desktop p.empty-list, .match-history-mobile p.empty-list {
+    @apply text-base mb-0 font-light;
 }
 
 .match-history-desktop table {

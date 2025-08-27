@@ -9,6 +9,34 @@ CREATE TABLE IF NOT EXISTS users (
     lost_games INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS tfas (
+    user_id INTEGER PRIMARY KEY,
+    type VARCHAR(10) NOT NULL,
+    encrypted_secret TEXT NOT NULL,
+    iv TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS pending_updates (
+    user_id INTEGER PRIMARY KEY,
+    nickname TEXT,
+    password TEXT,
+    email TEXT,
+    avatar TEXT,
+    tfa_type VARCHAR(10),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS pending_tfas (
+    user_id INTEGER PRIMARY KEY,
+    type VARCHAR(10) NOT NULL,
+    encrypted_secret TEXT,
+    iv TEXT,
+    tag TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
 CREATE TABLE IF NOT EXISTS friends_with (
     originator INTEGER NOT NULL,
     friended INTEGER NOT NULL,
