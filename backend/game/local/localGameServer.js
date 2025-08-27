@@ -1,22 +1,31 @@
 import { FPS, FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE } from './gameConfig.js';
-import { gameState, resetGameState } from './gameState.js';
+import { resetGameState } from './gameState.js';
 import { updateGame, startGame } from './gameLogic.js';
-import { addClient, removeClient, broadcastGameState } from './clientManager.js';
+import { createSession, getSession, removeSession, getAllSessions } from './sessionManager.js';
 
-let lastUpdateTime = Date.now();
-
-function gameLoop() {
-    const now = Date.now();
-    const deltaTime = (now - lastUpdateTime) / 1000;
-    lastUpdateTime = now;
-
-    updateGame(deltaTime, () => broadcastGameState(gameState));
+function broadcastToSession(sessionId, gameState) {
+    const session = getSession(sessionId);
+    if (session && session.socket && session.socket.readyState === 1) {
+        try {
+            session.socket.send(JSON.stringify({ type: "state", state: gameState }));
+        } catch (error) {
+            console.log(`Error sending to session ${sessionId}:`, error.message);
+            removeSession(sessionId);
+        }
+    }
 }
 
 export function handleConnection(connection) {
     const socket = connection.socket || connection;
     
-    addClient(socket);
+    // Create unique session for each connection
+    const sessionId = createSession(socket);
+    const session = getSession(sessionId);
+    
+    if (!session) {
+        console.error('Failed to create session');
+        return;
+    }
 
     // Send game configuration
     socket.send(JSON.stringify({ 
@@ -33,6 +42,11 @@ export function handleConnection(connection) {
     socket.on('message', (message) => {
         try {
             const data = JSON.parse(message.toString());
+            const currentSession = getSession(sessionId);
+            
+            if (!currentSession) return;
+            
+            const { gameState } = currentSession;
             
             if (data.type === "keydown") {
                 if (!gameState.gameEnded) {
@@ -46,9 +60,9 @@ export function handleConnection(connection) {
                 
                 if (data.key === " " && (!gameState.gameInitialized || gameState.gameEnded)) {
                     if (gameState.gameEnded) {
-                        resetGameState();
+                        resetGameState(gameState);
                     } else {
-                        startGame();
+                        startGame(gameState);
                     }
                 }
             }
@@ -65,16 +79,31 @@ export function handleConnection(connection) {
     });
 
     socket.on('close', () => {
-        removeClient(socket);
+        removeSession(sessionId);
     });
 
     socket.on('error', (error) => {
         console.log('WebSocket error:', error.message);
-        removeClient(socket);
+        removeSession(sessionId);
     });
 }
 
 export function startLocalGameLoop() {
-    lastUpdateTime = Date.now();
-    setInterval(gameLoop, 1000 / FPS);
+    let lastUpdateTime = Date.now();
+    
+    setInterval(() => {
+        const now = Date.now();
+        const deltaTime = (now - lastUpdateTime) / 1000;
+        lastUpdateTime = now;
+
+        // Update each active session
+        for (const [sessionId, session] of getAllSessions()) {
+            session.lastUpdateTime = now;
+            updateGame(
+                session.gameState, 
+                deltaTime, 
+                () => broadcastToSession(sessionId, session.gameState)
+            );
+        }
+    }, 1000 / FPS);
 }

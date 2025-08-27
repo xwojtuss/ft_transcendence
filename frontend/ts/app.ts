@@ -138,3 +138,7 @@ function changeActiveStyle(pathURL?: string): void {
         }
     });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    initGameIfHome();
+});

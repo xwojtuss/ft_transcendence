@@ -28,6 +28,18 @@ export class GameWebSocket {
         this.ws.onclose = () => {
             console.log("WebSocket connection closed");
         };
+
+        // Cleanup on unload
+        window.addEventListener('beforeunload', () => {
+            this.disconnect();
+        });
+
+        // Disconnect if navigating away from game
+        window.addEventListener('popstate', () => {
+            if (window.location.pathname !== '/' && window.location.pathname !== '/home') {
+                this.disconnect();
+            }
+        });
     }
 
     sendInput(type: string, key: string) {
@@ -38,5 +50,12 @@ export class GameWebSocket {
 
     isConnected(): boolean {
         return this.ws.readyState === WebSocket.OPEN;
+    }
+
+    disconnect() {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            console.log("Disconnecting WebSocket...");
+            this.ws.close();
+        }
     }
 }
