@@ -1,1 +1,9 @@
 export const SALT_ROUNDS = 12;
+export const ACCESS_TOKEN_EXPIRY = '10m';
+export const ACCESS_TOKEN_EXPIRY_SECONDS = 600;
+export const REFRESH_TOKEN_EXPIRY = '1d';
+export const REFRESH_TOKEN_EXPIRY_SECONDS = 86400;
+export const TFA_TOKEN_EXPIRY = '5m';
+export const TFA_TOKEN_EXPIRY_SECONDS = 300;
+export const CRYPTO_IV_BYTES = 12;
+export const CRYPTO_ALGORITHM = 'aes-256-gcm';
