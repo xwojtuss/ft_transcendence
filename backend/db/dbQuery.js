@@ -276,20 +276,23 @@ function getUpdatedValueOrOriginal(originalValue, updatedValue) {
  * Add a pending update to the db, in case we need to authorize the user before commiting the changes
  * @param {User} originalUser the user whose data match with what is in the database
  * @param {User} updatedUser the user with the changes made
+ * @param {string} originalTFAtype the original 2FA type
+ * @param {string} updatedTFAtype the new 2FA type
  * @throws {Error} if the query fails
  */
-export async function addPendingUpdate(originalUser, updatedUser) {
+export async function addPendingUpdate(originalUser, updatedUser, originalTFAtype, updatedTFAtype) {
     try {
         await db.run("DELETE FROM pending_updates WHERE user_id = ?", originalUser.id);
     } catch (error) {}
     try {
         await db.run(
-            "INSERT INTO pending_updates (user_id, nickname, password, email, avatar) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO pending_updates (user_id, nickname, password, email, avatar, tfa_type) VALUES (?, ?, ?, ?, ?, ?)",
             originalUser.id,
             getUpdatedValueOrNull(originalUser.nickname, updatedUser.nickname),
             getUpdatedValueOrNull(originalUser.password, updatedUser.password),
             getUpdatedValueOrNull(originalUser.email, updatedUser.email),
             getUpdatedValueOrNull(originalUser.avatar, updatedUser.avatar),
+            getUpdatedValueOrNull(originalTFAtype, updatedTFAtype),
         );
     } catch (error) {
         console.error("Failed to insert pending update:", error.message);

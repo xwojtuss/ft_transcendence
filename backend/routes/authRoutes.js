@@ -195,7 +195,8 @@ export async function updateRoute(fastify) {
                 }
                 const updatedTFA = new TFA(currentTFA.userId, fields.tfa);
                 if (currentTFA.type !== 'disabled') {
-                    await addPendingUpdate(user, updatedUser);
+                    await addPendingUpdate(user, updatedUser, currentTFA.type, updatedTFA.type);
+                    await currentTFA.regenerateOTP(false);
                     return reply.code(StatusCodes.ACCEPTED).send({
                         tfaToken: updatedTFA.generateJWT(fastify, 'check')
                     });
@@ -204,7 +205,6 @@ export async function updateRoute(fastify) {
                     try {
                         if (user.avatar && user.avatar !== updatedUser.avatar) fs.unlinkSync(user.avatar);
                     } catch (error) {}
-                    updatedTFA.generateSecret();
                     if (await updatedTFA.makePending(currentTFA)) {
                         return reply.code(StatusCodes.ACCEPTED).send({
                             tfaToken: updatedTFA.generateJWT(fastify, 'update')
@@ -282,6 +282,7 @@ export async function TFARoute(fastify) {
                     throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
                 } else if (!payloadRefresh && currentTFA.verify(token)) {
                     // user logging in - valid code
+                    await currentTFA.regenerateOTP(false);
                     const accessToken = generateTokens(fastify, user.id, reply);
                     return reply.send({ accessToken });
                 } else if (!payloadRefresh) {
@@ -290,21 +291,25 @@ export async function TFARoute(fastify) {
                 } else if (payloadRefresh && payloadTFA.status === 'check' && !(await hasPendingUpdate(user.id))) {
                     // verifying 2FA for /update changes but there is no update pending
                     throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
-                } else if (payloadRefresh && payloadTFA.status === 'check') {
-                    // verifying 2FA for /update changes
-
+                } else if (payloadRefresh && payloadTFA.status === 'check' && currentTFA.verify(token)) {
+                    // verifying 2FA for /update changes - valid code
+                    const newTFA = await TFA.getPendingUpdateTFA(user.id);
                     await commitPendingUpdate(user);
                     const updatedUser = await getUserById(user.id);
-
-                    if (await pendingTFA.makePending(currentTFA)) {
+                    await currentTFA.regenerateOTP(false);
+                    if (newTFA && await newTFA.makePending(currentTFA)) {
                         return reply.code(StatusCodes.ACCEPTED).send({
-                            tfaToken: pendingTFA.generateJWT(fastify, 'update')
+                            tfaToken: newTFA.generateJWT(fastify, 'update')
                         });
                     }
                     const accessToken = generateTokens(fastify, updatedUser.id, reply);
                     return reply.send({ accessToken });
+                } else if (payloadRefresh && payloadTFA.status === 'check') {
+                    // verifying 2FA for /update changes - invalid code
+                    throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
                 } else if (pendingTFA.verify(token)) {
                     // user updating 2FA - valid code
+                    await currentTFA.regenerateOTP(false);
                     await pendingTFA.commit();
                 } else {
                     // user updating 2FA - invalid code
@@ -312,7 +317,6 @@ export async function TFARoute(fastify) {
                 }
                 return reply.send({ message: "OK" });
             } catch (error) {
-                console.error(error);
                 if (error instanceof HTTPError) {
                     return reply.code(error.code).send({ message: error.message });
                 }

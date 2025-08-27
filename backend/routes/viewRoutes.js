@@ -170,6 +170,7 @@ export default async function viewsRoutes(fastify) {
             if (!user) throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
             view = await get2FAview(payload, user.nickname);
         } catch (error) {
+            console.error(error);
             return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
         }
         return await sendView(view, payload, request, reply);

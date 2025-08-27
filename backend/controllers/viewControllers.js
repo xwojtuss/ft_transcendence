@@ -202,12 +202,33 @@ export async function get2FAview(payload, nickname) {
 
     if (payload.status === 'update') {
         const pendingTFA = await TFA.getUsersPendingTFA(payload.id);
-        const uri = pendingTFA.getURI(nickname);
-        const imageURL = await QRCode.toDataURL(uri);
-        tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
+        switch (pendingTFA.type) {
+            case 'totp':
+                const uri = pendingTFA.getURI(nickname);
+                const imageURL = await QRCode.toDataURL(uri);
+                tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
+                break;
+            case 'email':
+                await pendingTFA.sendEmail();
+                tfaPage('p#tfa-action-description').text('Enter the code from the email we sent');
+                break;
+            default:
+                break;
+        }
     } else if (payload.status === 'check') {
+        const userTFA = await TFA.getUsersTFA(payload.id)
         tfaPage('div#qr-wrapper').html('');
         tfaPage('form#tfa-form legend').text('Verify Your Identity');
+        switch (userTFA.type) {
+            case 'totp':
+                break;
+            case 'email':
+                await userTFA.sendEmail();
+                tfaPage('p#tfa-action-description').text('Enter the code from the email we sent');
+                break;
+            default:
+                break;
+        }
     } else {
         throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
     }
