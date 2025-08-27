@@ -3,8 +3,24 @@ import { GameWebSocket } from "./gameUtils/websocketManager.js";
 import { InputHandler } from "./gameUtils/inputHandler.js";
 import { GameRenderer } from "./gameUtils/gameRenderer.js";
 
+let gameInstance: {
+    ws: GameWebSocket;
+    input: InputHandler;
+    renderer: GameRenderer;
+} | null = null;
+
 export function initGameIfHome() {
     if (window.location.pathname !== '/' && window.location.pathname !== '/home') {
+        // Disconnect WebSocket and reset game instance if not on home
+        if (gameInstance) {
+            gameInstance.ws.disconnect();
+            gameInstance = null;
+        }
+        return;
+    }
+
+    // If game instance already exists, do not create a new one
+    if (gameInstance && gameInstance.ws.isConnected()) {
         return;
     }
 
@@ -21,8 +37,11 @@ export function initGameIfHome() {
     const renderer = new GameRenderer(canvas, ctx);
 
     // Setup WebSocket
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/localGame`;
+    
     const gameWs = new GameWebSocket(
-        `ws://localhost:3000/ws/localGame`,
+        wsUrl,
         (config) => {
             setGameDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
             renderer.setFieldDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
@@ -34,7 +53,10 @@ export function initGameIfHome() {
     );
 
     // Setup input handling
-    new InputHandler(gameWs);
+    const inputHandler = new InputHandler(gameWs);
+
+    // Store instance
+    gameInstance = { ws: gameWs, input: inputHandler, renderer };
 
     // Game loop
     function gameLoop() {
@@ -49,3 +71,11 @@ export function initGameIfHome() {
     window.addEventListener("resize", handleResize);
     document.addEventListener("fullscreenchange", handleResize);
 }
+
+// Cleanup przy zmianie strony
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && gameInstance) {
+        gameInstance.ws.disconnect();
+        gameInstance = null;
+    }
+});

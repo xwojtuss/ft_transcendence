@@ -1,8 +1,8 @@
 import { FIELD_WIDTH, FIELD_HEIGHT, BALL_SIZE, WINNING_SCORE, RESET_DELAY } from './gameConfig.js';
-import { gameState, resetGameState } from './gameState.js';
+import { resetGameState } from './gameState.js';
 import { handlePaddleCollision, updatePlayerPositions, generateBallDirection } from './gamePhysics.js';
 
-export function checkGameEnd(scoringPlayer) {
+export function checkGameEnd(gameState, scoringPlayer) {
     if (gameState.players[scoringPlayer].score >= WINNING_SCORE) {
         gameState.gameEnded = true;
         gameState.winner = scoringPlayer;
@@ -11,11 +11,12 @@ export function checkGameEnd(scoringPlayer) {
         gameState.ball.dx = 0;
         gameState.ball.dy = 0;
         
-        setTimeout(resetGameState, RESET_DELAY);
+        setTimeout(() => resetGameState(gameState), RESET_DELAY);
     }
 }
 
-export function resetBall(losingPlayer) {
+export function resetBall(gameState, losingPlayer) {
+    // Reset pozycji
     gameState.ball.x = FIELD_WIDTH / 2 - BALL_SIZE / 2;
     gameState.ball.y = FIELD_HEIGHT / 2 - BALL_SIZE / 2;
     gameState.ball.dx = 0;
@@ -34,7 +35,7 @@ export function resetBall(losingPlayer) {
     }
 }
 
-export function startGame() {
+export function startGame(gameState) {
     if (gameState.gameEnded) return;
     
     gameState.gameStarted = true;
@@ -45,7 +46,7 @@ export function startGame() {
     gameState.ball.dy = direction.dy;
 }
 
-export function updateGame(deltaTime, broadcastCallback) {
+export function updateGame(gameState, deltaTime, broadcastCallback) {
     if (gameState.gameEnded) {
         broadcastCallback();
         return;
@@ -72,7 +73,7 @@ export function updateGame(deltaTime, broadcastCallback) {
     const p1 = gameState.players[1];
     const p2 = gameState.players[2];
 
-    // Collision with paddles
+    // Kolizje z graczami
     if (ball.x <= p1.x + p1.width && ball.y + ball.size >= p1.y && ball.y <= p1.y + p1.height && ball.dx < 0) {
         handlePaddleCollision(ball, p1, true);
     }
@@ -84,12 +85,12 @@ export function updateGame(deltaTime, broadcastCallback) {
     // Scoring
     if (ball.x < 0) {
         gameState.players[2].score++;
-        checkGameEnd(2);
-        if (!gameState.gameEnded) resetBall(1);
+        checkGameEnd(gameState, 2);
+        if (!gameState.gameEnded) resetBall(gameState, 1);
     } else if (ball.x + ball.size > FIELD_WIDTH) {
         gameState.players[1].score++;
-        checkGameEnd(1);
-        if (!gameState.gameEnded) resetBall(2);
+        checkGameEnd(gameState, 1);
+        if (!gameState.gameEnded) resetBall(gameState, 2);
     }
 
     broadcastCallback();
