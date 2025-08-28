@@ -3,7 +3,7 @@ import { CRYPTO_ALGORITHM, CRYPTO_IV_BYTES, TFA_EMAIL_EXPIRATION_SECONDS, TFA_TO
 import { db } from "../server.js";
 import crypto from "node:crypto";
 import nodemailer from "nodemailer";
-import { getUserById, hasPendingUpdate } from "../db/dbQuery.js";
+import { getUserById } from "../db/dbQuery.js";
 import HTTPError from "./error.js";
 import { StatusCodes } from "http-status-codes";
 
@@ -86,17 +86,24 @@ export default class TFA {
     }
 
     /**
-     * Generate the user-specific 2FA secret
+     * Generate the user-specific 2FA TOTP secret
      */
     generateSecret() {
         this.#secret = authenticator.generateSecret();
     }
 
+    /**
+     * Generate a one time code for email or sms 2FA, sets the secret
+     */
     generateOTP() {
         if (this.#type !== 'email' && this.#type !== 'sms') return;
         this.#secret = crypto.randomInt(100000, 999999).toString();
     }
 
+    /**
+     * Regenerate the code, encrypt it and update it in the database
+     * @param {boolean} isPending if true we update pending_tfas, otherwise tfas
+     */
     async regenerateOTP(isPending) {
         if (this.#type !== 'email' && this.#type != 'sms') return;
         this.#encryptedSecret = null;
@@ -223,6 +230,16 @@ export default class TFA {
         }
     });
 
+    /**
+     * Get the email content, subject and sender and receiver
+     * @param {string} email the email to send the email to
+     * @returns {Promise<{
+     *     from: string | undefined;
+     *     to: string;
+     *     subject: string;
+     *     text: string;
+     * }>} the email options
+     */
     async #getEmailOptions(email) {
         email = email ? email : (await getUserById(this.#userId)).email;
         return {
@@ -237,6 +254,11 @@ The code is valid for 10 minutes.
         };
     }
 
+    /**
+     * Send the verification email
+     * @param {string} email the email address to send it to
+     * @throws {HTTPError} INTERNAL_SERVER_ERROR if the email could not be sent
+     */
     async sendEmail(email) {
         if (this.#type !== 'email') return;
 
@@ -357,6 +379,11 @@ The code is valid for 10 minutes.
         return userTFA;
     }
 
+    /**
+     * Get the TFA from the pending user info update
+     * @param {number} userId id of a user with the pending update
+     * @returns {Promise<TFA>} the uncommited, non-pending TFA
+     */
     static async getPendingUpdateTFA(userId) {
         const response = await db.get("SELECT tfa_type FROM pending_updates WHERE user_id = ?", userId);
 
@@ -367,6 +394,9 @@ The code is valid for 10 minutes.
         return userTFA;
     }
 
+    /**
+     * Update the expiration date of a code
+     */
     async #updateExpirationDate() {
         this.#expiresAt = Date.now() + TFA_EMAIL_EXPIRATION_SECONDS * 1000;
         let usersTFA = await TFA.getUsersTFA(this.#userId);

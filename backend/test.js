@@ -54,6 +54,9 @@ export default async function testDatabase() {
     }
 }
 
+/**
+ * Check if the necessary secrets are correct
+ */
 export function runSecretsTest() {
     assert(fs.existsSync("./secrets/ft_transcendence.key"), "SSL key not found");
     assert(fs.existsSync("./secrets/ft_transcendence.crt"), "SSL cert not found");
