@@ -44,6 +44,7 @@ async function runHandlers(pathURL: string): Promise<void> {
             break;
         case '/update':
             updateHandler();
+            formPasswordVisibility();
             await updateSubmitHandler();
             break;
         case '/2fa':

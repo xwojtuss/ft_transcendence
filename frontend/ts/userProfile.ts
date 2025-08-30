@@ -47,6 +47,21 @@ export function updateHandler(): void {
         e.preventDefault();
         return renderPage('/profile', false);
     })
+    document.getElementById('new-password-input')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        const inputField = e.target as HTMLInputElement;
+
+        if (inputField.type === 'password') return;
+        inputField.type = 'password';
+        inputField.value = '';
+        inputField.classList.toggle('font-bold');
+        let sibling = inputField.nextElementSibling;
+        if (!sibling) return;
+        sibling.classList.remove('hidden');
+        sibling = sibling.nextElementSibling;
+        if (!sibling) return;
+        sibling.classList.remove('hidden');
+    });
 }
 
 export function update2FAHandler(): void {

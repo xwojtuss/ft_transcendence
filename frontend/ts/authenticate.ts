@@ -99,6 +99,7 @@ export async function registerHandler(): Promise<void> {
 }
 
 export async function updateSubmitHandler(): Promise<void> {
+    const newPasswordField = document.getElementById('new-password-input') as HTMLInputElement;
     document.getElementById('update-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const form: HTMLFormElement = e.target as HTMLFormElement;
@@ -119,7 +120,7 @@ export async function updateSubmitHandler(): Promise<void> {
             checkNickname(data.nickname as string);
             checkEmail(data.email as string);
             checkPassword(data.currentPassword as string);
-            if (data.newPassword) checkPassword(data.newPassword as string);
+            if (data.newPassword && newPasswordField.type === 'password') checkPassword(data.newPassword as string);
         } catch (error) {
             return alert(error);
         }
@@ -130,7 +131,8 @@ export async function updateSubmitHandler(): Promise<void> {
         formData.append('nickname', data.nickname);
         formData.append('email', data.email);
         formData.append('currentPassword', data.currentPassword);
-        formData.append('newPassword', data.newPassword);
+        if (newPasswordField.type === 'password')
+            formData.append('newPassword', data.newPassword);
         formData.append('tfa', data.tfa);
         formData.append('phone', data.phone);
         const result: Response = await fetch('/api/auth/update', {
