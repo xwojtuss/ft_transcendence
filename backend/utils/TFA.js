@@ -3,9 +3,10 @@ import { CRYPTO_ALGORITHM, CRYPTO_IV_BYTES, TFA_EMAIL_EXPIRATION_SECONDS, TFA_TO
 import { db } from "../server.js";
 import crypto from "node:crypto";
 import nodemailer from "nodemailer";
-import { getUserById } from "../db/dbQuery.js";
+import { getUserById, getUsersPhoneNumber } from "../db/dbQuery.js";
 import HTTPError from "./error.js";
 import { StatusCodes } from "http-status-codes";
+import { SMSAPI } from "smsapi";
 
 /**
  * A class for Two Factor Authorization methods.
@@ -136,7 +137,7 @@ export default class TFA {
             if (this.#encryptedSecret || this.#iv || this.#tag) return;
             if (!this.#secret && this.#type === 'totp') {
                 this.generateSecret();
-            } else if (!this.#secret && this.#type === 'email') {
+            } else if (!this.#secret && (this.#type === 'email' || this.#type === 'sms')) {
                 this.generateOTP();
             }
             this.#iv = crypto.randomBytes(CRYPTO_IV_BYTES).toString('base64');
@@ -249,8 +250,7 @@ export default class TFA {
             text: `Hello,
 To complete your action, please enter the following verification code:
 ${this.secret}
-The code is valid for 10 minutes.
-            `
+The code is valid for 10 minutes.`
         };
     }
 
@@ -266,6 +266,30 @@ The code is valid for 10 minutes.
             await TFA.#emailTransporter.sendMail(await this.#getEmailOptions(email));
         } catch (error) {
             console.error("Error sending email: ", error);
+            this.#secret = null;
+            throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, error.message);
+        }
+        await this.#updateExpirationDate();
+    }
+
+    static #smsapi = new SMSAPI(process.env.TFA_SMS_OAUTH);
+
+    /**
+     * Send the verification SMS
+     * @param {string} phoneNumber the number to send it to
+     * @throws {HTTPError} INTERNAL_SERVER_ERROR if the SMS could not be sent
+     */
+    async sendSMS(phoneNumber) {
+        if (this.#type !== 'sms') return;
+
+        try {
+            const safePhoneNumber = phoneNumber ? phoneNumber : await getUsersPhoneNumber(this.#userId);
+            await TFA.#smsapi.sms.sendSms(process.env.TFA_SMS_SENDER_NUMBER, `Hello,
+To complete your action, please enter the following verification code:
+${this.secret}
+The code is valid for 10 minutes.`)
+        } catch (error) {
+            console.error("Error sending SMS: ", error);
             this.#secret = null;
             throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, error.message);
         }
@@ -298,7 +322,7 @@ The code is valid for 10 minutes.
      * Key: {string}
      * Value: {string}
      */
-    static TFAtypes = new Map([["disabled", "Disabled"], ["totp", "Authenticator App"], ["email", "Email"]]);
+    static TFAtypes = new Map([["disabled", "Disabled"], ["totp", "Authenticator App"], ["email", "Email"], ["sms", "SMS"]]);
 
     /**
      * Disables the 2FA for a user

@@ -164,6 +164,7 @@ export async function updateRoute(fastify) {
                         nickname: fields.nickname,
                         email: fields.email,
                         tfa: fields.tfa,
+                        phone: fields.phone,
                         currentPassword: fields.currentPassword
                     });
                     updatedUser = new User(fields.nickname, user.password);
@@ -177,8 +178,9 @@ export async function updateRoute(fastify) {
                 updatedUser.id = user.id;
                 updatedUser.email = fields.email;
                 updatedUser.avatar = user.avatar;
+                updatedUser.phoneNumber = fields.phone;
                 const currentTFA = await TFA.getUsersTFA(user.id);
-                if (user.nickname === updatedUser.nickname && user.password === updatedUser.password
+                if (user.nickname === updatedUser.nickname && user.password === updatedUser.password && user.phoneNumber === updatedUser.phoneNumber
                     && user.email === updatedUser.email && currentTFA.type === fields.tfa && !buffer) {
                     // if there are no changes to be made do not refresh the token
                     return reply.send({ accessToken: req.headers['authorization'].split(' ')[1] });
@@ -309,6 +311,8 @@ export async function TFARoute(fastify) {
                         // 2FA change in progress, handle setup
                         if (!payloadRefresh || !pendingTFA || pendingTFA.type === 'disabled')
                             throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
+                        if (pendingTFA.type === 'sms' && !user.phoneNumber)
+                            throw new HTTPError(StatusCodes.BAD_REQUEST, "Add a phone number to your profile");
                         if (!pendingTFA.verify(token))
                             throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
                         await pendingTFA.regenerateOTP(false);

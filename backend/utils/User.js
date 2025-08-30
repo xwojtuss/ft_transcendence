@@ -5,6 +5,7 @@ export default class User {
     #nickname = null;
     #isOnline = 1;
     #password = null;
+    #phoneNumber = null;
     #email = null;
     #avatar = null;
     #won_games = 0;
@@ -100,5 +101,13 @@ export default class User {
 
     get id() {
         return this.#id;
+    }
+
+    get phoneNumber() {
+        return this.#phoneNumber;
+    }
+
+    set phoneNumber(newPhoneWhoDis) {
+        this.#phoneNumber = newPhoneWhoDis;
     }
 }
