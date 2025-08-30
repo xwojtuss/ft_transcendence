@@ -105,7 +105,7 @@ export default class TFA {
      * @param {boolean} isPending if true we update pending_tfas, otherwise tfas
      */
     async regenerateOTP(isPending) {
-        if (this.#type !== 'email' && this.#type != 'sms') return;
+        if (this.#type !== 'email' && this.#type !== 'sms') return;
         this.#encryptedSecret = null;
         this.#tag = null;
         this.#iv = null;
@@ -181,7 +181,7 @@ export default class TFA {
         if (this.#type === 'totp') {
             return authenticator.check(code, this.secret);
         } else if (this.#type === 'email' || this.#type === 'sms') {
-            if (Date.now() > this.#expiresAt || this.secret !== code) {
+            if (this.#expiresAt == null || Date.now() > this.#expiresAt || this.secret !== code) {
                 return false;
             } else {
                 this.#secret = null;
@@ -262,13 +262,13 @@ The code is valid for 10 minutes.
     async sendEmail(email) {
         if (this.#type !== 'email') return;
 
-        TFA.#emailTransporter.sendMail(await this.#getEmailOptions(email), (error, info) => {
-            if (error) {
-                console.error("Error sending email: ", error);
-                this.#secret = null;
-                throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, error.message);
-            }
-        });
+        try {
+            await TFA.#emailTransporter.sendMail(await this.#getEmailOptions(email));
+        } catch (error) {
+            console.error("Error sending email: ", error);
+            this.#secret = null;
+            throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, error.message);
+        }
         await this.#updateExpirationDate();
     }
 
