@@ -1,7 +1,11 @@
 import { authenticator } from "otplib";
-import { CRYPTO_ALGORITHM, CRYPTO_IV_BYTES, TFA_TOKEN_EXPIRY } from "./config.js";
+import { CRYPTO_ALGORITHM, CRYPTO_IV_BYTES, TFA_EMAIL_EXPIRATION_SECONDS, TFA_TOKEN_EXPIRY } from "./config.js";
 import { db } from "../server.js";
 import crypto from "node:crypto";
+import nodemailer from "nodemailer";
+import { getUserById } from "../db/dbQuery.js";
+import HTTPError from "./error.js";
+import { StatusCodes } from "http-status-codes";
 
 /**
  * A class for Two Factor Authorization methods.
@@ -27,6 +31,7 @@ export default class TFA {
     #secret = null;
     #iv = null;
     #tag = null;
+    #expiresAt = null;
 
     /**
      * Create a new 2FA for a user
@@ -49,7 +54,7 @@ export default class TFA {
             await TFA.disableTFA(this.#userId);
             return false;
         }
-        if (!this.#encryptedSecret && this.#type === 'totp') {
+        if (!this.#encryptedSecret) {
             this.#encryptSecret();
         }
         await TFA.addPendingTFA(this);
@@ -81,10 +86,46 @@ export default class TFA {
     }
 
     /**
-     * Generate the user-specific 2FA secret
+     * Generate the user-specific 2FA TOTP secret
      */
     generateSecret() {
         this.#secret = authenticator.generateSecret();
+    }
+
+    /**
+     * Generate a one time code for email or sms 2FA, sets the secret
+     */
+    generateOTP() {
+        if (this.#type !== 'email' && this.#type !== 'sms') return;
+        this.#secret = crypto.randomInt(100000, 999999).toString();
+    }
+
+    /**
+     * Regenerate the code, encrypt it and update it in the database
+     * @param {boolean} isPending if true we update pending_tfas, otherwise tfas
+     */
+    async regenerateOTP(isPending) {
+        if (this.#type !== 'email' && this.#type !== 'sms') return;
+        this.#encryptedSecret = null;
+        this.#tag = null;
+        this.#iv = null;
+        this.generateOTP();
+        this.#encryptSecret();
+        if (isPending) {
+            db.run("UPDATE pending_tfas SET encrypted_secret = ?, tag = ?, iv = ? WHERE user_id = ?",
+                this.#encryptedSecret,
+                this.#tag,
+                this.#iv,
+                this.#userId
+            );
+        } else {
+            db.run("UPDATE tfas SET encrypted_secret = ?, tag = ?, iv = ? WHERE user_id = ?",
+                this.#encryptedSecret,
+                this.#tag,
+                this.#iv,
+                this.#userId
+            );
+        }
     }
 
     /**
@@ -93,7 +134,11 @@ export default class TFA {
     #encryptSecret() {
         try {
             if (this.#encryptedSecret || this.#iv || this.#tag) return;
-            if (!this.#secret) this.generateSecret();
+            if (!this.#secret && this.#type === 'totp') {
+                this.generateSecret();
+            } else if (!this.#secret && this.#type === 'email') {
+                this.generateOTP();
+            }
             this.#iv = crypto.randomBytes(CRYPTO_IV_BYTES).toString('base64');
             const cipher = crypto.createCipheriv(
                 CRYPTO_ALGORITHM,
@@ -133,7 +178,16 @@ export default class TFA {
      * @returns {boolean} whether the code is correct or not
      */
     verify(code) {
-        return authenticator.check(code, this.secret);
+        if (this.#type === 'totp') {
+            return authenticator.check(code, this.secret);
+        } else if (this.#type === 'email' || this.#type === 'sms') {
+            if (this.#expiresAt == null || Date.now() > this.#expiresAt || this.secret !== code) {
+                return false;
+            } else {
+                this.#secret = null;
+                return true;
+            }
+        }
     }
 
     /**
@@ -155,13 +209,67 @@ export default class TFA {
 
     /**
      * Assign the encryption info and type of 2FA from a database response
-     * @param {{ type: string, encrypted_secret: string, iv: string, tag: string }} response the database response
+     * @param {{ type: string, encrypted_secret: string, iv: string, tag: string, expires_at: number }} response the database response
      */
     #formFromResponse(response) {
         this.#type = response.type;
         this.#encryptedSecret = response.encrypted_secret;
         this.#iv = response.iv;
         this.#tag = response.tag;
+        this.#expiresAt = response.expires_at;
+    }
+
+    static #emailTransporter = nodemailer.createTransport({
+        service: "Gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: {
+            user: process.env.TFA_EMAIL_EMAIL,
+            pass: process.env.TFA_EMAIL_PASSWORD,
+        }
+    });
+
+    /**
+     * Get the email content, subject and sender and receiver
+     * @param {string} email the email to send the email to
+     * @returns {Promise<{
+     *     from: string | undefined;
+     *     to: string;
+     *     subject: string;
+     *     text: string;
+     * }>} the email options
+     */
+    async #getEmailOptions(email) {
+        email = email ? email : (await getUserById(this.#userId)).email;
+        return {
+            from: process.env.TFA_EMAIL_EMAIL,
+            to: email,
+            subject: "Verify your identity",
+            text: `Hello,
+To complete your action, please enter the following verification code:
+${this.secret}
+The code is valid for 10 minutes.
+            `
+        };
+    }
+
+    /**
+     * Send the verification email
+     * @param {string} email the email address to send it to
+     * @throws {HTTPError} INTERNAL_SERVER_ERROR if the email could not be sent
+     */
+    async sendEmail(email) {
+        if (this.#type !== 'email') return;
+
+        try {
+            await TFA.#emailTransporter.sendMail(await this.#getEmailOptions(email));
+        } catch (error) {
+            console.error("Error sending email: ", error);
+            this.#secret = null;
+            throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, error.message);
+        }
+        await this.#updateExpirationDate();
     }
 
     /**
@@ -241,7 +349,7 @@ export default class TFA {
     /**
      * Get the TFA of a user
      * @param {number} userId the userId of the user whose 2FA method to get
-     * @returns {TFA} the TFA of the user
+     * @returns {Promise<TFA>} the TFA of the user
      */
     static async getUsersTFA(userId) {
         const response = await db.get("SELECT * FROM tfas WHERE user_id = ?", userId);
@@ -258,17 +366,48 @@ export default class TFA {
     /**
      * Get the pending TFA of a user
      * @param {number} userId the userId of the user whose pending 2FA method to get
-     * @returns {TFA} the pending TFA of the user
+     * @returns {Promise<TFA | null>} the pending TFA of the user or null
      */
     static async getUsersPendingTFA(userId) {
         const response = await db.get("SELECT * FROM pending_tfas WHERE user_id = ?", userId);
         const userTFA = new TFA(userId);
 
         if (!response) {
-            userTFA.type = 'disabled';
-            return userTFA;
+            return null;
         }
         userTFA.#formFromResponse(response);
         return userTFA;
+    }
+
+    /**
+     * Get the TFA from the pending user info update
+     * @param {number} userId id of a user with the pending update
+     * @returns {Promise<TFA>} the uncommited, non-pending TFA
+     */
+    static async getPendingUpdateTFA(userId) {
+        const response = await db.get("SELECT tfa_type FROM pending_updates WHERE user_id = ?", userId);
+
+        if (!response || !response.tfa_type) {
+            return null;
+        }
+        const userTFA = new TFA(userId, response.tfa_type);
+        return userTFA;
+    }
+
+    /**
+     * Update the expiration date of a code
+     */
+    async #updateExpirationDate() {
+        this.#expiresAt = Date.now() + TFA_EMAIL_EXPIRATION_SECONDS * 1000;
+        let usersTFA = await TFA.getUsersTFA(this.#userId);
+        if (usersTFA && usersTFA.type !== 'disabled' && usersTFA.type === this.#type) {
+            await db.run("UPDATE tfas SET expires_at = ? WHERE user_id = ?", this.#expiresAt, this.#userId);
+            return;
+        }
+        usersTFA = await TFA.getUsersPendingTFA(this.#userId);
+        if (usersTFA && usersTFA.type !== 'disabled' && usersTFA.type === this.#type) {
+            await db.run("UPDATE pending_tfas SET expires_at = ? WHERE user_id = ?", this.#expiresAt, this.#userId);
+            return;
+        }
     }
 }

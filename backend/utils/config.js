@@ -7,3 +7,4 @@ export const TFA_TOKEN_EXPIRY = '5m';
 export const TFA_TOKEN_EXPIRY_SECONDS = 300;
 export const CRYPTO_IV_BYTES = 12;
 export const CRYPTO_ALGORITHM = 'aes-256-gcm';
+export const TFA_EMAIL_EXPIRATION_SECONDS = 600;

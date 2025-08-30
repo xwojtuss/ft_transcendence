@@ -74,5 +74,19 @@ export function update2FAHandler(): void {
                 (inputs[key - 1] as HTMLElement).focus();
             }
         });
+        input.addEventListener('paste', (e: ClipboardEvent) => {
+            e.preventDefault();
+            const paste = e.clipboardData?.getData('text') || '';
+            const digits = paste.replace(/[^0-9]/g, '').split('');
+            let lastIndex = 0;
+            if (digits.length === 0) return;
+            digits.forEach((digit, index) => {
+                if (key + index >= inputs.length) return;
+                (inputs[key + index] as HTMLInputElement).value = digit;
+                lastIndex = key + index;
+            });
+            lastIndex = lastIndex >= inputs.length - 1 ? inputs.length - 1 : lastIndex + 1;
+            (inputs[lastIndex] as HTMLInputElement).focus();
+        });
     });
 }

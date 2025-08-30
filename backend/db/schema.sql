@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS tfas (
     encrypted_secret TEXT NOT NULL,
     iv TEXT NOT NULL,
     tag TEXT NOT NULL,
+    expires_at INTEGER,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS pending_tfas (
     encrypted_secret TEXT,
     iv TEXT,
     tag TEXT,
+    expires_at INTEGER,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 

@@ -186,6 +186,9 @@ export async function update2FASubmitHandler(): Promise<void> {
             return alert((await result.json()).message);
         } else if (!result.ok) {
             return alert((await result.json()).message);
+        } else if (result.status === 202) { // 2FA SETUP REQUIRED
+            tfaTempToken = (await result.json()).tfaToken;
+            return await renderPage('/2fa', false);
         }
         tfaTempToken = null;
         const responseAccess: string | undefined | null = (await result.json()).accessToken;
