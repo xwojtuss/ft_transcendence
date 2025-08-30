@@ -27,6 +27,7 @@ function createUserFromObject(userObject) {
     userInstance.email = userObject.email;
     userInstance.isOnline = userObject.is_online;
     userInstance.avatar = userObject.avatar;
+    userInstance.phoneNumber = userObject.phone_number;
     userInstance.won_games = userObject.won_games;
     userInstance.lost_games = userObject.lost_games;
     userInstance.id = userObject.user_id;
@@ -214,16 +215,16 @@ export async function areFriends(userOne, userTwo) {
 }
 
 /**
- * Updates the non-2FA data related to a user, this updates nickname, email, password and avatar
+ * Updates the non-2FA data related to a user, this updates nickname, email, password, avatar and phone number
  * @param {User} originalUser the instance of a user with unchanged data (nickname and email must match with db)
  * @param {User} updatedUser the instance of a user with the changes to commit
  */
 export async function updateUser(originalUser, updatedUser) {
     await db.get(`
         UPDATE users
-        SET nickname = ?, password = ?, email = ?, avatar = ?
+        SET nickname = ?, password = ?, email = ?, avatar = ?, phone_number = ?
         WHERE nickname = ? AND email = ?`,
-        updatedUser.nickname, updatedUser.password, updatedUser.email, updatedUser.avatar,
+        updatedUser.nickname, updatedUser.password, updatedUser.email, updatedUser.avatar, updatedUser.phoneNumber,
         originalUser.nickname, originalUser.email
     );
 }
@@ -286,12 +287,13 @@ export async function addPendingUpdate(originalUser, updatedUser, originalTFAtyp
     } catch (error) {}
     try {
         await db.run(
-            "INSERT INTO pending_updates (user_id, nickname, password, email, avatar, tfa_type) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO pending_updates (user_id, nickname, password, email, avatar, phone_number, tfa_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
             originalUser.id,
             getUpdatedValueOrNull(originalUser.nickname, updatedUser.nickname),
             getUpdatedValueOrNull(originalUser.password, updatedUser.password),
             getUpdatedValueOrNull(originalUser.email, updatedUser.email),
             getUpdatedValueOrNull(originalUser.avatar, updatedUser.avatar),
+            getUpdatedValueOrNull(originalUser.phoneNumber, updatedUser.phoneNumber),
             getUpdatedValueOrNull(originalTFAtype, updatedTFAtype),
         );
     } catch (error) {
@@ -331,12 +333,13 @@ export async function commitPendingUpdate(user) {
     if (!response) throw new Error("No data to update");
     await db.get(`
         UPDATE users
-        SET nickname = ?, password = ?, email = ?, avatar = ?
+        SET nickname = ?, password = ?, email = ?, avatar = ?, phone_number = ?
         WHERE nickname = ? AND email = ?`,
         getUpdatedValueOrOriginal(user.nickname, response.nickname),
         getUpdatedValueOrOriginal(user.password, response.password),
         getUpdatedValueOrOriginal(user.email, response.email),
         getUpdatedValueOrOriginal(user.avatar, response.avatar),
+        getUpdatedValueOrOriginal(user.phoneNumber, response.phone_number),
         user.nickname,
         user.email
     );
@@ -363,4 +366,15 @@ export async function isEmailPending(email) {
     const response = await db.get("SELECT * FROM pending_updates WHERE email = ?", email);
     if (!response) return false;
     return true;
+}
+
+/**
+ * Returns the phone number of a user
+ * @param {number} userId the Id of the user
+ * @returns the phone number if defined, otherwise null
+ */
+export async function getUsersPhoneNumber(userId) {
+    const response = await db.get("SELECT phone_number FROM users WHERE user_id = ?", userId);
+    if (!response || !response.phone_number) return null;
+    return response.phone_number;
 }

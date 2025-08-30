@@ -132,6 +132,7 @@ export async function updateSubmitHandler(): Promise<void> {
         formData.append('currentPassword', data.currentPassword);
         formData.append('newPassword', data.newPassword);
         formData.append('tfa', data.tfa);
+        formData.append('phone', data.phone);
         const result: Response = await fetch('/api/auth/update', {
             method: 'POST',
             headers: {

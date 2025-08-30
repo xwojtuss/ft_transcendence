@@ -20,6 +20,8 @@ const nicknameOrEmailRefine = z
     });
 const tfaSchema = z
     .enum(Array.from(TFA.TFAtypes.keys()));
+const phoneNumberSchema = z
+    .e164("Invalid phone number");
 
 export const registerSchema = z.object({
     nickname: nicknameSchema,
@@ -35,6 +37,7 @@ export const loginSchema = z.object({
 export const updateSchema = z.object({
     nickname: nicknameSchema,
     email: emailSchema,
+    phone: phoneNumberSchema,
     tfa: tfaSchema,
     currentPassword: passwordSchema
 })

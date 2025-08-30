@@ -177,7 +177,7 @@ export async function getUpdate(loggedInNickname) {
     updatePage('.avatar img#preview-avatar').attr('src', user.avatar ? `/api/avatars/${user.id}?t=${Date.now()}` : '/assets/default-avatar.svg');
     updatePage('#nickname-input').attr('value', user.nickname);
     updatePage('#email-input').attr('value', user.email);
-    
+    updatePage('#phone-input').attr('value', user.phoneNumber);
     updatePage('#tfa-select').append(`<option value="${currentTFA.type}">${currentTFA.prettyTypeName()}</option>`);
     TFA.TFAtypes.forEach((value, key) => {
         if (key !== currentTFA.type) {
@@ -199,38 +199,36 @@ let cached2FAHtmlPromise = fs.readFile('./backend/views/2FA.html', 'utf8');
 export async function get2FAview(payload, nickname) {
     const cached2FAHtml = await cached2FAHtmlPromise;
     const tfaPage = cheerio.load(cached2FAHtml, null, false);
+    let TFAtoDisplay;
 
     if (payload.status === 'update') {
         const pendingTFA = await TFA.getUsersPendingTFA(payload.id);
-        switch (pendingTFA.type) {
-            case 'totp':
-                const uri = pendingTFA.getURI(nickname);
-                const imageURL = await QRCode.toDataURL(uri);
-                tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
-                break;
-            case 'email':
-                await pendingTFA.sendEmail();
-                tfaPage('p#tfa-action-description').text('Enter the code from the email we sent');
-                break;
-            default:
-                break;
+        TFAtoDisplay = pendingTFA
+        if (pendingTFA.type === 'totp') {
+            const uri = pendingTFA.getURI(nickname);
+            const imageURL = await QRCode.toDataURL(uri);
+            tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
         }
     } else if (payload.status === 'check') {
-        const userTFA = await TFA.getUsersTFA(payload.id)
+        TFAtoDisplay = await TFA.getUsersTFA(payload.id)
         tfaPage('div#qr-wrapper').html('');
         tfaPage('form#tfa-form legend').text('Verify Your Identity');
-        switch (userTFA.type) {
-            case 'totp':
-                break;
-            case 'email':
-                await userTFA.sendEmail();
-                tfaPage('p#tfa-action-description').text('Enter the code from the email we sent');
-                break;
-            default:
-                break;
-        }
     } else {
         throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
+    }
+    switch (TFAtoDisplay.type) {
+        case 'totp':
+            break;
+        case 'email':
+            await TFAtoDisplay.sendEmail();
+            tfaPage('p#tfa-action-description').text('Enter the code from the email we sent');
+            break;
+        case 'sms':
+            await TFAtoDisplay.sendSMS();
+            tfaPage('p#tfa-action-description').text('Enter the code from the SMS we sent');
+            break;
+        default:
+            break;
     }
     return tfaPage.html();
 }
