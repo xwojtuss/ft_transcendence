@@ -31,7 +31,8 @@ export default async function loginRoute(fastify) {
                 if (!zodResult.success) {
                     throw new HTTPError(StatusCodes.BAD_REQUEST, zodResult.error.issues.at(0).message);
                 }
-                const user = await getUser(req.body.login);
+                let user = await getUser(req.body.login);
+                if (!user) user = await getUserByEmail(req.body.login);
                 if (user === null || await user.validatePassword(req.body.password) == false) {
                     return reply.code(StatusCodes.NOT_ACCEPTABLE).send({ message: 'Invalid credentials' });
                 }
@@ -277,43 +278,44 @@ export async function TFARoute(fastify) {
                 const token = String(req.body.code).padStart(6, '0');
                 const pendingTFA = await TFA.getUsersPendingTFA(user.id);
                 const currentTFA = await TFA.getUsersTFA(user.id);
-                if (!payloadRefresh && (payloadTFA.status === 'update' || currentTFA.type === 'disabled')) {
-                    // user updating 2FA or doesnt have 2FA set up but logged out
-                    throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
-                } else if (!payloadRefresh && currentTFA.verify(token)) {
-                    // user logging in - valid code
-                    await currentTFA.regenerateOTP(false);
-                    const accessToken = generateTokens(fastify, user.id, reply);
-                    return reply.send({ accessToken });
-                } else if (!payloadRefresh) {
-                    // user logging in - invalid code
-                    throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
-                } else if (payloadRefresh && payloadTFA.status === 'check' && !(await hasPendingUpdate(user.id))) {
-                    // verifying 2FA for /update changes but there is no update pending
-                    throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
-                } else if (payloadRefresh && payloadTFA.status === 'check' && currentTFA.verify(token)) {
-                    // verifying 2FA for /update changes - valid code
-                    const newTFA = await TFA.getPendingUpdateTFA(user.id);
-                    await commitPendingUpdate(user);
-                    const updatedUser = await getUserById(user.id);
-                    await currentTFA.regenerateOTP(false);
-                    if (newTFA && await newTFA.makePending(currentTFA)) {
-                        return reply.code(StatusCodes.ACCEPTED).send({
-                            tfaToken: newTFA.generateJWT(fastify, 'update')
-                        });
-                    }
-                    const accessToken = generateTokens(fastify, updatedUser.id, reply);
-                    return reply.send({ accessToken });
-                } else if (payloadRefresh && payloadTFA.status === 'check') {
-                    // verifying 2FA for /update changes - invalid code
-                    throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
-                } else if (pendingTFA.verify(token)) {
-                    // user updating 2FA - valid code
-                    await currentTFA.regenerateOTP(false);
-                    await pendingTFA.commit();
-                } else {
-                    // user updating 2FA - invalid code
-                    throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
+                switch (payloadTFA.status) {
+                    case 'check':
+                        // handle 2FA verification without setup
+                        if (currentTFA.type === 'disabled' || (payloadRefresh && !(await hasPendingUpdate(user.id))))
+                            throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
+                        if (!currentTFA.verify(token))
+                            throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
+                        if (payloadRefresh) {
+                            // user verifying /update changes
+                            const newTFA = await TFA.getPendingUpdateTFA(user.id);
+                            await commitPendingUpdate(user);
+                            const updatedUser = await getUserById(user.id);
+                            await currentTFA.regenerateOTP(false);
+                            if (newTFA && await newTFA.makePending(currentTFA)) {
+                                return reply.code(StatusCodes.ACCEPTED).send({
+                                    tfaToken: newTFA.generateJWT(fastify, 'update')
+                                });
+                            }
+                            const accessToken = generateTokens(fastify, updatedUser.id, reply);
+                            return reply.send({ accessToken });
+                        } else {
+                            // user verifying during login
+                            await currentTFA.regenerateOTP(false);
+                            const accessToken = generateTokens(fastify, user.id, reply);
+                            return reply.send({ accessToken });
+                        }
+                        break;
+                    case 'update':
+                        // 2FA change in progress, handle setup
+                        if (!payloadRefresh || !pendingTFA || pendingTFA.type === 'disabled')
+                            throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
+                        if (!currentTFA.verify(token))
+                            throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
+                        await currentTFA.regenerateOTP(false);
+                        await pendingTFA.commit();
+                        break;
+                    default:
+                        throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
                 }
                 return reply.send({ message: "OK" });
             } catch (error) {
