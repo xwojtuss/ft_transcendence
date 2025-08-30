@@ -68,7 +68,6 @@ export function runSecretsTest() {
     assert(Buffer.from(process.env.CRYPTO_TFA_KEY, 'base64').length === 32, "2FA secret encryption key in .env is not 256-bit/32-byte");
     assert(process.env.TFA_EMAIL_EMAIL, "No google email found for sending 2FA emails in .env");
     assert(process.env.TFA_EMAIL_PASSWORD, "No google app password found for sending 2FA emails in .env");
-    assert(process.env.TFA_SMS_SENDER_NUMBER, "The 2FA for SMS phone number not found in .env");
     assert(process.env.TFA_SMS_OAUTH, "SMSAPI OAuth token not found in .env");
     if (!process.env.PORT) {
         console.log("Port not found in .env, defaulting to 3000");

@@ -284,7 +284,7 @@ The code is valid for 10 minutes.`
 
         try {
             const safePhoneNumber = phoneNumber ? phoneNumber : await getUsersPhoneNumber(this.#userId);
-            await TFA.#smsapi.sms.sendSms(process.env.TFA_SMS_SENDER_NUMBER, `Hello,
+            await TFA.#smsapi.sms.sendSms(safePhoneNumber, `Hello,
 To complete your action, please enter the following verification code:
 ${this.secret}
 The code is valid for 10 minutes.`)
