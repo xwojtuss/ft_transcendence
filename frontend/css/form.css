@@ -30,7 +30,7 @@ form input[type=submit], form button {
     @apply cursor-pointer w-auto;
 }
 
-form input#password-input, form.labeled input {
+form input#password-input, form.labeled input:not([type=button], [type=submit]) {
     @apply pr-12;
 }
 
@@ -115,7 +115,7 @@ form.update button img {
 }
 
 form input.input-not-allowed, select.input-not-allowed {
-    @apply cursor-not-allowed;
+    @apply cursor-not-allowed bg-gray-50;
 }
 
 form .cancel:hover {
