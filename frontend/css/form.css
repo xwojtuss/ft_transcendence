@@ -19,7 +19,7 @@ form select {
 }
 
 form input, form .cancel, form label.file-input, form select {
-    @apply bg-white rounded-xl px-4 sm:px-5 py-2 sm:py-3 text-sm sm:text-base border-slate-300 border sm:mx-10 shadow-xs;
+    @apply bg-white rounded-xl px-4 sm:px-5 py-2 sm:py-3 text-sm border-slate-300 border sm:mx-10 shadow-xs;
 }
 
 form input:not([type=submit]), form select {
