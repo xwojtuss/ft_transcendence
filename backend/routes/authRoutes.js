@@ -199,7 +199,7 @@ export async function updateRoute(fastify) {
                     await addPendingUpdate(user, updatedUser, currentTFA.type, updatedTFA.type);
                     await currentTFA.regenerateOTP(false);
                     return reply.code(StatusCodes.ACCEPTED).send({
-                        tfaToken: updatedTFA.generateJWT(fastify, 'check')
+                        tfaToken: currentTFA.generateJWT(fastify, 'check')
                     });
                 } else {
                     await updateUser(user, updatedUser);
@@ -309,9 +309,9 @@ export async function TFARoute(fastify) {
                         // 2FA change in progress, handle setup
                         if (!payloadRefresh || !pendingTFA || pendingTFA.type === 'disabled')
                             throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
-                        if (!currentTFA.verify(token))
+                        if (!pendingTFA.verify(token))
                             throw new HTTPError(StatusCodes.NOT_ACCEPTABLE, 'Invalid code');
-                        await currentTFA.regenerateOTP(false);
+                        await pendingTFA.regenerateOTP(false);
                         await pendingTFA.commit();
                         break;
                     default:

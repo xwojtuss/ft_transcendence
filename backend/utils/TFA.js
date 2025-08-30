@@ -387,7 +387,7 @@ The code is valid for 10 minutes.
     static async getPendingUpdateTFA(userId) {
         const response = await db.get("SELECT tfa_type FROM pending_updates WHERE user_id = ?", userId);
 
-        if (!response) {
+        if (!response || !response.tfa_type) {
             return null;
         }
         const userTFA = new TFA(userId, response.tfa_type);
