@@ -184,6 +184,7 @@ export default async function viewsRoutes(fastify) {
         try {
             view = await getFriendsView(user.id);
         } catch (error) {
+            console.log(error);
             return await sendErrorPage(error, user, request, reply);
         }
         return await sendView(view, user, request, reply);

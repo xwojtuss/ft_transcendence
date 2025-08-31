@@ -1,7 +1,8 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import HTTPError from "../utils/error.js";
 import { getUserSession } from "./viewRoutes.js";
-import { acceptPendingInvite, addFriendInvite, getUser, getUserById, removeFriend, removePendingInvite } from "../db/dbQuery.js";
+import { getUser, getUserById } from "../db/dbQuery.js";
+import { acceptPendingInvite, addFriendInvite, removeFriend, removePendingInvite } from "../db/friendQueries.js";
 
 const generalFriendsSchema = {
     body: {

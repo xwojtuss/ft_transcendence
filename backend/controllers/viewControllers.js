@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, getUserMatchHistory, areFriends, getUsersFriendInvitations, getUsersPendingFriendInvitations, getUsersFriends } from "../db/dbQuery.js";
+import { getUser, getUserMatchHistory } from "../db/dbQuery.js";
+import { areFriends, getUsersFriendInvitations, getUsersPendingFriendInvitations, getUsersFriends } from "../db/friendQueries.js";
 import { cheerio } from '../server.js';
 import HTTPError from "../utils/error.js";
 import QRCode from "qrcode";
@@ -235,6 +236,11 @@ export async function get2FAview(payload, nickname) {
 
 let cachedFriendsHtmlPromise = fs.readFile('./backend/views/friends.html', 'utf8');
 
+/**
+ * Get the HTML for the friends view
+ * @param {number} userId the logged in user id
+ * @returns {Promise<string>} the rendered HTML of the view
+ */
 export async function getFriendsView(userId) {
     if (!userId)
         throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
@@ -244,7 +250,7 @@ export async function getFriendsView(userId) {
     const pendingInvites = await getUsersPendingFriendInvitations(userId);
     const friends = await getUsersFriends(userId);
     if (invitations.length === 0) {
-        friendsPage('#friend-invitations-wrapper').replaceWith("<p class='text-center'>You don't have any friend invitations</p>");
+        friendsPage('#friend-invitations-wrapper').replaceWith("<p class='fallback-info'>You don't have any friend invitations</p>");
     }
     invitations.forEach((user) => {
         friendsPage('#friend-invitations-wrapper').append(`
@@ -267,7 +273,7 @@ export async function getFriendsView(userId) {
         `);
     });
     if (pendingInvites.length === 0 && friends.length === 0) {
-        friendsPage('#friends-wrapper').replaceWith("<p>You don't have any friends nor pending invitations yet</p>");
+        friendsPage('#friends-wrapper').replaceWith("<p class='fallback-info'>You don't have any friends nor pending invitations yet</p>");
     }
     pendingInvites.forEach((user) => {
         friendsPage('#friends-wrapper').append(`

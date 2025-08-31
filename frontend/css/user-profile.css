@@ -130,6 +130,6 @@
     @apply visible opacity-100;
 }
 
-#friends-wrapper p, #friend-invitations-wrapper p {
+p.fallback-info {
     @apply text-center text-gray-500;
 }
