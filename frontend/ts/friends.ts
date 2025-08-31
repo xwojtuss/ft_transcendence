@@ -62,6 +62,7 @@ export function friendsHandler() {
         if (!(element instanceof HTMLFormElement)) return;
         const formElement: HTMLFormElement = element as HTMLFormElement;
         formElement.addEventListener('submit', async (e) => {
+            e.preventDefault();
             const records = getFormRecords(formElement);
             await completeFriendsAction('POST', '/api/friends/decline', records.userId);
         });
@@ -71,6 +72,7 @@ export function friendsHandler() {
         if (!(element instanceof HTMLFormElement)) return;
         const formElement: HTMLFormElement = element as HTMLFormElement;
         formElement.addEventListener('submit', async (e) => {
+            e.preventDefault();
             const records = getFormRecords(formElement);
             await completeFriendsAction('POST', '/api/friends/accept', records.userId);
         });
@@ -80,6 +82,7 @@ export function friendsHandler() {
         if (!(element instanceof HTMLFormElement)) return;
         const formElement: HTMLFormElement = element as HTMLFormElement;
         formElement.addEventListener('submit', async (e) => {
+            e.preventDefault();
             const records = getFormRecords(formElement);
             await completeFriendsAction('POST', '/api/friends/cancel', records.userId);
         });
@@ -89,6 +92,7 @@ export function friendsHandler() {
         if (!(element instanceof HTMLFormElement)) return;
         const formElement: HTMLFormElement = element as HTMLFormElement;
         formElement.addEventListener('submit', async (e) => {
+            e.preventDefault();
             const records = getFormRecords(formElement);
             await completeFriendsAction('DELETE', '/api/friends', records.userId);
         });
