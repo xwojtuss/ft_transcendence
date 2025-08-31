@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUser, getUserMatchHistory } from "../db/dbQuery.js";
 import { areFriends, getUsersFriendInvitations, getUsersPendingFriendInvitations, getUsersFriends } from "../db/friendQueries.js";
-import { cheerio } from '../server.js';
+import { cheerio } from '../buildApp.js';
 import HTTPError from "../utils/error.js";
 import QRCode from "qrcode";
 import TFA from "../utils/TFA.js";
@@ -205,6 +205,7 @@ export async function get2FAview(payload, nickname) {
     if (payload.status === 'update') {
         const pendingTFA = await TFA.getUsersPendingTFA(payload.id);
         TFAtoDisplay = pendingTFA
+        if (!pendingTFA) throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
         if (pendingTFA.type === 'totp') {
             const uri = pendingTFA.getURI(nickname);
             const imageURL = await QRCode.toDataURL(uri);

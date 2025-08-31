@@ -1,4 +1,4 @@
-import { db } from "../server.js";
+import { db } from "../buildApp.js";
 import HTTPError from "../utils/error.js";
 import { StatusCodes } from "http-status-codes";
 import User from "../utils/User.js";

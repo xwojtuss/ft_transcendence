@@ -1,8 +1,9 @@
-import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getUserMatchHistory } from "./db/dbQuery.js";
-import User from "./utils/User.js";
-import Match from "./utils/Match.js";
+import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getUserMatchHistory } from "../db/dbQuery.js";
+import User from "../utils/User.js";
+import Match from "../utils/Match.js";
 import assert from "assert";
 import fs from "fs";
+import path from "path";
 
 /**
  * Adds test users and test matches
@@ -58,8 +59,8 @@ export default async function testDatabase() {
  * Check if the necessary secrets are correct
  */
 export function runSecretsTest() {
-    assert(fs.existsSync("./secrets/ft_transcendence.key"), "SSL key not found");
-    assert(fs.existsSync("./secrets/ft_transcendence.crt"), "SSL cert not found");
+    assert(fs.existsSync(path.join(process.cwd(), 'secrets', 'ft_transcendence.key')), "SSL key not found");
+    assert(fs.existsSync(path.join(process.cwd(), 'secrets', 'ft_transcendence.crt')), "SSL cert not found");
     assert(process.env.COOKIE_SECRET, "Cookie secret not found in .env");
     assert(process.env.ACCESS_TOKEN_SECRET, "Access token secret not found in .env");
     assert(process.env.REFRESH_TOKEN_SECRET, "Refresh token secret not found in .env");
