@@ -7,7 +7,7 @@
 }
 
 .lg-floater.floater {
-    @apply sm:max-h-7/9 pt-10 gap-6;
+    @apply sm:max-h-7/9 pt-10 gap-5;
 }
 
 .user-info {
@@ -43,7 +43,7 @@
 }
 
 .users-wrapper .avatar {
-    @apply w-auto h-auto m-1 px-[5px] py-[85px] sm:py-[30px];
+    @apply w-auto h-auto m-1 px-[5px] py-[20px];
 }
 
 .avatar {
@@ -128,4 +128,8 @@
 
 .tooltip:hover .tooltiptext {
     @apply visible opacity-100;
+}
+
+#friends-wrapper p, #friend-invitations-wrapper p {
+    @apply text-center text-gray-500;
 }

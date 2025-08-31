@@ -164,7 +164,7 @@ export async function updateRoute(fastify) {
                         nickname: fields.nickname,
                         email: fields.email,
                         tfa: fields.tfa,
-                        phone: fields.phone,
+                        phone: (fields.phone && fields.phone != '') ? fields.phone : '+48000000000',
                         currentPassword: fields.currentPassword
                     });
                     updatedUser = new User(fields.nickname, user.password);

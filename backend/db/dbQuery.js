@@ -1,6 +1,8 @@
 import { db } from "../server.js";
 import User from "../utils/User.js";
 import Match from "../utils/Match.js";
+import HTTPError from "../utils/error.js";
+import { StatusCodes } from "http-status-codes";
 
 export default async function getAllUsers() {
     try {
@@ -208,7 +210,7 @@ export async function areFriends(userOne, userTwo) {
         WHERE is_invite = false
         AND ((u1.nickname = ? AND u2.nickname = ?) OR (u1.nickname = ? AND u2.nickname = ?))`,
         userOne.nickname || userOne, userTwo.nickname || userTwo, userTwo.nickname || userTwo, userOne.nickname || userOne);
-    if (relationship === undefined) {
+    if (!relationship || !relationship.originator_nickname || !relationship.friended_nickname) {
         return false;
     }
     return true;
@@ -377,4 +379,113 @@ export async function getUsersPhoneNumber(userId) {
     const response = await db.get("SELECT phone_number FROM users WHERE user_id = ?", userId);
     if (!response || !response.phone_number) return null;
     return response.phone_number;
+}
+
+export async function getUsersFriendInvitations(userId) {
+    const result = new Array();
+    const response = await db.all(`
+        SELECT u1.nickname AS originator_nickname,
+            u1.avatar AS originator_avatar,
+            friends_with.originator AS originator_id
+        FROM friends_with
+        JOIN users u1 ON u1.user_id = friends_with.originator
+        WHERE is_invite = true
+        AND friends_with.friended = ?`, userId);
+    response.forEach((row) => {
+        const invite = new User(row.originator_nickname);
+        invite.id = row.originator_id;
+        invite.avatar = row.originator_avatar;
+        result.push(invite);
+    });
+    return result;
+}
+
+export async function getUsersPendingFriendInvitations(userId) {
+    const result = new Array();
+    const response = await db.all(`
+        SELECT u1.nickname AS friended_nickname,
+            u1.avatar AS friended_avatar,
+            friends_with.friended AS friended_id
+        FROM friends_with
+        JOIN users u1 ON u1.user_id = friends_with.friended
+        WHERE is_invite = true
+        AND friends_with.originator = ?`, userId);
+    response.forEach((row) => {
+        const invite = new User(row.friended_nickname);
+        invite.id = row.friended_id;
+        invite.avatar = row.friended_avatar;
+        result.push(invite);
+    });
+    return result;
+}
+
+export async function getUsersFriends(userId) {
+    const result = new Array();
+    const response = await db.all(`
+        SELECT u1.nickname AS friended_nickname,
+            u2.nickname AS originator_nickname,
+            u1.avatar AS friended_avatar,
+            u2.avatar AS originator_avatar,
+            friends_with.friended AS friended_id,
+            friends_with.originator AS originator_id
+        FROM friends_with
+        JOIN users u1 ON u1.user_id = friends_with.friended
+        JOIN users u2 ON u2.user_id = friends_with.originator
+        WHERE is_invite = false
+        AND (friends_with.originator = ? OR friends_with.friended = ?)`, userId, userId);
+    response.forEach((row) => {
+        if (row.friended_id === userId) {
+            const invite = new User(row.originator_nickname);
+            invite.id = row.originator_id;
+            invite.avatar = row.originator_avatar;
+            result.push(invite);
+        } else if (row.originator_id === userId) {
+            const invite = new User(row.friended_nickname);
+            invite.id = row.friended_id;
+            invite.avatar = row.friended_avatar;
+            result.push(invite);
+        }
+    });
+    return result;
+}
+
+export async function acceptPendingInvite(friendedId, originatorId) {
+    await db.run("UPDATE friends_with SET is_invite = false WHERE is_invite = true AND friended = ? AND originator = ?", friendedId, originatorId);
+}
+
+export async function removePendingInvite(friendedId, originatorId) {
+    await db.run("DELETE FROM friends_with WHERE is_invite = true AND friended = ? AND originator = ?", friendedId, originatorId);
+}
+
+export async function addFriendInvite(originatorId, friendedId) {
+    if (originatorId === friendedId) {
+        throw new HTTPError(StatusCodes.BAD_REQUEST, "Cannot invite yourself");
+    }
+    if (!friendedId || !originatorId) {
+        throw new HTTPError(StatusCodes.NOT_FOUND, "User not found");
+    }
+    if (await hasRecordInFriendsWithTable(originatorId, friendedId)) {
+        throw new HTTPError(StatusCodes.BAD_REQUEST, "Already friends or invitation is pending");
+    }
+    await db.run("INSERT INTO friends_with (originator, friended, is_invite) VALUES (?, ?, ?)", originatorId, friendedId, true);
+}
+
+export async function removeFriend(userOneId, userTwoId) {
+    await db.run(`
+        DELETE FROM friends_with
+        WHERE is_invite = false
+        AND ((friended = ? AND originator = ?) OR (friended = ? AND originator = ?))`,
+        userOneId, userTwoId, userTwoId, userOneId);
+}
+
+async function hasRecordInFriendsWithTable(userOneId, userTwoId) {
+    const relationship = await db.get(`
+        SELECT originator, friended
+        FROM friends_with
+        WHERE ((originator = ? AND friended = ?) OR (originator = ? AND friended = ?))`,
+        userOneId, userTwoId, userTwoId, userOneId);
+    if (!relationship || !relationship.originator || !relationship.friended) {
+        return false;
+    }
+    return true;
 }
