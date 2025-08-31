@@ -193,28 +193,6 @@ export async function addMatch(match) {
 }
 
 /**
- * Check if two users are friends
- * @param {string | User} userOne Nickname of user or the User
- * @param {string | User} userTwo Nickname of the second user or the the second User
- * @returns {Promise<boolean>} Whether they are friends
- */
-export async function areFriends(userOne, userTwo) {
-    const relationship = await db.get(`
-        SELECT u1.nickname AS originator_nickname,
-            u2.nickname AS friended_nickname
-        FROM friends_with
-        JOIN users u1 ON u1.user_id = friends_with.originator
-        JOIN users u2 ON u2.user_id = friends_with.friended
-        WHERE is_invite = false
-        AND ((u1.nickname = ? AND u2.nickname = ?) OR (u1.nickname = ? AND u2.nickname = ?))`,
-        userOne.nickname || userOne, userTwo.nickname || userTwo, userTwo.nickname || userTwo, userOne.nickname || userOne);
-    if (relationship === undefined) {
-        return false;
-    }
-    return true;
-}
-
-/**
  * Updates the non-2FA data related to a user, this updates nickname, email, password, avatar and phone number
  * @param {User} originalUser the instance of a user with unchanged data (nickname and email must match with db)
  * @param {User} updatedUser the instance of a user with the changes to commit

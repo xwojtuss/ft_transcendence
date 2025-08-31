@@ -27,5 +27,5 @@
 }
 
 span.pending {
-    @apply absolute -translate-y-19 bg-white text-gray-500 text-xs m-0 p-0;
+    @apply absolute -translate-y-25 sm:-translate-y-25.5 bg-white text-gray-500 text-xs m-0 p-1;
 }

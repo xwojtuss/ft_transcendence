@@ -1,5 +1,6 @@
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler } from "./authenticate.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
+import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
 
@@ -50,6 +51,9 @@ async function runHandlers(pathURL: string): Promise<void> {
         case '/2fa':
             update2FAHandler();
             await update2FASubmitHandler();
+            break;
+        case '/friends':
+            friendsHandler();
             break;
         default:
             if (pathURL.startsWith('/profile/')) {

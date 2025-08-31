@@ -11,6 +11,7 @@ import multipart from "@fastify/multipart";
 import avatarRoute from "./routes/protectedFilesRoutes.js";
 import { runSecretsTest } from "./test.js";
 import fs from "fs";
+import { friendsRoutes } from "./routes/friendsRoutes.js";
 
 runSecretsTest();
 
@@ -64,6 +65,7 @@ fastify.register(updateRoute);
 fastify.register(TFARoute);
 fastify.register(avatarRoute);
 fastify.register(viewsRoutes);
+fastify.register(friendsRoutes);
 
 fastify.listen({ port: process.env.PORT || 3000 }, (err, address) => {
     if (err) {
