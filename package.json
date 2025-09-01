@@ -10,7 +10,7 @@
     "build:css": "npx tailwindcss -i frontend/css_styles.css -o frontend/css/output.css",
     "dirs": "mkdir -p backend/avatars secrets",
     "certs": "./generate_certs.sh",
-    "start": "node --env-file=secrets/.env --watch backend/server.js",
+    "start": "node --env-file-if-exists=secrets/.env --watch backend/server.js",
     "build": "npm run dirs && npm run build:ts && npm run build:css && npm run certs",
     "dev": "npm run dirs && npm run build:ts && npm run build:css && npm run certs && npm run start"
   },
