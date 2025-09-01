@@ -28,3 +28,18 @@ export async function register(fastify, nickname, email, password) {
     });
     return response;
 }
+
+export async function update(fastify, changes, accessToken, refreshToken) {
+    const response = await fastify.inject({
+        method: 'POST',
+        url: '/api/auth/update',
+        headers: {
+            Authorization: 'Bearer ' + accessToken
+        },
+        cookies: {
+            refreshToken: refreshToken
+        },
+        payload: changes
+    });
+    return response;
+}

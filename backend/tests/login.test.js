@@ -1,5 +1,4 @@
 import { after, before, describe, it } from "node:test";
-import deleteDatabase from "../db/dbDev.js";
 import assert from "node:assert";
 import { StatusCodes } from "http-status-codes";
 import buildApp, { clearTestDatabase } from "../buildApp.js";

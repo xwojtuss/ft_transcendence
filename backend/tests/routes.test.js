@@ -13,9 +13,16 @@ describe('Unprotected routes', async () => {
         fastify = await buildApp(false);
     });
 
-    it('GET /', async (t) => { await checkSSR('/', t) });
-    it('GET /login', async (t) => { await checkSSR('/login', t) });
-    it('GET /register', async (t) => { await checkSSR('/register', t) });
+    it('SSR load/full load', async (t) => {
+        await t.test('GET /', async (t) => { await checkSSR('/', t) });
+        await t.test('GET /login', async (t) => { await checkSSR('/login', t) });
+        await t.test('GET /register', async (t) => { await checkSSR('/register', t) });
+    });
+    it('Partial load', async (t) => {
+        await t.test('GET /', async (t) => { await checkPartial('/', t) });
+        await t.test('GET /login', async (t) => { await checkPartial('/login', t) });
+        await t.test('GET /register', async (t) => { await checkPartial('/register', t) });
+    });
 });
 
 describe('Protected routes', async () => {
@@ -32,10 +39,20 @@ describe('Protected routes', async () => {
         refreshToken = response.cookies.find(cookie => cookie.name === 'refreshToken').value;
     });
 
-    it('GET /profile', async (t) => { await checkProtectedSSR('/profile', accessToken, refreshToken, t) });
-    it('GET /profile/:nickname', async (t) => { await checkProtectedSSR('/profile/protected', accessToken, refreshToken, t) });
-    it('GET /friends', async (t) => { await checkProtectedSSR('/friends', accessToken, refreshToken, t) });
-    it('GET /update', async (t) => { await checkProtectedSSR('/update', accessToken, refreshToken, t) });
+    it('SSR load/full load', async (t) => {
+        await t.test('GET /', async (t) => { await checkProtectedSSR('/', accessToken, refreshToken, t) });
+        await t.test('GET /profile', async (t) => { await checkProtectedSSR('/profile', accessToken, refreshToken, t) });
+        await t.test('GET /profile/:nickname', async (t) => { await checkProtectedSSR('/profile/protected', accessToken, refreshToken, t) });
+        await t.test('GET /friends', async (t) => { await checkProtectedSSR('/friends', accessToken, refreshToken, t) });
+        await t.test('GET /update', async (t) => { await checkProtectedSSR('/update', accessToken, refreshToken, t) });
+    });
+    it('Partial load', async (t) => {
+        await t.test('GET /', async (t) => { await checkProtectedPartial('/', accessToken, refreshToken, t) });
+        await t.test('GET /profile', async (t) => { await checkProtectedPartial('/profile', accessToken, refreshToken, t) });
+        await t.test('GET /profile/:nickname', async (t) => { await checkProtectedPartial('/profile/protected', accessToken, refreshToken, t) });
+        await t.test('GET /friends', async (t) => { await checkProtectedPartial('/friends', accessToken, refreshToken, t) });
+        await t.test('GET /update', async (t) => { await checkProtectedPartial('/update', accessToken, refreshToken, t) });
+    });
 });
 
 describe('Routes - negative tests', async () => {
@@ -68,6 +85,18 @@ describe('Routes - negative tests', async () => {
     it('GET /update - missing refreshToken', async (t) => { await checkNegativeSSR('/update', accessToken, '', StatusCodes.UNAUTHORIZED, t) });
 });
 
+async function checkPartial(endpoint, t) {
+    const response = await fastify.inject({
+        method: 'GET',
+        url: endpoint,
+        headers: {
+            'X-Partial-Load': 'true'
+        }
+    });
+    assert.strictEqual(response.statusCode, StatusCodes.OK);
+    assert.strictEqual(response.payload.startsWith('<!DOCTYPE html><html><head>'), false, "Contains full HTML");
+}
+
 async function checkSSR(endpoint, t) {
     const response = await fastify.inject({
         method: 'GET',
@@ -90,6 +119,22 @@ async function checkProtectedSSR(endpoint, accessToken, refreshToken, t) {
     });
     assert.strictEqual(response.statusCode, StatusCodes.OK);
     assert.strictEqual(response.payload.startsWith('<!DOCTYPE html><html><head>'), true, "Does not contain full HTML");
+}
+
+async function checkProtectedPartial(endpoint, accessToken, refreshToken, t) {
+    const response = await fastify.inject({
+        method: 'GET',
+        url: endpoint,
+        headers: {
+            Authorization: 'Bearer ' + accessToken,
+            'X-Partial-Load': 'true'
+        },
+        cookies: {
+            refreshToken: refreshToken
+        }
+    });
+    assert.strictEqual(response.statusCode, StatusCodes.OK);
+    assert.strictEqual(response.payload.startsWith('<!DOCTYPE html><html><head>'), false, "Contains full HTML");
 }
 
 async function checkNegativeSSR(endpoint, accessToken, refreshToken, expectedCode, t) {
