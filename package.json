@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "test": "NODE_ENV=test node --test --env-file=secrets/.env --trace-exit",
+    "test": "NODE_ENV=test node --test --env-file-if-exists=secrets/.env --trace-exit",
     "build:ts": "npx tsc",
     "build:css": "npx tailwindcss -i frontend/css_styles.css -o frontend/css/output.css",
     "dirs": "mkdir -p backend/avatars secrets",
