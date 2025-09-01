@@ -3,7 +3,7 @@ import { getStaticView, getProfile, getUpdate, get2FAview, getFriendsView } from
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fs from "fs/promises";
-import { cheerio } from "../server.js";
+import { cheerio } from "../buildApp.js";
 import { getUserById } from "../db/dbQuery.js";
 
 const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
@@ -170,7 +170,6 @@ export default async function viewsRoutes(fastify) {
             if (!user) throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
             view = await get2FAview(payload, user.nickname);
         } catch (error) {
-            console.error(error);
             return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
         }
         return await sendView(view, payload, request, reply);

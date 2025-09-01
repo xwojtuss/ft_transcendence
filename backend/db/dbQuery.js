@@ -1,4 +1,4 @@
-import { db } from "../server.js";
+import { db } from "../buildApp.js";
 import User from "../utils/User.js";
 import Match from "../utils/Match.js";
 

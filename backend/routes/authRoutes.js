@@ -217,7 +217,6 @@ export async function updateRoute(fastify) {
                 const accessToken = generateTokens(fastify, updatedUser.id, reply);
                 return reply.send({ accessToken });
             } catch (error) {
-                console.error(error);
                 if (error instanceof HTTPError) {
                     return reply.code(error.code).send({ message: error.message });
                 }
