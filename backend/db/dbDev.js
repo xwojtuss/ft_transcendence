@@ -1,9 +1,9 @@
-import { unlink } from "fs/promises";
+import { unlink } from 'node:fs/promises';
+import path from 'node:path';
 
 export default async function deleteDatabase(filename) {
+    const filePath = path.join(process.cwd(), 'backend', 'db', filename);
     try {
-        await unlink("./backend/db/" + filename);
-    } catch (error) {
-        console.error("Failed to delete database file:", error);
-    }
+        await unlink(filePath);
+    } catch (error) {}
 }

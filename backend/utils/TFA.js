@@ -1,6 +1,6 @@
 import { authenticator } from "otplib";
 import { CRYPTO_ALGORITHM, CRYPTO_IV_BYTES, TFA_EMAIL_EXPIRATION_SECONDS, TFA_TOKEN_EXPIRY } from "./config.js";
-import { db } from "../server.js";
+import { db } from "../buildApp.js";
 import crypto from "node:crypto";
 import nodemailer from "nodemailer";
 import { getUserById, getUsersPhoneNumber } from "../db/dbQuery.js";
