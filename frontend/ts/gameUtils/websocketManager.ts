@@ -36,7 +36,7 @@ export class GameWebSocket {
 
         // Disconnect if navigating away from game
         window.addEventListener('popstate', () => {
-            if (window.location.pathname !== '/' && window.location.pathname !== '/home') {
+            if (window.location.pathname !== '/game/local') {
                 this.disconnect();
             }
         });

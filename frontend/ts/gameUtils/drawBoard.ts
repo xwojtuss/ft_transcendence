@@ -18,8 +18,8 @@ export function setGameDimensions(width: number, height: number) {
 
 // Initialize the canvas and its context
 export function initCanvas(): boolean {
-    if (window.location.pathname === '/' || window.location.pathname === '/home') {
-        canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
+    if (window.location.pathname === '/game/local') {
+        canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement;
         if (!canvas) {
             throw new Error("Failed to get canvas element");
         }

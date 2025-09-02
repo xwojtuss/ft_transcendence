@@ -5,6 +5,7 @@ import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fs from "fs/promises";
 import { cheerio } from "../server.js";
 import { getUserById } from "../db/dbQuery.js";
+import { request } from "http";
 
 const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
 const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html', "utf-8");
@@ -173,6 +174,61 @@ export default async function viewsRoutes(fastify) {
             return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
         }
         return await sendView(view, payload, request, reply);
+    });
+
+    fastify.get("/game/local", async (request, reply) => {
+        let view;
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        try {
+            view = await getStaticView('local-game');
+        } catch (error) {
+            return await sendErrorPage(error, user, request, reply);
+        }
+        return await sendView(view, user, request, reply);
+    });
+
+    fastify.get("/game/multiplayer", async (request, reply) => {
+        let view;
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        try {
+            view = await getStaticView('multiplayer-game'); // stwórz backend/views/multiplayer-game.html
+        } catch (error) {
+            return await sendErrorPage(error, user, request, reply);
+        }
+        return await sendView(view, user, request, reply);
+    });
+
+    fastify.get("/game/online", async (request, reply) => {
+        let view;
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        try {
+            view = await getStaticView('online-game'); // stwórz backend/views/online-game.html
+        } catch (error) {
+            return await sendErrorPage(error, user, request, reply);
+        }
+        return await sendView(view, user, request, reply);
+    });
+
+    fastify.get("/game/local-tournament", async (request, reply) => {
+        let view;
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        try {
+            view = await getStaticView('local-tournament-game'); // stwórz backend/views/local-tournament-game.html
+        } catch (error) {
+            return await sendErrorPage(error, user, request, reply);
+        }
+        return await sendView(view, user, request, reply);
+    });
+
+    fastify.get("/game/online-tournament", async (request, reply) => {
+        let view;
+        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
+        try {
+            view = await getStaticView('online-tournament-game'); // stwórz backend/views/online-tournament-game.html
+        } catch (error) {
+            return await sendErrorPage(error, user, request, reply);
+        }
+        return await sendView(view, user, request, reply);
     });
 
     fastify.setNotFoundHandler(async (request, reply) => {

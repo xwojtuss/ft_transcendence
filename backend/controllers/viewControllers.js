@@ -6,7 +6,16 @@ import HTTPError from "../utils/error.js";
 import QRCode from "qrcode";
 import TFA from "../utils/TFA.js";
 
-const allowedNames = new Set(["login", "register", "home"]);// TEMP delete home, add a separate function for '/'
+const allowedNames = new Set([
+    "login",
+    "register",
+    "home",
+    "local-game",
+    "multiplayer-game",
+    "online-game",
+    "local-tournament-game",
+    "online-tournament-game"
+]); // TEMP delete home, add a separate function for '/'
 
 /**
  * Gets the static views e.g. login
