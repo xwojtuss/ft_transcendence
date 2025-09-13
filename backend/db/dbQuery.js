@@ -356,3 +356,7 @@ export async function getUsersPhoneNumber(userId) {
     if (!response || !response.phone_number) return null;
     return response.phone_number;
 }
+
+export async function testFunction() {
+    return;
+}
