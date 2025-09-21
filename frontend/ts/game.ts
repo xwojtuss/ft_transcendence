@@ -9,7 +9,7 @@ let gameInstance: {
     renderer: GameRenderer;
 } | null = null;
 
-export function initGameIfHome() {
+export function initLocalGame() {
     if (window.location.pathname !== '/game/local') {
         return;
     }

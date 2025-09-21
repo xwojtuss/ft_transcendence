@@ -1,9 +1,10 @@
 import changePasswordButton from "./login-register-form.js";
-import { initGameIfHome } from "./game.js";
+import { initLocalGame } from "./game.js";
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler } from "./authenticate.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
+import { run } from "node:test";
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
@@ -61,6 +62,28 @@ async function runHandlers(pathURL: string): Promise<void> {
     }
 }
 
+function runChosenGame(pathURL: string): void {
+    switch (pathURL) {
+        case '/game/local':
+            initLocalGame();
+            break;
+        case '/game/online':
+            // add initialization for online game mode
+            break;
+        case '/game/multiplayer':
+            // add initialization for multiplayer game mode
+            break;
+        case '/game/local-tournament':
+            // add initialization for local tournament game mode
+            break;
+        case '/game/online-tournament':
+            // add initialization for online tournament game mode
+            break;
+        default:
+            return;
+    }
+}
+
 /**
  * Render the view or the whole document
  * @param pathURL the path to the view e.g. /login
@@ -105,15 +128,21 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
             view = await response.text();
         }
         app.innerHTML = DOMPurify.sanitize(view);
+
+        if (pathURL === '/' || pathURL === '/home') {
+            initGameModesRouter();
+        }
+
         const newUrl: string = new URL(pathURL, window.location.origin).pathname;
         if (window.location.pathname !== newUrl) {
             window.history.pushState({}, '', newUrl);
         }
+        
+        runChosenGame(pathURL);
     } catch (error) {
         console.error(error);
     }
     changeActiveStyle(pathURL);
-    initGameIfHome();
     await runHandlers(pathURL);
 }
 
@@ -139,6 +168,21 @@ function changeActiveStyle(pathURL?: string): void {
     });
 }
 
+function initGameModesRouter() {
+    document.querySelectorAll('.game-tile').forEach(tile => {
+        tile.addEventListener('click', function (e) {
+            e.preventDefault();
+            const href = tile.getAttribute('data-href');
+            if (href) {
+                renderPage(href, false);
+            }
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    initGameIfHome();
+    if (window.location.pathname === '/' || window.location.pathname === '/home') {
+        initGameModesRouter();
+    }
+    runChosenGame(window.location.pathname);
 });
