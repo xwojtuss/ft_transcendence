@@ -1,5 +1,5 @@
 import changePasswordButton from "./login-register-form.js";
-import { initLocalGame } from "./game.js";
+import { initLocalGame } from "./localGame.js";
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler } from "./authenticate.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
 import formPasswordVisibility from "./login-register-form.js";
