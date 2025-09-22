@@ -1,6 +1,6 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import HTTPError from "../utils/error.js";
-import { getUserSession } from "./viewRoutes.js";
+import { getUserSession } from "../controllers/viewControllers.js";
 import { getUser, getUserById } from "../db/dbQuery.js";
 import { acceptPendingInvite, addFriendInvite, removeFriend, removePendingInvite } from "../db/friendQueries.js";
 

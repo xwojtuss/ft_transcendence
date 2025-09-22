@@ -3,7 +3,7 @@ import { getUser, addUser, getUserByEmail, updateUser, addPendingUpdate, commitP
 import { check2FAHeader, checkAuthHeader, checkRefreshToken, generateTokens, saveImage } from "../controllers/authControllers.js";
 import HTTPError from "../utils/error.js";
 import User from "../utils/User.js";
-import { getUserSession } from "./viewRoutes.js";
+import { getUserSession } from "../controllers/viewControllers.js";
 import fs from "fs";
 import { loginSchema, updateSchema, registerSchema, updateNewPasswordSchema } from '../utils/inputValidation.js';
 import TFA from "../utils/TFA.js";
@@ -152,7 +152,7 @@ export async function updateRoute(fastify) {
                     }
                 } catch (error) {
                     if (error instanceof HTTPError) throw new HTTPError(error.code, error.message);
-                    console.log(error);
+                    (error);
                     throw new HTTPError(StatusCodes.REQUEST_TOO_LONG, 'Image must be smaller than 5MB');
                 }
                 if (fields.newPassword) {

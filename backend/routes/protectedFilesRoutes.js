@@ -1,7 +1,7 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import HTTPError from "../utils/error.js";
 import { getUserById } from "../db/dbQuery.js";
-import { getUserSession } from "./viewRoutes.js";
+import { getUserSession } from "../controllers/viewControllers.js";
 import fs from "fs";
 
 export default function avatarRoute(fastify) {

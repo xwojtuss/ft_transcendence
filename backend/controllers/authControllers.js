@@ -120,7 +120,6 @@ export async function saveImage(imageFile, updatedUser) {
             .toFile(`./backend/avatars/${updatedUser.id}_${timestamp}.webp`);
         updatedUser.avatar = `./backend/avatars/${updatedUser.id}_${timestamp}.webp`;
     } catch (error) {
-        console.log(error);
         throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, 'Could not save avatar');
     }
 }
