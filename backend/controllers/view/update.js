@@ -1,9 +1,9 @@
-import TFA from "../utils/TFA.js";
+import TFA from "../../utils/TFA.js";
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser } from "../db/dbQuery.js";
-import { cheerio } from '../buildApp.js';
-import HTTPError from "../utils/error.js";
+import { getUser } from "../../db/dbQuery.js";
+import { cheerio } from '../../buildApp.js';
+import HTTPError from "../../utils/error.js";
 
 let cachedUpdateHtmlPromise = fs.readFile('./backend/views/update.html', 'utf8');
 

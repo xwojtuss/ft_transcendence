@@ -1,9 +1,9 @@
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import HTTPError from "../utils/error.js";
-import { checkAuthHeader, checkRefreshToken } from "../controllers/authControllers.js";
-import { cheerio } from "../buildApp.js";
-import { getUserById } from "../db/dbQuery.js";
+import HTTPError from "../../utils/error.js";
+import { checkAuthHeader, checkRefreshToken } from "../auth/authUtils.js";
+import { cheerio } from "../../buildApp.js";
+import { getUserById } from "../../db/dbQuery.js";
 
 const allowedNames = new Set(["login", "register", "home"]);// TEMP delete home, add a separate function for '/'
 
@@ -66,7 +66,7 @@ export async function sendErrorPage(error, isLoggedIn, request, reply) {
     } else {
         errorPage = await (new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR).getErrorPage());
     }
-    return reply.type('text/html').code(error.code || StatusCodes.INTERNAL_SERVER_ERROR).send(await prepareHTML(errorPage, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
+    return reply.type('text/html').status(error.code || StatusCodes.INTERNAL_SERVER_ERROR).send(await prepareHTML(errorPage, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
 }
 
 /**

@@ -1,9 +1,9 @@
-import { StatusCodes } from "http-status-codes";
-import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY_SECONDS } from "../utils/config.js";
-import HTTPError from "../utils/error.js";
-import { getUserById } from "../db/dbQuery.js";
-import User from "../utils/User.js";
+import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY_SECONDS } from "../../utils/config.js";
+import HTTPError from "../../utils/error.js";
+import User from "../../utils/User.js";
 import sharp from "sharp";
+import { ReasonPhrases, StatusCodes } from "http-status-codes";
+import { getUserById } from "../../db/dbQuery.js";
 
 /**
  * Checks whether the access token is valid with fastify.jwd.verify
@@ -123,3 +123,4 @@ export async function saveImage(imageFile, updatedUser) {
         throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, 'Could not save avatar');
     }
 }
+

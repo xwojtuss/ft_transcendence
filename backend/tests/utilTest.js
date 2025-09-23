@@ -51,7 +51,7 @@ export default async function testDatabase() {
         console.log(await getAllMatches());
         console.log(await getUserMatchHistory('wkornato'));
     } catch (error) {
-        console.log(error);
+        console.error(error);
     }
 }
 

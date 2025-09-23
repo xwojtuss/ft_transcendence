@@ -7,7 +7,6 @@ export default async function getAllUsers() {
         const users = await db.all("SELECT * FROM users");
         return users;
     } catch (error) {
-        console.error("Failed to fetch users:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -47,7 +46,6 @@ export async function getUser(nickname) {
             return null;
         return createUserFromObject(user);
     } catch (error) {
-        console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -65,7 +63,6 @@ export async function getUserByEmail(email) {
             return null;
         return createUserFromObject(user);
     } catch (error) {
-        console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -75,7 +72,6 @@ export async function getAllMatchHistory() {
         const matches = await db.all("SELECT * FROM match_history");
         return matches;
     } catch (error) {
-        console.error("Failed to fetch match history:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -122,7 +118,6 @@ export async function getUserMatchHistory(user) {
         });
         return matchesMap;
     } catch (error) {
-        console.error("Failed to fetch match history:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -132,7 +127,6 @@ export async function getAllMatches() {
         const matches = await db.all("SELECT * FROM matches");
         return matches;
     } catch (error) {
-        console.error("Failed to fetch matches:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -153,7 +147,6 @@ export async function addUser(user) {
         );
         return result.lastID;
     } catch (error) {
-        console.error("Failed to insert user:", error.message);
         throw new Error("Insert failed");
     }
 }
@@ -187,7 +180,6 @@ export async function addMatch(match) {
         await db.exec("COMMIT");
     } catch (error) {
         await db.exec("ROLLBACK");
-        console.error("Failed to insert match:", error.message);
         throw new Error("Insert failed");
     }
 }
@@ -220,7 +212,6 @@ export async function getUserById(userId) {
             return null;
         return createUserFromObject(user);
     } catch (error) {
-        console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -275,7 +266,6 @@ export async function addPendingUpdate(originalUser, updatedUser, originalTFAtyp
             getUpdatedValueOrNull(originalTFAtype, updatedTFAtype),
         );
     } catch (error) {
-        console.error("Failed to insert pending update:", error.message);
         throw new Error("Insert failed");
     }
 }

@@ -1,8 +1,8 @@
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUsersFriendInvitations, getUsersPendingFriendInvitations, getUsersFriends } from "../db/friendQueries.js";
-import { cheerio } from '../buildApp.js';
-import HTTPError from "../utils/error.js";
+import { getUsersFriendInvitations, getUsersPendingFriendInvitations, getUsersFriends } from "../../db/friendQueries.js";
+import { cheerio } from '../../buildApp.js';
+import HTTPError from "../../utils/error.js";
 
 let cachedFriendsHtmlPromise = fs.readFile('./backend/views/friends.html', 'utf8');
 

@@ -1,9 +1,9 @@
-import { check2FAHeader } from "../controllers/authControllers.js";
-import { get2FAview } from "../controllers/2faView.js";
-import { getUpdate } from "../controllers/updateView.js";
-import { getProfile } from "../controllers/profileView.js";
-import { getFriendsView } from "../controllers/friendsView.js";
-import { getUserSession, sendErrorPage, getStaticView, sendView } from "../controllers/viewControllers.js";
+import { check2FAHeader } from "../controllers/auth/authUtils.js";
+import { get2FAview } from "../controllers/view/2fa.js";
+import { getUpdate } from "../controllers/view/update.js";
+import { getProfile } from "../controllers/view/profile.js";
+import { getFriendsView } from "../controllers/view/friends.js";
+import { getUserSession, sendErrorPage, getStaticView, sendView } from "../controllers/view/viewUtils.js";
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUserById } from "../db/dbQuery.js";
@@ -36,9 +36,8 @@ async function loggedInOrOutPreHandler(req, reply) {
 }
 
 async function viewsErrorHandler(error, req, reply) {
-    console.error(error);
-    if (error instanceof HTTPError) {
-        return reply.status(error.code).send(await error.getErrorPage());
+    if (!(error instanceof HTTPError)) {
+        console.error(error);
     }
     return await sendErrorPage(error, req.cookies.refreshToken, req, reply);
 }
@@ -80,10 +79,10 @@ export default async function viewsRoutes(fastify) {
     });
 
     fastify.get("/2fa", async (request, reply) => {
-        const payload = await check2FAHeader(fastify, request.headers['authorization']);
+        const payload = await check2FAHeader(request.server, request.headers['authorization']);
         const user = await getUserById(payload.id);
         if (!user) throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
-        const view = await get2FAview(payload, user.nickname);
+        const view = await get2FAview(payload, user.nickname, request.headers['referer']);
         return await sendView(view, payload, request, reply);
     });
 

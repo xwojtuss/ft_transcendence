@@ -1,9 +1,9 @@
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, getUserMatchHistory } from "../db/dbQuery.js";
-import { areFriends } from "../db/friendQueries.js";
-import { cheerio } from '../buildApp.js';
-import HTTPError from "../utils/error.js";
+import { getUser, getUserMatchHistory } from "../../db/dbQuery.js";
+import { areFriends } from "../../db/friendQueries.js";
+import { cheerio } from '../../buildApp.js';
+import HTTPError from "../../utils/error.js";
 
 let cachedProfileHtmlPromise = fs.readFile('./backend/views/profile.html', 'utf8');
 
