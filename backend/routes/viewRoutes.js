@@ -92,9 +92,7 @@ export default async function viewsRoutes(fastify) {
     });
 
     fastify.setNotFoundHandler(async (request, reply) => {
-        await loggedInOrOutPreHandler(request, reply);
-        const view = await getStaticView('home');
-        return await sendView(view, request.currentUser, request, reply);
+        return await sendErrorPage(new HTTPError(StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND), request.cookies.refreshToken, request, reply);
     });
 }
 
