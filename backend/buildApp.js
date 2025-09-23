@@ -4,7 +4,6 @@ import path from "path";
 import viewsRoutes from "./routes/viewRoutes.js";
 import fastifyJwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
-import loginRoute, { logoutRoute, refreshRoute, registerRoute, TFARoute, updateRoute } from "./routes/authRoutes.js";
 import multipart from "@fastify/multipart";
 import avatarRoute from "./routes/protectedFilesRoutes.js";
 import fs from "fs";
@@ -12,6 +11,8 @@ import { friendsRoutes } from "./routes/friendsRoutes.js";
 import { initDb } from "./db/dbInit.js";
 import * as Cheerio from 'cheerio';
 import deleteDatabase from "./db/dbDev.js";
+import authRoutes from "./routes/authRoutes.js";
+import { ReasonPhrases, StatusCodes } from "http-status-codes";
 
 export const cheerio = Cheerio;
 
@@ -56,16 +57,16 @@ export default function buildApp(logger) {
     });
 
     // register the server routes
-    fastify.register(loginRoute);
-    fastify.register(registerRoute);
-    fastify.register(refreshRoute);
-    fastify.register(logoutRoute);
-    fastify.register(updateRoute);
-    fastify.register(TFARoute);
+    fastify.register(authRoutes);
     fastify.register(avatarRoute);
     fastify.register(viewsRoutes);
     fastify.register(friendsRoutes);
     
+    fastify.setErrorHandler((error, request, reply) => {
+        fastify.log.error(error);
+        reply.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
+    });
+
     return fastify;
 }
 

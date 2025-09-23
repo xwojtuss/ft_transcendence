@@ -150,7 +150,6 @@ export default class TFA {
             this.#encryptedSecret += cipher.final('base64');
             this.#tag = cipher.getAuthTag().toString('base64');
         } catch (error) {
-            console.error(error);
         }
     }
 
@@ -169,7 +168,6 @@ export default class TFA {
             this.#secret = decipher.update(this.#encryptedSecret, 'base64', 'utf8');
             this.#secret += decipher.final('utf8');
         } catch (error) {
-            console.error(error);
         }
     }
 
@@ -265,7 +263,6 @@ The code is valid for 10 minutes.`
         try {
             await TFA.#emailTransporter.sendMail(await this.#getEmailOptions(email));
         } catch (error) {
-            console.error("Error sending email: ", error);
             this.#secret = null;
             throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, error.message);
         }
@@ -289,7 +286,6 @@ To complete your action, please enter the following verification code:
 ${this.secret}
 The code is valid for 10 minutes.`)
         } catch (error) {
-            console.error("Error sending SMS: ", error);
             this.#secret = null;
             throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, error.message);
         }

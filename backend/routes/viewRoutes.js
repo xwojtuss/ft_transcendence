@@ -1,82 +1,45 @@
-import { check2FAHeader, checkAuthHeader, checkRefreshToken } from "../controllers/authControllers.js";
-import { getStaticView, getProfile, getUpdate, get2FAview, getFriendsView } from "../controllers/viewControllers.js";
+import { check2FAHeader } from "../controllers/auth/authUtils.js";
+import { get2FAview } from "../controllers/view/2fa.js";
+import { getUpdate } from "../controllers/view/update.js";
+import { getProfile } from "../controllers/view/profile.js";
+import { getFriendsView } from "../controllers/view/friends.js";
+import { getUserSession, sendErrorPage, getStaticView, sendView } from "../controllers/view/viewUtils.js";
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import fs from "fs/promises";
-import { cheerio } from "../buildApp.js";
 import { getUserById } from "../db/dbQuery.js";
 
-const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
-const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html', "utf-8");
-const indexPromise = fs.readFile('./backend/index.html', "utf-8");
-
-/**
- * Sends the complete view
- * @param {string} view HTML for the view
- * @param {any} isLoggedIn any data type that if assigned means the user is logged in
- * @param {*} request the request
- * @param {*} reply the reply
- * @returns 
- */
-export async function sendView(view, isLoggedIn, request, reply) {
-    if (request.headers['x-request-navigation-bar'] === 'true') {
-        return reply.send(await prepareHTML(view, request.headers['x-partial-load'], isLoggedIn ? true : false, true));
-    } else {
-        return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
-    }
-}
-
-/**
- * Sends the error page and wraps it if needed
- * @param {*} error the error instance
- * @param {*} isLoggedIn any data type that if assigned means the user is logged in
- * @param {*} request the request
- * @param {*} reply the reply
- * @returns 
- */
-export async function sendErrorPage(error, isLoggedIn, request, reply) {
-    let errorPage;
-
-    if (error instanceof HTTPError) {
-        errorPage = await error.getErrorPage();
-    } else {
-        errorPage = await (new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR).getErrorPage());
-    }
-    return reply.type('text/html').code(error.code || StatusCodes.INTERNAL_SERVER_ERROR).send(await prepareHTML(errorPage, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
-}
-
-/**
- * Get the user session information from the access or refresh token
- * @param {*} fastify the fastify instance
- * @param {string} refreshToken the refresh token
- * @param {*} headers headers from the request
- * @returns {Promise<User | null>} returns the user nickname if logged in
- */
-export async function getUserSession(fastify, refreshToken, headers) {
-    let payload = null;
-    let user = null;
+async function loggedInPreHandler(req, reply) {
     try {
-        if (refreshToken && !headers['x-partial-load'] && (!headers['authorization'] || headers['authorization'] === 'Bearer null')) {
-            payload = await checkRefreshToken(fastify, refreshToken);
-            if (!payload || !payload.id)
-                return null;
-            user = await getUserById(payload.id);
-            if (!user)
-                return null;
-            return user;
-        } else if (refreshToken) {
-            payload = await checkAuthHeader(fastify, headers['authorization']);
-            if (!payload || !payload.id)
-                return null;
-            user = await getUserById(payload.id);
-            if (!user)
-                return null;
-            return user;
+        const user = await getUserSession(this, req.cookies.refreshToken, req.headers);
+        if (!user) {
+            throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
         }
+        req.currentUser = user;
     } catch (error) {
-        return null;
+        return await viewsErrorHandler(error, req, reply);
     }
-    return null;
+}
+
+async function loggedOutPreHandler(req, reply) {
+    const user = await getUserSession(this, req.cookies.refreshToken, req.headers);
+    try {
+        if (user) throw new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN);
+        req.currentUser = null;
+    } catch (error) {
+        return await viewsErrorHandler(error, req, reply);
+    }
+}
+
+async function loggedInOrOutPreHandler(req, reply) {
+    const user = await getUserSession(this, req.cookies.refreshToken, req.headers);
+    req.currentUser = user ? user : null;
+}
+
+async function viewsErrorHandler(error, req, reply) {
+    if (!(error instanceof HTTPError)) {
+        console.error(error);
+    }
+    return await sendErrorPage(error, req.cookies.refreshToken, req, reply);
 }
 
 /**
@@ -84,142 +47,52 @@ export async function getUserSession(fastify, refreshToken, headers) {
  * @param {*} fastify the fastify instance
  */
 export default async function viewsRoutes(fastify) {
-    fastify.get("/", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        try {
-            view = await getStaticView('home');
-        } catch (error) {
-            return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
-        }
-        return await sendView(view, request.cookies.refreshToken, request, reply);
+    fastify.setErrorHandler(viewsErrorHandler);
+    fastify.get("/", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('home');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/login", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (user)
-            return await sendErrorPage(new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN), user.nickname, request, reply);
-        try {
-            view = await getStaticView('login');
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/login", { preHandler: loggedOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('login');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/register", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (user)
-            return await sendErrorPage(new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN), user.nickname, request, reply);
-        try {
-            view = await getStaticView('register');
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/register", { preHandler: loggedOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('register');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/profile", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (!user)
-            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
-        try {
-            view = await getProfile(user.nickname, user.nickname);
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/profile", { preHandler: loggedInPreHandler }, async (request, reply) => {
+        const view = await getProfile(request.currentUser.nickname, request.currentUser.nickname);
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/profile/:login", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (!user)
-            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
-        try {
-            view = await getProfile(user.nickname, request.params.login);
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/profile/:login", { preHandler: loggedInPreHandler }, async (request, reply) => {
+        const view = await getProfile(request.currentUser.nickname, request.params.login);
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/update", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (!user)
-            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
-        try {
-            view = await getUpdate(user.nickname);
-        } catch (error) {
-            console.error(error);
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/update", { preHandler: loggedInPreHandler }, async (request, reply) => {
+        const view = await getUpdate(request.currentUser.nickname);
+        return await sendView(view, request.currentUser, request, reply);
     });
 
     fastify.get("/2fa", async (request, reply) => {
-        let view;
-        let payload;
-        try {
-            payload = await check2FAHeader(fastify, request.headers['authorization']);
-            const user = await getUserById(payload.id);
-            if (!user) throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
-            view = await get2FAview(payload, user.nickname);
-        } catch (error) {
-            return await sendErrorPage(error, request.cookies.refreshToken, request, reply);
-        }
+        const payload = await check2FAHeader(request.server, request.headers['authorization']);
+        const user = await getUserById(payload.id);
+        if (!user) throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
+        const view = await get2FAview(payload, user.nickname, request.headers['referer']);
         return await sendView(view, payload, request, reply);
     });
 
-    fastify.get("/friends", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        if (!user)
-            return await sendErrorPage(new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED), user, request, reply);
-        try {
-            view = await getFriendsView(user.id);
-        } catch (error) {
-            console.log(error);
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/friends", { preHandler: loggedInPreHandler }, async (request, reply) => {
+        const view = await getFriendsView(request.currentUser.id);
+        return await sendView(view, request.currentUser, request, reply);
     });
 
     fastify.setNotFoundHandler(async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        try {
-            view = await getStaticView('');
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+        return await sendErrorPage(new HTTPError(StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND), request.cookies.refreshToken, request, reply);
     });
 }
 
-/**
- * Wrapps the HTML of a view if this is the first load, appends the nav bar if needed
- * @param {string} viewHTML the view HTML rendered to a string
- * @param {string} XPartialLoadHeader the x-partial-load header
- * @param {boolean} isLoggedIn whether the user is logged in
- * @param {boolean} appendNavBar whether to also include the nav bar to refresh it
- * @returns {Promise<string | { nav: string, app: string }>} the view HTML, document HTML or the view with nav bar in JSON
- */
-async function prepareHTML(viewHTML, XPartialLoadHeader, isLoggedIn, appendNavBar) {
-    if (!XPartialLoadHeader || XPartialLoadHeader === 'false') {
-        const index = cheerio.load(await indexPromise);
-        index('header#navigation').html(isLoggedIn ? await loggedInNavBarPromise : await notLoggedInNavBarPromise);
-        index('main#app').html(viewHTML);
-        return index.html();
-    } else if (appendNavBar) {
-        return {
-            nav: isLoggedIn ? await loggedInNavBarPromise : await notLoggedInNavBarPromise,
-            app: viewHTML
-        };
-    }
-    return viewHTML;
-}

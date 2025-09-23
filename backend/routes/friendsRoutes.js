@@ -1,6 +1,6 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import HTTPError from "../utils/error.js";
-import { getUserSession } from "./viewRoutes.js";
+import { getUserSession } from "../controllers/view/viewUtils.js";
 import { getUser, getUserById } from "../db/dbQuery.js";
 import { acceptPendingInvite, addFriendInvite, removeFriend, removePendingInvite } from "../db/friendQueries.js";
 
@@ -44,7 +44,6 @@ async function friendsPreHandler(req, reply) {
         if (error instanceof HTTPError) {
             return reply.code(error.code).send({ message: error.message });
         }
-        console.error(error);
         return reply.code(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
     }
 }
