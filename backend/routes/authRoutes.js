@@ -59,7 +59,7 @@ async function loggedInPreHandler(req, reply) {
 async function loggedOutPreHandler(req, reply) {
     const user = await getUserSession(this, req.cookies.refreshToken, req.headers);
     try {
-        if (user) throw new HTTPError(StatusCodes.FORBIDDEN, { message: 'Already logged in' });
+        if (user) throw new HTTPError(StatusCodes.FORBIDDEN, 'Already logged in');
         req.currentUser = null;
     } catch (error) {
         return authErrorHandler(error, req, reply);
