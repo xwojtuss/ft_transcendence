@@ -13,6 +13,8 @@ import * as Cheerio from 'cheerio';
 import deleteDatabase from "./db/dbDev.js";
 import authRoutes from "./routes/authRoutes.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
+import fastifyWebsocket from "@fastify/websocket";
+import wsRoutes from "./routes/wsRoutes.js";
 
 export const cheerio = Cheerio;
 
@@ -56,11 +58,14 @@ export default function buildApp(logger) {
         root: path.join(process.cwd(), 'frontend')
     });
 
+    fastify.register(fastifyWebsocket);
+
     // register the server routes
     fastify.register(authRoutes);
     fastify.register(avatarRoute);
     fastify.register(viewsRoutes);
     fastify.register(friendsRoutes);
+    fastify.register(wsRoutes);
     
     fastify.setErrorHandler((error, request, reply) => {
         fastify.log.error(error);

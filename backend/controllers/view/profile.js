@@ -115,12 +115,14 @@ export async function getProfile(loggedInNickname, toFetchNickname) {
         throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
     const profilePage = cheerio.load(cachedProfileHtml, null, false);
     profilePage('.user-stats span.nickname span.user-nickname').text(user.nickname);
-    if (loggedInNickname != toFetchNickname && !(await areFriends(loggedInNickname, toFetchNickname))) {
+    if (loggedInNickname !== toFetchNickname && !(await areFriends(loggedInNickname, toFetchNickname))) {
         profilePage('.tooltip').html('');
-    } else if (user.isOnline === false) {
+    } else if (loggedInNickname !== toFetchNickname && user.isOnline === 0) {
         profilePage('.tooltip .tooltiptext').text('Offline');
         profilePage('.tooltip svg').removeClass('online-indicator');
         profilePage('.tooltip svg').addClass('offline-indicator');
+        profilePage('.tooltip svg circle').removeClass('online-indicator');
+        profilePage('.tooltip svg circle').addClass('offline-indicator');
     }
     if (loggedInNickname !== toFetchNickname) {
         profilePage('.avatar p').remove();

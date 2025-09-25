@@ -3,6 +3,17 @@ import { checkFile, checkNickname, checkPassword, checkEmail, checkLogin, checkO
 export let accessToken: string | null | undefined = null;
 export let tfaTempToken: string | null | undefined = null;
 
+export function changeOnlineStatus() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/status`;
+    const socket = new WebSocket(wsUrl);
+    window.addEventListener('beforeunload', () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close();
+        }
+    });
+}
+
 /**
  * Tries to refresh the access token
  * @returns false if session is not active or has expired, true if the tokens have been refreshed
@@ -14,7 +25,7 @@ export async function refreshAccessToken(): Promise<boolean> {
         credentials: 'include'
     });
     if (result.status === 403) {
-        return true;// if the access token was already valid
+        return false;// if the access token was already valid
     }
     if (!result.ok) {
         accessToken = null;
@@ -50,7 +61,8 @@ export async function loginHandler(): Promise<void> {
             body: JSON.stringify(data)
         });
         if (result.status === 403) {// user is already logged in
-            return await renderPage('/', true);
+            alert("Already logged in");
+            return await renderPage('/profile', true);
         } else if (!result.ok) {
             return alert((await result.json()).message);
         } else if (result.status === 202) { // 2FA REQUIRED
@@ -58,6 +70,7 @@ export async function loginHandler(): Promise<void> {
             return await renderPage('/2fa', false);
         }
         accessToken = (await result.json()).accessToken;
+        changeOnlineStatus();
         return await renderPage('/', true);
     });
 }
@@ -94,6 +107,7 @@ export async function registerHandler(): Promise<void> {
             return alert((await result.json()).message);
         }
         accessToken = (await result.json()).accessToken;
+        changeOnlineStatus();
         return await renderPage('/', true);
     });
 }
@@ -199,6 +213,7 @@ export async function update2FASubmitHandler(): Promise<void> {
         if (responseAccess !== null && responseAccess !== undefined) {
             accessToken = responseAccess;
         }
+        changeOnlineStatus();
         return await renderPage('/', true);
     });
 }
