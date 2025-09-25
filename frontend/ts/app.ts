@@ -113,6 +113,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         }
         app.innerHTML = DOMPurify.sanitize(view);
     } catch (error) {
+        if (error instanceof Error) alert(error.message);
         console.error(error);
     }
     changeActiveStyle(pathURL);
