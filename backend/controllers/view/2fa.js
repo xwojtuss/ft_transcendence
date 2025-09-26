@@ -4,6 +4,7 @@ import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { cheerio } from '../../buildApp.js';
 import HTTPError from "../../utils/error.js";
+import { checkRefreshToken } from "../auth/authUtils.js";
 
 let cached2FAHtmlPromise = fs.readFile('./backend/views/2FA.html', 'utf8');
 
@@ -11,10 +12,9 @@ let cached2FAHtmlPromise = fs.readFile('./backend/views/2FA.html', 'utf8');
  * Get the 2FA verify/setup view HTML
  * @param {Object} payload the payload of the 2FA token
  * @param {string} nickname the nickname of the user to pass to the 2FA TOTP
- * @param {string} referer the referer from the request
  * @returns {Promise<string>} the HTML for the 2FA verify/setup view
  */
-export async function get2FAview(payload, nickname, referer) {
+export async function get2FAview(payload, nickname) {
     const cached2FAHtml = await cached2FAHtmlPromise;
     const tfaPage = cheerio.load(cached2FAHtml, null, false);
     let TFAtoDisplay;
@@ -35,7 +35,7 @@ export async function get2FAview(payload, nickname, referer) {
     } else {
         throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
     }
-    tfaPage('#cancel-form').attr('formaction', referer.substring(referer.lastIndexOf('/')));
+    tfaPage('#cancel-form').attr('data-cancel-referer', payload.status === 'update' ? '/update' : '/login');
     switch (TFAtoDisplay.type) {
         case 'totp':
             break;

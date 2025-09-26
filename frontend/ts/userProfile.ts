@@ -67,8 +67,8 @@ export function updateHandler(): void {
 export function update2FAHandler(): void {
     document.querySelector('form#tfa-form #cancel-form')?.addEventListener('click', (e) => {
         e.preventDefault();
-        const url = (e.target as HTMLInputElement).getAttribute('formaction');
-        return renderPage(url ? url : '/update', false);
+        const url = (e.target as HTMLInputElement).dataset.cancelReferer;
+        return renderPage(url ? url : '/', false);
     })
     const inputs: NodeListOf<Element> = document.querySelectorAll('form input.digit');
 

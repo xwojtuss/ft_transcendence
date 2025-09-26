@@ -1,4 +1,4 @@
-import { check2FAHeader } from "../controllers/auth/authUtils.js";
+import { check2FAHeader, checkRefreshToken } from "../controllers/auth/authUtils.js";
 import { get2FAview } from "../controllers/view/2fa.js";
 import { getUpdate } from "../controllers/view/update.js";
 import { getProfile } from "../controllers/view/profile.js";
@@ -23,7 +23,7 @@ async function loggedInPreHandler(req, reply) {
 async function loggedOutPreHandler(req, reply) {
     const user = await getUserSession(this, req.cookies.refreshToken, req.headers);
     try {
-        if (user) throw new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN);
+        if (user || req.cookies.refreshToken) throw new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN);
         req.currentUser = null;
     } catch (error) {
         return await viewsErrorHandler(error, req, reply);
@@ -78,11 +78,17 @@ export default async function viewsRoutes(fastify) {
         return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/2fa", async (request, reply) => {
-        const payload = await check2FAHeader(request.server, request.headers['authorization']);
+    fastify.get("/2fa", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        let payload;
+        try {
+            payload = await check2FAHeader(request.server, request.headers['authorization']);
+        } catch (error) {
+            if (request.currentUser) throw new HTTPError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN);
+            throw error;
+        }
         const user = await getUserById(payload.id);
         if (!user) throw new HTTPError(StatusCodes.UNAUTHORIZED, ReasonPhrases.UNAUTHORIZED);
-        const view = await get2FAview(payload, user.nickname, request.headers['referer']);
+        const view = await get2FAview(payload, user.nickname);
         return await sendView(view, payload, request, reply);
     });
 

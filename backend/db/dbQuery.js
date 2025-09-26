@@ -21,7 +21,7 @@ export default async function getAllUsers() {
  * user.validatePassword(...);
  * @returns the User instance
  */
-function createUserFromObject(userObject) {
+export function createUserFromObject(userObject) {
     const userInstance = new User(userObject.nickname, userObject.password);
     userInstance.email = userObject.email;
     userInstance.isOnline = userObject.is_online;
@@ -345,4 +345,14 @@ export async function getUsersPhoneNumber(userId) {
     const response = await db.get("SELECT phone_number FROM users WHERE user_id = ?", userId);
     if (!response || !response.phone_number) return null;
     return response.phone_number;
+}
+
+export async function setIsOnline(userId, isOnline) {
+    await db.get(`
+        UPDATE users
+        SET is_online = ?
+        WHERE user_id = ? AND is_online = ?`,
+        isOnline,
+        userId, !isOnline
+    );
 }

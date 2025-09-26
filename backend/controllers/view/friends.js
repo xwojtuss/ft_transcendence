@@ -67,10 +67,10 @@ export async function getFriendsView(userId) {
                 <span class="nickname-smaller">
                     <span class="tooltip">
                         <span class="tooltiptext">
-                            Online
+                            ${user.isOnline ? 'Online' : 'Offline'}
                         </span>
                         <svg class="smaller">
-                            <circle class="online-indicator" cx="6" cy="13" r="6"></circle>
+                            <circle class="${user.isOnline ? 'online' : 'offline'}-indicator" cx="6" cy="13" r="6"></circle>
                         </svg>
                     </span>
                     <a href="/profile/${user.nickname}">${user.nickname}</a>

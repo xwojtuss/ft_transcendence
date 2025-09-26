@@ -2,6 +2,7 @@ import { db } from "../buildApp.js";
 import HTTPError from "../utils/error.js";
 import { StatusCodes } from "http-status-codes";
 import User from "../utils/User.js";
+import { createUserFromObject } from "./dbQuery.js";
 
 /**
  * Check if two users are friends
@@ -33,18 +34,21 @@ export async function areFriends(userOne, userTwo) {
 export async function getUsersFriendInvitations(userId) {
     const result = new Array();
     const response = await db.all(`
-        SELECT u1.nickname AS originator_nickname,
-            u1.avatar AS originator_avatar,
-            friends_with.originator AS originator_id
+        SELECT u1.nickname AS nickname,
+            u1.avatar AS avatar,
+            u1.password AS password,
+            u1.email AS email,
+            u1.is_online AS is_online,
+            u1.phone_number AS phone_number,
+            u1.won_games AS won_games,
+            u1.lost_games AS lost_games,
+            friends_with.originator AS user_id
         FROM friends_with
         JOIN users u1 ON u1.user_id = friends_with.originator
         WHERE is_invite = true
         AND friends_with.friended = ?`, userId);
     response.forEach((row) => {
-        const invite = new User(row.originator_nickname);
-        invite.id = row.originator_id;
-        invite.avatar = row.originator_avatar;
-        result.push(invite);
+        result.push(createUserFromObject(row));
     });
     return result;
 }
@@ -57,18 +61,21 @@ export async function getUsersFriendInvitations(userId) {
 export async function getUsersPendingFriendInvitations(userId) {
     const result = new Array();
     const response = await db.all(`
-        SELECT u1.nickname AS friended_nickname,
-            u1.avatar AS friended_avatar,
-            friends_with.friended AS friended_id
+        SELECT u1.nickname AS nickname,
+            u1.avatar AS avatar,
+            u1.password AS password,
+            u1.email AS email,
+            u1.is_online AS is_online,
+            u1.phone_number AS phone_number,
+            u1.won_games AS won_games,
+            u1.lost_games AS lost_games,
+            friends_with.friended AS user_id
         FROM friends_with
         JOIN users u1 ON u1.user_id = friends_with.friended
         WHERE is_invite = true
         AND friends_with.originator = ?`, userId);
     response.forEach((row) => {
-        const invite = new User(row.friended_nickname);
-        invite.id = row.friended_id;
-        invite.avatar = row.friended_avatar;
-        result.push(invite);
+        result.push(createUserFromObject(row));
     });
     return result;
 }
@@ -81,29 +88,36 @@ export async function getUsersPendingFriendInvitations(userId) {
 export async function getUsersFriends(userId) {
     const result = new Array();
     const response = await db.all(`
-        SELECT u1.nickname AS friended_nickname,
-            u2.nickname AS originator_nickname,
-            u1.avatar AS friended_avatar,
-            u2.avatar AS originator_avatar,
-            friends_with.friended AS friended_id,
-            friends_with.originator AS originator_id
+        SELECT u1.nickname AS nickname,
+            u1.avatar AS avatar,
+            u1.password AS password,
+            u1.email AS email,
+            u1.is_online AS is_online,
+            u1.phone_number AS phone_number,
+            u1.won_games AS won_games,
+            u1.lost_games AS lost_games,
+            friends_with.friended AS user_id
         FROM friends_with
         JOIN users u1 ON u1.user_id = friends_with.friended
-        JOIN users u2 ON u2.user_id = friends_with.originator
         WHERE is_invite = false
-        AND (friends_with.originator = ? OR friends_with.friended = ?)`, userId, userId);
+        AND friends_with.originator = ?
+        UNION
+        SELECT u1.nickname AS nickname,
+            u1.avatar AS avatar,
+            u1.password AS password,
+            u1.email AS email,
+            u1.is_online AS is_online,
+            u1.phone_number AS phone_number,
+            u1.won_games AS won_games,
+            u1.lost_games AS lost_games,
+            friends_with.originator AS user_id
+        FROM friends_with
+        JOIN users u1 ON u1.user_id = friends_with.originator
+        WHERE is_invite = false
+        AND friends_with.friended = ?
+        `, userId, userId);
     response.forEach((row) => {
-        if (row.friended_id === userId) {
-            const invite = new User(row.originator_nickname);
-            invite.id = row.originator_id;
-            invite.avatar = row.originator_avatar;
-            result.push(invite);
-        } else if (row.originator_id === userId) {
-            const invite = new User(row.friended_nickname);
-            invite.id = row.friended_id;
-            invite.avatar = row.friended_avatar;
-            result.push(invite);
-        }
+        result.push(createUserFromObject(row));
     });
     return result;
 }

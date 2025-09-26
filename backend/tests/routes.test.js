@@ -69,7 +69,7 @@ describe('Routes - negative tests', async () => {
         refreshToken = response.cookies.find(cookie => cookie.name === 'refreshToken').value;
     });
 
-    it('GET /2fa - no 2FA token', async (t) => { await checkNegativeSSR('/2fa', accessToken, refreshToken, StatusCodes.UNAUTHORIZED, t) });
+    it('GET /2fa - no 2FA token', async (t) => { await checkNegativeSSR('/2fa', accessToken, refreshToken, StatusCodes.FORBIDDEN, t) });
     it('GET unknown route', async (t) => { await checkNegativeSSR('/unknown', accessToken, refreshToken, StatusCodes.NOT_FOUND, t) });
     it('GET /login - already logged in', async (t) => { await checkNegativeSSR('/login', accessToken, refreshToken, StatusCodes.FORBIDDEN, t) });
     it('GET /register - already logged in', async (t) => { await checkNegativeSSR('/register', accessToken, refreshToken, StatusCodes.FORBIDDEN, t) });

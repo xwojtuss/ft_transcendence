@@ -66,7 +66,8 @@ export async function sendErrorPage(error, isLoggedIn, request, reply) {
     } else {
         errorPage = await (new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR).getErrorPage());
     }
-    return reply.type('text/html').status(error.code || StatusCodes.INTERNAL_SERVER_ERROR).send(await prepareHTML(errorPage, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
+    reply.status(error.code || StatusCodes.INTERNAL_SERVER_ERROR);
+    return await sendView(errorPage, isLoggedIn, request, reply);
 }
 
 /**
@@ -77,30 +78,22 @@ export async function sendErrorPage(error, isLoggedIn, request, reply) {
  * @returns {Promise<User | null>} returns the user nickname if logged in
  */
 export async function getUserSession(fastify, refreshToken, headers) {
-    let payload = null;
-    let user = null;
     try {
-        if (refreshToken && !headers['x-partial-load'] && (!headers['authorization'] || headers['authorization'] === 'Bearer null')) {
-            payload = await checkRefreshToken(fastify, refreshToken);
-            if (!payload || !payload.id)
-                return null;
-            user = await getUserById(payload.id);
-            if (!user)
-                return null;
-            return user;
-        } else if (refreshToken) {
-            payload = await checkAuthHeader(fastify, headers['authorization']);
-            if (!payload || !payload.id)
-                return null;
-            user = await getUserById(payload.id);
-            if (!user)
-                return null;
-            return user;
+        const refreshPayload = await checkRefreshToken(fastify, refreshToken);
+        if (!refreshPayload || !refreshPayload.id) return null;
+        const refreshUser = await getUserById(refreshPayload.id);
+        if (!refreshUser) return null;
+        if (headers['x-partial-load'] === undefined && (!headers['authorization'] || headers['authorization'] === 'Bearer null')) {
+            return refreshUser;
         }
+        const accessPayload = await checkAuthHeader(fastify, headers['authorization']);
+        if (!accessPayload || !accessPayload.id || accessPayload.id !== refreshPayload.id) return null;
+        const accessUser = await getUserById(accessPayload.id);
+        if (!accessUser) return null;
+        return accessUser;
     } catch (error) {
         return null;
     }
-    return null;
 }
 
 /**
