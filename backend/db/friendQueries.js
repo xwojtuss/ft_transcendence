@@ -42,7 +42,6 @@ export async function getUsersFriendInvitations(userId) {
             u1.phone_number AS phone_number,
             u1.won_games AS won_games,
             u1.lost_games AS lost_games,
-            u1.lost_games AS lost_games,
             friends_with.originator AS user_id
         FROM friends_with
         JOIN users u1 ON u1.user_id = friends_with.originator
@@ -69,7 +68,6 @@ export async function getUsersPendingFriendInvitations(userId) {
             u1.is_online AS is_online,
             u1.phone_number AS phone_number,
             u1.won_games AS won_games,
-            u1.lost_games AS lost_games,
             u1.lost_games AS lost_games,
             friends_with.friended AS user_id
         FROM friends_with
@@ -98,7 +96,6 @@ export async function getUsersFriends(userId) {
             u1.phone_number AS phone_number,
             u1.won_games AS won_games,
             u1.lost_games AS lost_games,
-            u1.lost_games AS lost_games,
             friends_with.friended AS user_id
         FROM friends_with
         JOIN users u1 ON u1.user_id = friends_with.friended
@@ -112,7 +109,6 @@ export async function getUsersFriends(userId) {
             u1.is_online AS is_online,
             u1.phone_number AS phone_number,
             u1.won_games AS won_games,
-            u1.lost_games AS lost_games,
             u1.lost_games AS lost_games,
             friends_with.originator AS user_id
         FROM friends_with

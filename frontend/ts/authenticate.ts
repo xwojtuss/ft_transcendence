@@ -26,6 +26,7 @@ export async function refreshAccessToken(): Promise<boolean> {
     });
     if (result.status === 403) {
         return false;// if the access token was already valid
+        // this was changed to false to fix the loops between /2fa and /api/auth/refresh
     }
     if (!result.ok) {
         accessToken = null;
