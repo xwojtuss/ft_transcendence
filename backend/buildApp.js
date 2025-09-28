@@ -15,6 +15,8 @@ import authRoutes from "./routes/authRoutes.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fastifyWebsocket from "@fastify/websocket";
 import wsRoutes from "./routes/wsRoutes.js";
+import { startLocalGameLoop } from "./controllers/ws/game/local/localGameServer.js";
+import { cleanupInactiveSessions } from "./controllers/ws/game/local/sessionManager.js";
 
 export const cheerio = Cheerio;
 
@@ -71,6 +73,11 @@ export default function buildApp(logger) {
         fastify.log.error(error);
         reply.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
     });
+
+    if (process.env.NODE_ENV !== 'test') {
+        startLocalGameLoop();
+        setInterval(cleanupInactiveSessions, 10 * 1000);
+    }
 
     return fastify;
 }

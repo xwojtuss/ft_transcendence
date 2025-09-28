@@ -92,6 +92,31 @@ export default async function viewsRoutes(fastify) {
         return await sendView(view, payload, request, reply);
     });
 
+    fastify.get("/game/local", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('local-game');
+        return await sendView(view, request.currentUser, request, reply);
+    });
+
+    fastify.get("/game/multiplayer", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('multiplayer-game');
+        return await sendView(view, request.currentUser, request, reply);
+    });
+
+    fastify.get("/game/online", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('online-game');
+        return await sendView(view, request.currentUser, request, reply);
+    });
+
+    fastify.get("/game/local-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('local-tournament-game');
+        return await sendView(view, request.currentUser, request, reply);
+    });
+
+    fastify.get("/game/online-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('online-tournament-game');
+        return await sendView(view, request.currentUser, request, reply);
+    });
+
     fastify.get("/friends", { preHandler: loggedInPreHandler }, async (request, reply) => {
         const view = await getFriendsView(request.currentUser.id);
         return await sendView(view, request.currentUser, request, reply);

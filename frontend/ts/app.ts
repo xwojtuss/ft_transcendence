@@ -1,3 +1,5 @@
+import changePasswordButton from "./login-register-form.js";
+import { initLocalGame } from "./localGame.js";
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler, changeOnlineStatus } from "./authenticate.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
 import { friendsHandler } from "./friends.js";
@@ -66,6 +68,28 @@ async function runHandlers(pathURL: string): Promise<void> {
     }
 }
 
+function runChosenGame(pathURL: string): void {
+    switch (pathURL) {
+        case '/game/local':
+            initLocalGame();
+            break;
+        case '/game/online':
+            // add initialization for online game mode
+            break;
+        case '/game/multiplayer':
+            // add initialization for multiplayer game mode
+            break;
+        case '/game/local-tournament':
+            // add initialization for local tournament game mode
+            break;
+        case '/game/online-tournament':
+            // add initialization for online tournament game mode
+            break;
+        default:
+            return;
+    }
+}
+
 /**
  * Render the view or the whole document
  * @param pathURL the path to the view e.g. /login
@@ -112,6 +136,17 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
             view = await response.text();
         }
         app.innerHTML = DOMPurify.sanitize(view);
+
+        if (pathURL === '/' || pathURL === '/home') {
+            initGameModesRouter();
+        }
+
+        const newUrl: string = new URL(pathURL, window.location.origin).pathname;
+        if (window.location.pathname !== newUrl) {
+            window.history.pushState({}, '', newUrl);
+        }
+        
+        runChosenGame(pathURL);
     } catch (error) {
         if (error instanceof Error) alert(error.message);
         console.error(error);
@@ -148,6 +183,25 @@ function changeActiveStyle(pathURL?: string): void {
         }
     });
 }
+
+function initGameModesRouter() {
+    document.querySelectorAll('.game-tile').forEach(tile => {
+        tile.addEventListener('click', function (e) {
+            e.preventDefault();
+            const href = tile.getAttribute('data-href');
+            if (href) {
+                renderPage(href, false);
+            }
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.location.pathname === '/' || window.location.pathname === '/home') {
+        initGameModesRouter();
+    }
+    runChosenGame(window.location.pathname);
+});
 
 const spinner: string = `
 <div class="grid min-h-[140px] w-full place-items-center overflow-x-scroll rounded-lg p-6 lg:overflow-visible">
