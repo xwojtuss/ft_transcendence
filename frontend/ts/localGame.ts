@@ -14,6 +14,8 @@ export function initLocalGame() {
         return;
     }
 
+    console.log("Initializing local game...");
+
     function waitForCanvas() {
         const canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement;
         if (!canvas) {

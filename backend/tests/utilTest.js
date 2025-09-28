@@ -1,8 +1,9 @@
-import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getUserMatchHistory } from "./db/dbQuery.js";
-import User from "./utils/User.js";
-import Match from "./utils/Match.js";
+import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getUserMatchHistory } from "../db/dbQuery.js";
+import User from "../utils/User.js";
+import Match from "../utils/Match.js";
 import assert from "assert";
 import fs from "fs";
+import path from "path";
 
 /**
  * Adds test users and test matches
@@ -50,19 +51,25 @@ export default async function testDatabase() {
         console.log(await getAllMatches());
         console.log(await getUserMatchHistory('wkornato'));
     } catch (error) {
-        console.log(error);
+        console.error(error);
     }
 }
 
+/**
+ * Check if the necessary secrets are correct
+ */
 export function runSecretsTest() {
-    assert(fs.existsSync("./secrets/ft_transcendence.key"), "SSL key not found");
-    assert(fs.existsSync("./secrets/ft_transcendence.crt"), "SSL cert not found");
+    assert(fs.existsSync(path.join(process.cwd(), 'secrets', 'ft_transcendence.key')), "SSL key not found");
+    assert(fs.existsSync(path.join(process.cwd(), 'secrets', 'ft_transcendence.crt')), "SSL cert not found");
     assert(process.env.COOKIE_SECRET, "Cookie secret not found in .env");
     assert(process.env.ACCESS_TOKEN_SECRET, "Access token secret not found in .env");
     assert(process.env.REFRESH_TOKEN_SECRET, "Refresh token secret not found in .env");
     assert(process.env.TFA_TOKEN_SECRET, "2FA authorization token secret not found in .env");
     assert(process.env.CRYPTO_TFA_KEY, "2FA secret encryption key not found in .env");
-    assert(Buffer.from(process.env.CRYPTO_TFA_KEY, 'base64').length === 32, "2FA secret encryption key is not 256-bit/32-byte");
+    assert(Buffer.from(process.env.CRYPTO_TFA_KEY, 'base64').length === 32, "2FA secret encryption key in .env is not 256-bit/32-byte");
+    assert(process.env.TFA_EMAIL_EMAIL, "No google email found for sending 2FA emails in .env");
+    assert(process.env.TFA_EMAIL_PASSWORD, "No google app password found for sending 2FA emails in .env");
+    assert(process.env.TFA_SMS_OAUTH, "SMSAPI OAuth token not found in .env");
     if (!process.env.PORT) {
         console.log("Port not found in .env, defaulting to 3000");
     }

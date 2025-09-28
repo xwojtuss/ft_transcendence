@@ -1,4 +1,4 @@
-import { db } from "../server.js";
+import { db } from "../buildApp.js";
 import User from "../utils/User.js";
 import Match from "../utils/Match.js";
 
@@ -7,7 +7,6 @@ export default async function getAllUsers() {
         const users = await db.all("SELECT * FROM users");
         return users;
     } catch (error) {
-        console.error("Failed to fetch users:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -22,11 +21,12 @@ export default async function getAllUsers() {
  * user.validatePassword(...);
  * @returns the User instance
  */
-function createUserFromObject(userObject) {
+export function createUserFromObject(userObject) {
     const userInstance = new User(userObject.nickname, userObject.password);
     userInstance.email = userObject.email;
     userInstance.isOnline = userObject.is_online;
     userInstance.avatar = userObject.avatar;
+    userInstance.phoneNumber = userObject.phone_number;
     userInstance.won_games = userObject.won_games;
     userInstance.lost_games = userObject.lost_games;
     userInstance.id = userObject.user_id;
@@ -46,7 +46,6 @@ export async function getUser(nickname) {
             return null;
         return createUserFromObject(user);
     } catch (error) {
-        console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -64,7 +63,6 @@ export async function getUserByEmail(email) {
             return null;
         return createUserFromObject(user);
     } catch (error) {
-        console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -74,7 +72,6 @@ export async function getAllMatchHistory() {
         const matches = await db.all("SELECT * FROM match_history");
         return matches;
     } catch (error) {
-        console.error("Failed to fetch match history:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -121,7 +118,6 @@ export async function getUserMatchHistory(user) {
         });
         return matchesMap;
     } catch (error) {
-        console.error("Failed to fetch match history:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -131,7 +127,6 @@ export async function getAllMatches() {
         const matches = await db.all("SELECT * FROM matches");
         return matches;
     } catch (error) {
-        console.error("Failed to fetch matches:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -152,7 +147,6 @@ export async function addUser(user) {
         );
         return result.lastID;
     } catch (error) {
-        console.error("Failed to insert user:", error.message);
         throw new Error("Insert failed");
     }
 }
@@ -186,44 +180,21 @@ export async function addMatch(match) {
         await db.exec("COMMIT");
     } catch (error) {
         await db.exec("ROLLBACK");
-        console.error("Failed to insert match:", error.message);
         throw new Error("Insert failed");
     }
 }
 
 /**
- * Check if two users are friends
- * @param {string | User} userOne Nickname of user or the User
- * @param {string | User} userTwo Nickname of the second user or the the second User
- * @returns {Promise<boolean>} Whether they are friends
- */
-export async function areFriends(userOne, userTwo) {
-    const relationship = await db.get(`
-        SELECT u1.nickname AS originator_nickname,
-            u2.nickname AS friended_nickname
-        FROM friends_with
-        JOIN users u1 ON u1.user_id = friends_with.originator
-        JOIN users u2 ON u2.user_id = friends_with.friended
-        WHERE is_invite = false
-        AND ((u1.nickname = ? AND u2.nickname = ?) OR (u1.nickname = ? AND u2.nickname = ?))`,
-        userOne.nickname || userOne, userTwo.nickname || userTwo, userTwo.nickname || userTwo, userOne.nickname || userOne);
-    if (relationship === undefined) {
-        return false;
-    }
-    return true;
-}
-
-/**
- * Updates the non-2FA data related to a user, this updates nickname, email, password and avatar
+ * Updates the non-2FA data related to a user, this updates nickname, email, password, avatar and phone number
  * @param {User} originalUser the instance of a user with unchanged data (nickname and email must match with db)
  * @param {User} updatedUser the instance of a user with the changes to commit
  */
 export async function updateUser(originalUser, updatedUser) {
     await db.get(`
         UPDATE users
-        SET nickname = ?, password = ?, email = ?, avatar = ?
+        SET nickname = ?, password = ?, email = ?, avatar = ?, phone_number = ?
         WHERE nickname = ? AND email = ?`,
-        updatedUser.nickname, updatedUser.password, updatedUser.email, updatedUser.avatar,
+        updatedUser.nickname, updatedUser.password, updatedUser.email, updatedUser.avatar, updatedUser.phoneNumber,
         originalUser.nickname, originalUser.email
     );
 }
@@ -241,7 +212,6 @@ export async function getUserById(userId) {
             return null;
         return createUserFromObject(user);
     } catch (error) {
-        console.error("Failed to fetch user:", error.message);
         throw new Error("Database query failed");
     }
 }
@@ -276,23 +246,26 @@ function getUpdatedValueOrOriginal(originalValue, updatedValue) {
  * Add a pending update to the db, in case we need to authorize the user before commiting the changes
  * @param {User} originalUser the user whose data match with what is in the database
  * @param {User} updatedUser the user with the changes made
+ * @param {string} originalTFAtype the original 2FA type
+ * @param {string} updatedTFAtype the new 2FA type
  * @throws {Error} if the query fails
  */
-export async function addPendingUpdate(originalUser, updatedUser) {
+export async function addPendingUpdate(originalUser, updatedUser, originalTFAtype, updatedTFAtype) {
     try {
         await db.run("DELETE FROM pending_updates WHERE user_id = ?", originalUser.id);
     } catch (error) {}
     try {
         await db.run(
-            "INSERT INTO pending_updates (user_id, nickname, password, email, avatar) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO pending_updates (user_id, nickname, password, email, avatar, phone_number, tfa_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
             originalUser.id,
             getUpdatedValueOrNull(originalUser.nickname, updatedUser.nickname),
             getUpdatedValueOrNull(originalUser.password, updatedUser.password),
             getUpdatedValueOrNull(originalUser.email, updatedUser.email),
             getUpdatedValueOrNull(originalUser.avatar, updatedUser.avatar),
+            getUpdatedValueOrNull(originalUser.phoneNumber, updatedUser.phoneNumber),
+            getUpdatedValueOrNull(originalTFAtype, updatedTFAtype),
         );
     } catch (error) {
-        console.error("Failed to insert pending update:", error.message);
         throw new Error("Insert failed");
     }
 }
@@ -328,12 +301,13 @@ export async function commitPendingUpdate(user) {
     if (!response) throw new Error("No data to update");
     await db.get(`
         UPDATE users
-        SET nickname = ?, password = ?, email = ?, avatar = ?
+        SET nickname = ?, password = ?, email = ?, avatar = ?, phone_number = ?
         WHERE nickname = ? AND email = ?`,
         getUpdatedValueOrOriginal(user.nickname, response.nickname),
         getUpdatedValueOrOriginal(user.password, response.password),
         getUpdatedValueOrOriginal(user.email, response.email),
         getUpdatedValueOrOriginal(user.avatar, response.avatar),
+        getUpdatedValueOrOriginal(user.phoneNumber, response.phone_number),
         user.nickname,
         user.email
     );
@@ -360,4 +334,25 @@ export async function isEmailPending(email) {
     const response = await db.get("SELECT * FROM pending_updates WHERE email = ?", email);
     if (!response) return false;
     return true;
+}
+
+/**
+ * Returns the phone number of a user
+ * @param {number} userId the Id of the user
+ * @returns the phone number if defined, otherwise null
+ */
+export async function getUsersPhoneNumber(userId) {
+    const response = await db.get("SELECT phone_number FROM users WHERE user_id = ?", userId);
+    if (!response || !response.phone_number) return null;
+    return response.phone_number;
+}
+
+export async function setIsOnline(userId, isOnline) {
+    await db.get(`
+        UPDATE users
+        SET is_online = ?
+        WHERE user_id = ? AND is_online = ?`,
+        isOnline,
+        userId, !isOnline
+    );
 }

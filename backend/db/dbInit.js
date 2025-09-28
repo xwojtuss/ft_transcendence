@@ -11,7 +11,7 @@ sqlite3.verbose();
  */
 export async function initDb(filename) {
     const db = await open({
-        filename: './backend/db/' + filename,
+        filename: filename === ':memory:' ? filename : './backend/db/' + filename,
         driver: sqlite3.Database
     });
     await db.exec("PRAGMA foreign_keys = ON");

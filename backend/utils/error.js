@@ -1,5 +1,5 @@
 import { ReasonPhrases, StatusCodes } from 'http-status-codes';
-import { cheerio } from '../server.js';
+import { cheerio } from '../buildApp.js';
 import fs from 'fs/promises';
 
 let cachedErrorHtmlPromise = fs.readFile('./backend/views/error.html', 'utf8');

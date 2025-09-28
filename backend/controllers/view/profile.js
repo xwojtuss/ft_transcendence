@@ -1,37 +1,9 @@
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, getUserMatchHistory, areFriends } from "../db/dbQuery.js";
-import { cheerio } from '../server.js';
-import HTTPError from "../utils/error.js";
-import QRCode from "qrcode";
-import TFA from "../utils/TFA.js";
-
-const allowedNames = new Set([
-    "login",
-    "register",
-    "home",
-    "local-game",
-    "multiplayer-game",
-    "online-game",
-    "local-tournament-game",
-    "online-tournament-game"
-]); // TEMP delete home, add a separate function for '/'
-
-/**
- * Gets the static views e.g. login
- * @param {string} name Name of the view to get
- * @returns {Promise<string>} The rendered static view
- * @throws {HTTPError} NOT_FOUND if the view was not found, INTERNAL_SERVER_ERROR when there has been an Error thrown
- */
-export async function getStaticView(name) {
-    if (allowedNames.has(name) === false)
-        throw new HTTPError(StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND);
-    try {
-        return await fs.readFile(`./backend/views/${name}.html`, "utf-8");
-    } catch (error) {
-        throw new HTTPError(StatusCodes.INTERNAL_SERVER_ERROR, ReasonPhrases.INTERNAL_SERVER_ERROR);
-    }
-}
+import { getUser, getUserMatchHistory } from "../../db/dbQuery.js";
+import { areFriends } from "../../db/friendQueries.js";
+import { cheerio } from '../../buildApp.js';
+import HTTPError from "../../utils/error.js";
 
 let cachedProfileHtmlPromise = fs.readFile('./backend/views/profile.html', 'utf8');
 
@@ -143,12 +115,14 @@ export async function getProfile(loggedInNickname, toFetchNickname) {
         throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
     const profilePage = cheerio.load(cachedProfileHtml, null, false);
     profilePage('.user-stats span.nickname span.user-nickname').text(user.nickname);
-    if (loggedInNickname != toFetchNickname && !(await areFriends(loggedInNickname, toFetchNickname))) {
+    if (loggedInNickname !== toFetchNickname && !(await areFriends(loggedInNickname, toFetchNickname))) {
         profilePage('.tooltip').html('');
-    } else if (user.isOnline === false) {
+    } else if (loggedInNickname !== toFetchNickname && user.isOnline === 0) {
         profilePage('.tooltip .tooltiptext').text('Offline');
         profilePage('.tooltip svg').removeClass('online-indicator');
         profilePage('.tooltip svg').addClass('offline-indicator');
+        profilePage('.tooltip svg circle').removeClass('online-indicator');
+        profilePage('.tooltip svg circle').addClass('offline-indicator');
     }
     if (loggedInNickname !== toFetchNickname) {
         profilePage('.avatar p').remove();
@@ -167,58 +141,4 @@ export async function getProfile(loggedInNickname, toFetchNickname) {
         profilePage('.match-history-mobile').html(getEmptyMatchHistory(toFetchNickname));
     }
     return profilePage.html();
-}
-
-let cachedUpdateHtmlPromise = fs.readFile('./backend/views/update.html', 'utf8');
-
-/**
- * Get the update user info view HTML
- * @param {string} loggedInNickname the nickname of a user who is viewing the update page
- * @returns {Promise<string>} the HTML for the update view
- */
-export async function getUpdate(loggedInNickname) {
-    if (!loggedInNickname)
-        throw new HTTPError(StatusCodes.NOT_FOUND, 'Requested resource does not exist.');
-    const cachedUpdateHtml = await cachedUpdateHtmlPromise;
-    const user = await getUser(loggedInNickname);
-    const currentTFA = await TFA.getUsersTFA(user.id);
-    const updatePage = cheerio.load(cachedUpdateHtml, null, false);
-    updatePage('.avatar img#preview-avatar').attr('src', user.avatar ? `/api/avatars/${user.id}?t=${Date.now()}` : '/assets/default-avatar.svg');
-    updatePage('#nickname-input').attr('value', user.nickname);
-    updatePage('#email-input').attr('value', user.email);
-    
-    updatePage('#tfa-select').append(`<option value="${currentTFA.type}">${currentTFA.prettyTypeName()}</option>`);
-    TFA.TFAtypes.forEach((value, key) => {
-        if (key !== currentTFA.type) {
-            updatePage('#tfa-select').append(`<option value="${key}">${TFA.TFAtypes.get(key)}</option>`);
-        }
-    });
-    updatePage('#tfa-select').attr('value', currentTFA.type);
-    return updatePage.html();
-}
-
-let cached2FAHtmlPromise = fs.readFile('./backend/views/2FA.html', 'utf8');
-
-/**
- * Get the 2FA verify/setup view HTML
- * @param {Object} payload the payload of the 2FA token
- * @param {string} nickname the nickname of the user to pass to the 2FA TOTP
- * @returns {Promise<string>} the HTML for the 2FA verify/setup view
- */
-export async function get2FAview(payload, nickname) {
-    const cached2FAHtml = await cached2FAHtmlPromise;
-    const tfaPage = cheerio.load(cached2FAHtml, null, false);
-
-    if (payload.status === 'update') {
-        const pendingTFA = await TFA.getUsersPendingTFA(payload.id);
-        const uri = pendingTFA.getURI(nickname);
-        const imageURL = await QRCode.toDataURL(uri);
-        tfaPage('div#qr-wrapper').append(`<img src="${imageURL}" alt="QR code" />`);
-    } else if (payload.status === 'check') {
-        tfaPage('div#qr-wrapper').html('');
-        tfaPage('form#tfa-form legend').text('Verify Your Identity');
-    } else {
-        throw new HTTPError(StatusCodes.BAD_REQUEST, ReasonPhrases.BAD_REQUEST);
-    }
-    return tfaPage.html();
 }

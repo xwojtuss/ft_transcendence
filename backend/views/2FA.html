@@ -4,7 +4,7 @@
             <legend>Setup 2FA</legend>
             <div id="qr-wrapper">
             </div>
-            <p>Enter the code from your app</p>
+            <p id="tfa-action-description">Enter the code from your app</p>
             <div class="digit-wrapper">
                 <input type="text" maxlength="1" class="digit" required/>
                 <input type="text" maxlength="1" class="digit" required/>
@@ -15,7 +15,7 @@
                 <input type="text" maxlength="1" class="digit" required/>
             </div>
             <div class="buttons">
-                <button type="button" formnovalidate formaction="/update" class="cancel" id="cancel-form">Cancel</button>
+                <button type="button" formnovalidate class="cancel" id="cancel-form">Cancel</button>
                 <input type="submit" value="Submit">
             </div>
         </form>

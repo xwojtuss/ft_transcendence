@@ -18,6 +18,11 @@
                 <label for="email-input">Email</label>
             </div>
             <div>
+                <input type="tel" class="input-not-allowed" name="phone" id="phone-input" value="" autocomplete="tel" disabled>
+                <button type="button" class="icon edit-field"><img src="./assets/edit-icon.svg"></button>
+                <label for="phone-input">Phone Number</label>
+            </div>
+            <div>
                 <select name="tfa" id="tfa-select" class="input-not-allowed" disabled>
                 </select>
                 <button type="button" class="icon edit-field"><img src="./assets/edit-icon.svg"></button>
@@ -25,12 +30,17 @@
             </div>
             <div>
                 <input type="password" name="currentPassword" id="current-password-input" autocomplete="current-password" required>
+                <button type="button" class="icon toggle-password-visibility">
+                    <img width="24" height="24" src="https://img.icons8.com/material-outlined/24/visible--v1.png" alt="Show password"/>
+                </button>
                 <label for="current-password-input">Current Password</label>
             </div>
             <div>
-                <input type="password" class="input-not-allowed" name="newPassword" id="new-password-input" autocomplete="new-password" disabled>
-                <button type="button" class="icon edit-field"><img src="./assets/edit-icon.svg"></button>
-                <label for="new-password-input">New Password</label>
+                <input type="button" class="font-bold" value="Change Password" name="newPassword" id="new-password-input" autocomplete="new-password">
+                <button type="button" class="icon toggle-password-visibility hidden">
+                    <img width="24" height="24" src="https://img.icons8.com/material-outlined/24/visible--v1.png" alt="Show password"/>
+                </button>
+                <label for="new-password-input" class="hidden">New Password</label>
             </div>
             <div class="buttons">
                 <button type="button" formnovalidate formaction="/profile" class="cancel" id="cancel-form">Cancel</button>

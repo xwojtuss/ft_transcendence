@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     avatar TEXT,
+    phone_number TEXT,
     won_games INTEGER DEFAULT 0,
     lost_games INTEGER DEFAULT 0
 );
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS tfas (
     encrypted_secret TEXT NOT NULL,
     iv TEXT NOT NULL,
     tag TEXT NOT NULL,
+    expires_at INTEGER,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS pending_updates (
     password TEXT,
     email TEXT,
     avatar TEXT,
+    phone_number TEXT,
     tfa_type VARCHAR(10),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
@@ -34,6 +37,7 @@ CREATE TABLE IF NOT EXISTS pending_tfas (
     encrypted_secret TEXT,
     iv TEXT,
     tag TEXT,
+    expires_at INTEGER,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 

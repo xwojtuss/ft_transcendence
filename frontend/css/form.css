@@ -19,18 +19,18 @@ form select {
 }
 
 form input, form .cancel, form label.file-input, form select {
-    @apply bg-white rounded-xl px-4 sm:px-5 py-2 sm:py-3 text-sm sm:text-base border-slate-300 border sm:mx-10 shadow-xs;
+    @apply bg-white rounded-xl px-4 sm:px-5 py-2 sm:py-3 text-sm border-slate-300 border sm:mx-10 shadow-xs;
 }
 
 form input:not([type=submit]), form select {
-    @apply w-full focus:outline-2 focus:outline-blue-300;
+    @apply w-full focus:outline-2 focus:outline-stone-400;
 }
 
 form input[type=submit], form button {
     @apply cursor-pointer w-auto;
 }
 
-form input#password-input, form.labeled input {
+form input#password-input, form.labeled input:not([type=button], [type=submit]) {
     @apply pr-12;
 }
 
@@ -47,7 +47,7 @@ form#tfa-form input[type=submit]:not(.no-margin), form#tfa-form .cancel:not(.no-
 }
 
 form input[type=submit], form .cancel {
-    @apply font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300;
+    @apply font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300 shadow-md shadow-stone-200;
 }
 
 form input[type=submit].sm-button, form .cancel.sm-button {
@@ -59,15 +59,15 @@ form input[type=submit].sm-button:not(.no-margin), form .cancel.sm-button:not(.n
 }
 
 form input[type=submit]:not(.cancel) {
-    @apply bg-blue-300 border-blue-200 text-white shadow-blue-300/50 shadow-sm;
+    @apply bg-stone-700 border-stone-500 text-white;
 }
 
 form input[type=submit]:not(.cancel):hover {
-    @apply bg-blue-400 border-blue-300;
+    @apply bg-stone-900 border-stone-700;
 }
 
 form input[type=submit]:not(.cancel):active {
-    @apply shadow-blue-300/50;
+    @apply shadow-stone-300/50;
 }
 
 form input[type=submit]:active {
@@ -115,11 +115,11 @@ form.update button img {
 }
 
 form input.input-not-allowed, select.input-not-allowed {
-    @apply cursor-not-allowed;
+    @apply cursor-not-allowed bg-gray-50;
 }
 
 form .cancel:hover {
-    @apply bg-gray-50 border-gray-300;
+    @apply bg-gray-100 border-gray-300;
 }
 
 form .cancel:active {

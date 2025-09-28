@@ -3,6 +3,17 @@ import { checkFile, checkNickname, checkPassword, checkEmail, checkLogin, checkO
 export let accessToken: string | null | undefined = null;
 export let tfaTempToken: string | null | undefined = null;
 
+export function changeOnlineStatus() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/status`;
+    const socket = new WebSocket(wsUrl);
+    window.addEventListener('beforeunload', () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close();
+        }
+    });
+}
+
 /**
  * Tries to refresh the access token
  * @returns false if session is not active or has expired, true if the tokens have been refreshed
@@ -14,7 +25,8 @@ export async function refreshAccessToken(): Promise<boolean> {
         credentials: 'include'
     });
     if (result.status === 403) {
-        return true;// if the access token was already valid
+        return false;// if the access token was already valid
+        // this was changed to false to fix the loops between /2fa and /api/auth/refresh
     }
     if (!result.ok) {
         accessToken = null;
@@ -50,7 +62,8 @@ export async function loginHandler(): Promise<void> {
             body: JSON.stringify(data)
         });
         if (result.status === 403) {// user is already logged in
-            return await renderPage('/', true);
+            alert("Already logged in");
+            return await renderPage('/profile', true);
         } else if (!result.ok) {
             return alert((await result.json()).message);
         } else if (result.status === 202) { // 2FA REQUIRED
@@ -58,6 +71,7 @@ export async function loginHandler(): Promise<void> {
             return await renderPage('/2fa', false);
         }
         accessToken = (await result.json()).accessToken;
+        changeOnlineStatus();
         return await renderPage('/', true);
     });
 }
@@ -94,11 +108,13 @@ export async function registerHandler(): Promise<void> {
             return alert((await result.json()).message);
         }
         accessToken = (await result.json()).accessToken;
+        changeOnlineStatus();
         return await renderPage('/', true);
     });
 }
 
 export async function updateSubmitHandler(): Promise<void> {
+    const newPasswordField = document.getElementById('new-password-input') as HTMLInputElement;
     document.getElementById('update-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const form: HTMLFormElement = e.target as HTMLFormElement;
@@ -119,7 +135,7 @@ export async function updateSubmitHandler(): Promise<void> {
             checkNickname(data.nickname as string);
             checkEmail(data.email as string);
             checkPassword(data.currentPassword as string);
-            if (data.newPassword) checkPassword(data.newPassword as string);
+            if (data.newPassword && newPasswordField.type === 'password') checkPassword(data.newPassword as string);
         } catch (error) {
             return alert(error);
         }
@@ -130,8 +146,11 @@ export async function updateSubmitHandler(): Promise<void> {
         formData.append('nickname', data.nickname);
         formData.append('email', data.email);
         formData.append('currentPassword', data.currentPassword);
-        formData.append('newPassword', data.newPassword);
+        if (newPasswordField.type === 'password') {
+            formData.append('newPassword', data.newPassword);
+        }
         formData.append('tfa', data.tfa);
+        if (data.phone && data.phone != '') formData.append('phone', data.phone);
         const result: Response = await fetch('/api/auth/update', {
             method: 'POST',
             headers: {
@@ -186,12 +205,16 @@ export async function update2FASubmitHandler(): Promise<void> {
             return alert((await result.json()).message);
         } else if (!result.ok) {
             return alert((await result.json()).message);
+        } else if (result.status === 202) { // 2FA SETUP REQUIRED
+            tfaTempToken = (await result.json()).tfaToken;
+            return await renderPage('/2fa', false);
         }
         tfaTempToken = null;
         const responseAccess: string | undefined | null = (await result.json()).accessToken;
         if (responseAccess !== null && responseAccess !== undefined) {
             accessToken = responseAccess;
         }
+        changeOnlineStatus();
         return await renderPage('/', true);
     });
 }

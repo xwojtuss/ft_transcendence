@@ -43,7 +43,7 @@ header nav .active-link {
 }
 
 main {
-    @apply flex-1 max-h-screen overflow-hidden content-stretch flex bg-blue-200 bg-geometric-pattern;
+    @apply flex-1 max-h-screen overflow-hidden content-stretch flex bg-stone-900 bg-geometric-pattern;
 }
 
 .app-wrapper-center {
