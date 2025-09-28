@@ -44,5 +44,3 @@ export function cleanupInactiveSessions() {
         }
     }
 }
-
-setInterval(cleanupInactiveSessions, 10 * 1000);
