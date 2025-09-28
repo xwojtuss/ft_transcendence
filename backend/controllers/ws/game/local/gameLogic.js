@@ -16,7 +16,7 @@ export function checkGameEnd(gameState, scoringPlayer) {
 }
 
 export function resetBall(gameState, losingPlayer) {
-    // Reset pozycji
+    // Reset ball position and velocity
     gameState.ball.x = FIELD_WIDTH / 2 - BALL_SIZE / 2;
     gameState.ball.y = FIELD_HEIGHT / 2 - BALL_SIZE / 2;
     gameState.ball.dx = 0;
@@ -73,7 +73,7 @@ export function updateGame(gameState, deltaTime, broadcastCallback) {
     const p1 = gameState.players[1];
     const p2 = gameState.players[2];
 
-    // Kolizje z graczami
+    // Player collisions
     if (ball.x <= p1.x + p1.width && ball.y + ball.size >= p1.y && ball.y <= p1.y + p1.height && ball.dx < 0) {
         handlePaddleCollision(ball, p1, true);
     }

@@ -72,7 +72,7 @@ export function initLocalGame() {
     waitForCanvas();
 }
 
-// Cleanup przy zmianie strony
+// Cleanup when page changes
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && gameInstance) {
         gameInstance.ws.disconnect();

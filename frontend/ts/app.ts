@@ -5,7 +5,6 @@ import { accessToken, tfaTempToken } from "./authenticate.js";
 import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
-import { run } from "node:test";
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
