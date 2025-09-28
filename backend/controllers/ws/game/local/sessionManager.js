@@ -15,7 +15,7 @@ export function createSession(socket) {
     
     socket.sessionId = sessionId;
     
-    console.log(`Created game session ${sessionId}. Total sessions: ${sessions.size}`);
+    //console.log(`Created game session ${sessionId}. Total sessions: ${sessions.size}`);
     return sessionId;
 }
 
@@ -26,7 +26,7 @@ export function getSession(sessionId) {
 export function removeSession(sessionId) {
     if (sessions.has(sessionId)) {
         sessions.delete(sessionId);
-        console.log(`Removed game session ${sessionId}. Total sessions: ${sessions.size}`);
+        //console.log(`Removed game session ${sessionId}. Total sessions: ${sessions.size}`);
     }
 }
 

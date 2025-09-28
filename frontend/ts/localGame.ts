@@ -14,7 +14,7 @@ export function initLocalGame() {
         return;
     }
 
-    console.log("Initializing local game...");
+    //console.log("Initializing local game...");
 
     function waitForCanvas() {
         const canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement;
@@ -42,7 +42,7 @@ export function initLocalGame() {
             (config) => {
                 setGameDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
                 renderer.setFieldDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
-                console.log("Game dimensions set:", config.FIELD_WIDTH, config.FIELD_HEIGHT);
+                //console.log("Game dimensions set:", config.FIELD_WIDTH, config.FIELD_HEIGHT);
             },
             (state) => {
                 gameState = state;

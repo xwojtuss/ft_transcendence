@@ -92,59 +92,29 @@ export default async function viewsRoutes(fastify) {
         return await sendView(view, payload, request, reply);
     });
 
-    fastify.get("/game/local", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        try {
-            view = await getStaticView('local-game');
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/game/local", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('local-game');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/game/multiplayer", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        try {
-            view = await getStaticView('multiplayer-game'); // stwórz backend/views/multiplayer-game.html
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/game/multiplayer", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('multiplayer-game');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/game/online", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        try {
-            view = await getStaticView('online-game'); // stwórz backend/views/online-game.html
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/game/online", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('online-game');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/game/local-tournament", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        try {
-            view = await getStaticView('local-tournament-game'); // stwórz backend/views/local-tournament-game.html
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/game/local-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('local-tournament-game');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/game/online-tournament", async (request, reply) => {
-        let view;
-        const user = await getUserSession(fastify, request.cookies.refreshToken, request.headers);
-        try {
-            view = await getStaticView('online-tournament-game'); // stwórz backend/views/online-tournament-game.html
-        } catch (error) {
-            return await sendErrorPage(error, user, request, reply);
-        }
-        return await sendView(view, user, request, reply);
+    fastify.get("/game/online-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+        const view = await getStaticView('online-tournament-game');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
     fastify.get("/friends", { preHandler: loggedInPreHandler }, async (request, reply) => {

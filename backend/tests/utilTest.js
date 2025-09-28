@@ -46,10 +46,10 @@ export default async function testDatabase() {
 
         await addMatch(secondMatch);
 
-        console.log(await getAllUsers());
-        console.log(await getAllMatchHistory());
-        console.log(await getAllMatches());
-        console.log(await getUserMatchHistory('wkornato'));
+        //console.log(await getAllUsers());
+        //console.log(await getAllMatchHistory());
+        //console.log(await getAllMatches());
+        //console.log(await getUserMatchHistory('wkornato'));
     } catch (error) {
         console.error(error);
     }
@@ -71,6 +71,6 @@ export function runSecretsTest() {
     assert(process.env.TFA_EMAIL_PASSWORD, "No google app password found for sending 2FA emails in .env");
     assert(process.env.TFA_SMS_OAUTH, "SMSAPI OAuth token not found in .env");
     if (!process.env.PORT) {
-        console.log("Port not found in .env, defaulting to 3000");
+        //console.log("Port not found in .env, defaulting to 3000");
     }
 }

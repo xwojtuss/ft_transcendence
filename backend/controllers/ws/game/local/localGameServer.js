@@ -9,7 +9,7 @@ function broadcastToSession(sessionId, gameState) {
         try {
             session.socket.send(JSON.stringify({ type: "state", state: gameState }));
         } catch (error) {
-            console.log(`Error sending to session ${sessionId}:`, error.message);
+            //console.log(`Error sending to session ${sessionId}:`, error.message);
             removeSession(sessionId);
         }
     }
@@ -74,7 +74,7 @@ export function handleConnection(connection) {
                 }
             }
         } catch (error) {
-            console.log('Error parsing message:', error.message);
+            //console.log('Error parsing message:', error.message);
         }
     });
 
@@ -83,7 +83,7 @@ export function handleConnection(connection) {
     });
 
     socket.on('error', (error) => {
-        console.log('WebSocket error:', error.message);
+        //console.log('WebSocket error:', error.message);
         removeSession(sessionId);
     });
 }

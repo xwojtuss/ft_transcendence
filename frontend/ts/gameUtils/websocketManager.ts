@@ -12,7 +12,7 @@ export class GameWebSocket {
 
     private setupEventListeners() {
         this.ws.onopen = () => {
-            console.log("WebSocket connection established");
+            //console.log("WebSocket connection established");
         };
 
         this.ws.onmessage = (event) => {
@@ -26,7 +26,7 @@ export class GameWebSocket {
         };
 
         this.ws.onclose = () => {
-            console.log("WebSocket connection closed");
+            //console.log("WebSocket connection closed");
         };
 
         // Cleanup on unload
@@ -54,7 +54,7 @@ export class GameWebSocket {
 
     disconnect() {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            console.log("Disconnecting WebSocket...");
+            //console.log("Disconnecting WebSocket...");
             this.ws.close();
         }
     }

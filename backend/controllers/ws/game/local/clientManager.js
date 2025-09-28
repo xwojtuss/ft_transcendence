@@ -2,14 +2,14 @@ const clients = [];
 
 export function addClient(socket) {
     clients.push(socket);
-    console.log('Game client connected. Total:', clients.length);
+    //console.log('Game client connected. Total:', clients.length);
 }
 
 export function removeClient(socket) {
     const index = clients.indexOf(socket);
     if (index !== -1) {
         clients.splice(index, 1);
-        console.log('Game client disconnected. Total:', clients.length);
+        //console.log('Game client disconnected. Total:', clients.length);
     }
 }
 
@@ -27,7 +27,7 @@ export function broadcastGameState(gameState) {
                 clients.splice(i, 1);
             }
         } catch (error) {
-            console.log('Error sending to client, removing:', error.message);
+            //console.log('Error sending to client, removing:', error.message);
             clients.splice(i, 1);
         }
     }
