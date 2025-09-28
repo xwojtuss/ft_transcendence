@@ -3,24 +3,29 @@ import { GameWebSocket } from "./gameUtils/websocketManager.js";
 import { InputHandler } from "./gameUtils/inputHandler.js";
 import { GameRenderer } from "./gameUtils/gameRenderer.js";
 
+/*handle to the running game, so other code (outside the init function) can reach the live objects and shut them down cleanly.
+It is either:
+- null → no game is running, or
+- an object holding references to the WebSocket, InputHandler, and Renderer that were created when the game started.
+*/
 let gameInstance: {
     ws: GameWebSocket;
     input: InputHandler;
     renderer: GameRenderer;
 } | null = null;
 
-export function initLocalGame() {
+export function initGameIfHome() {
     if (window.location.pathname !== '/game/local') {
         return;
     }
 
     function waitForCanvas() {
-        const canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement;
+        const canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement; //   // Try to grab the <canvas id="local-game-canvas"> from the DOM.
         if (!canvas) {
             setTimeout(waitForCanvas, 100);
             return;
         }
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext("2d"); //Get a 2D drawing context from the canvas.
         if (!ctx) {
             console.error("Failed to get canvas context!");
             return;
@@ -28,13 +33,16 @@ export function initLocalGame() {
 
         initCanvas();
 
-        let gameState: any = null;
-        const renderer = new GameRenderer(canvas, ctx);
+        let gameState: any = null; // // Will hold the latest game state sent by the server (type kept loose as 'any').
+        const renderer = new GameRenderer(canvas, ctx); //    // Create the renderer that knows how to draw a single frame to this canvas.
 
         // Setup WebSocket
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/localGame`;
         
+        /* Open the WebSocket and provide two callbacks:
+            1) when a "config" message arrives, set field sizes
+            2) when a "state" message arrives, update the gameState we will render */
         const gameWs = new GameWebSocket(
             wsUrl,
             (config) => {
@@ -47,7 +55,14 @@ export function initLocalGame() {
             }
         );
 
+        // UPDATED WITH AI PLAYER
+        // Tell the server which mode this session should run
+        const aiEnabled = new URL(window.location.href).searchParams.get('ai') === '1';
+        gameWs.sendRaw({ type: "hello", mode: aiEnabled ? "ai" : "local" });
+
+
         // Setup input handling
+        //Hook up keyboard/mouse/touch and send inputs through the WebSocket.
         const inputHandler = new InputHandler(gameWs);
 
         // Store instance
