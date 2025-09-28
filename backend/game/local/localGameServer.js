@@ -1,3 +1,9 @@
+/* UPDATED WITH AI PLAYER [AI]
+  Mode flag (session.mode) with default "local" and "hello" message handler.
+  AI loop gated: maybeUpdateAI(session, now) runs only when mode === "ai".
+  Right-paddle keys (ArrowUp/ArrowDown) only work in local mode; ignored in ai mode.
+*/
+
 import {
   FPS, FIELD_WIDTH, FIELD_HEIGHT,
   PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE
@@ -24,11 +30,10 @@ function broadcastToSession(sessionId, gameState) {
 /* -------------------------
    AI (1 Hz “vision” + prediction)
 -------------------------- */
+// [AI]
 
 // Decide only once per second. Between decisions, keep moving toward the
-// previously computed intercept Y. This works with your physics:
-// - ball.dx/dy are velocities (px/s) already
-// - player2.dy ∈ {-1,0,1} is scaled by PADDLE_SPEED in gamePhysics
+// previously computed intercept Y.
 function maybeUpdateAI(session, now) {
   if (!session || !session.gameState) return;
 
@@ -61,7 +66,7 @@ function maybeUpdateAI(session, now) {
   const ballState = {
     x: ball.x,
     y: ball.y,
-    vx: ball.dx,            // already velocities (DON’T multiply by BALL_SPEED)
+    vx: ball.dx,            // already velocities (px/s)
     vy: ball.dy,
     r: BALL_SIZE / 2
   };
@@ -77,7 +82,7 @@ function maybeUpdateAI(session, now) {
   steerTowardTarget(player2, ai.targetY);
 }
 
-// dy controller (simulates pressing a key). Keep it sharp but stable.
+// [AI]
 function steerTowardTarget(paddle, targetY) {
   if (targetY == null) { paddle.dy = 0; return; }
   const center = paddle.y + PADDLE_HEIGHT / 2;
@@ -87,8 +92,7 @@ function steerTowardTarget(paddle, targetY) {
   else                                   paddle.dy = 0;
 }
 
-// Predict Y where ball reaches paddleX, reflecting off top/bottom.
-// Uses constant-velocity stepping derived from your current velocities.
+// [AI]
 function predictImpactY(ball, fieldH, paddleX) {
   let { x, y, vx, vy, r } = ball;
 
@@ -132,6 +136,9 @@ export function handleConnection(connection) {
     return;
   }
 
+  // default mode is "local" unless client says otherwise
+  session.mode = "local"; // "local" | "ai"
+
   // Send config to client
   socket.send(JSON.stringify({
     type: "gameConfig",
@@ -146,29 +153,54 @@ export function handleConnection(connection) {
 
       const { gameState } = currentSession;
 
+      // client greets with desired mode ("local" or "ai")
+      if (data.type === "hello" && (data.mode === "local" || data.mode === "ai")) {
+        currentSession.mode = data.mode;
+        return; // nothing else to do for hello
+      }
+
+      // Input handling
       if (data.type === "keydown") {
         if (!gameState.gameEnded) {
+          // left paddle (player 1) controlled by W/S 
           if (["w", "s"].includes(data.key)) {
             gameState.players[1].dy = (data.key === "w") ? -1 : 1;
           }
+          // right paddle (player 2) only in LOCAL mode
+          if (currentSession.mode === "local" && ["ArrowUp", "ArrowDown"].includes(data.key)) {
+            gameState.players[2].dy = (data.key === "ArrowUp") ? -1 : 1;
+          }
         }
 
-        // Space: (re)start match
+        // Space: (re)start match — with small tweak for AI/local
         if (data.key === " " && (!gameState.gameInitialized || gameState.gameEnded)) {
           if (gameState.gameEnded) {
             resetGameState(gameState);
           } else {
             startGame(gameState);
           }
-          if (!currentSession.ai) currentSession.ai = { lastDecision: 0, forceImmediate: false, targetY: null };
-          currentSession.ai.forceImmediate = true;   // decide instantly after (re)start
-          gameState.players[2].dy = 0;               // stop drift
+
+          if (currentSession.mode === "ai") {
+            // [AI] ensure AI state and prime immediate decision
+            if (!currentSession.ai) currentSession.ai = { lastDecision: 0, forceImmediate: false, targetY: null };
+            currentSession.ai.forceImmediate = true;
+            gameState.players[2].dy = 0; // stop drift before AI moves
+          } else {
+            // [AI] ensure AI is off in local mode
+            currentSession.ai = null;
+            gameState.players[2].dy = 0; // neutral start for human right paddle
+          }
         }
       }
 
       if (data.type === "keyup") {
         if (!gameState.gameEnded) {
+          // left paddle (player 1) 
           if (["w", "s"].includes(data.key)) gameState.players[1].dy = 0;
+          // right paddle only in LOCAL mode
+          if (currentSession.mode === "local" && ["ArrowUp", "ArrowDown"].includes(data.key)) {
+            gameState.players[2].dy = 0;
+          }
         }
       }
     } catch (error) {
@@ -200,8 +232,11 @@ export function startLocalGameLoop() {
     for (const [sessionId, session] of getAllSessions()) {
       session.lastUpdateTime = now;
 
-      // AI: 1 Hz “vision” + predictive steering
-      maybeUpdateAI(session, now);
+      // Run AI only when the session is in AI mode
+      if (session.mode === "ai") {
+        // [from AI file]
+        maybeUpdateAI(session, now);
+      }
 
       // Physics + scoring + broadcast
       updateGame(
@@ -212,4 +247,3 @@ export function startLocalGameLoop() {
     }
   }, 1000 / FPS);
 }
-
