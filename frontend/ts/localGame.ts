@@ -14,7 +14,7 @@ let gameInstance: {
     renderer: GameRenderer;
 } | null = null;
 
-export function initGameIfHome() {
+export function initGameIfHome(aiEnabled: boolean) {
     if (window.location.pathname !== '/game/local') {
         return;
     }
@@ -57,7 +57,6 @@ export function initGameIfHome() {
 
         // UPDATED WITH AI PLAYER
         // Tell the server which mode this session should run
-        const aiEnabled = new URL(window.location.href).searchParams.get('ai') === '1';
         gameWs.sendRaw({ type: "hello", mode: aiEnabled ? "ai" : "local" });
 
 
