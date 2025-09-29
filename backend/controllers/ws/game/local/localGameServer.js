@@ -16,16 +16,6 @@ import { createSession, getSession, removeSession, getAllSessions } from './sess
    Networking
 -------------------------- */
 function broadcastToSession(sessionId, gameState) {
-<<<<<<< HEAD:backend/controllers/ws/game/local/localGameServer.js
-    const session = getSession(sessionId);
-    if (session && session.socket && session.socket.readyState === 1) {
-        try {
-            session.socket.send(JSON.stringify({ type: "state", state: gameState }));
-        } catch (error) {
-            //console.log(`Error sending to session ${sessionId}:`, error.message);
-            removeSession(sessionId);
-        }
-=======
   const session = getSession(sessionId);
   if (session && session.socket && session.socket.readyState === 1) {
     try {
@@ -33,7 +23,6 @@ function broadcastToSession(sessionId, gameState) {
     } catch (error) {
       console.log(`Error sending to session ${sessionId}:`, error.message);
       removeSession(sessionId);
->>>>>>> AI_player:backend/game/local/localGameServer.js
     }
   }
 }
