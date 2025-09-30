@@ -1,10 +1,11 @@
 import changePasswordButton from "./login-register-form.js";
-import { initLocalGame } from "./localGame.js";
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler, changeOnlineStatus } from "./authenticate.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
 import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
+import { GameRenderer } from "./gameUtils/GameRenderer.js";
+import { initLocalGame } from "./localGame.js";
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');

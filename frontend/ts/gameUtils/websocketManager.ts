@@ -1,9 +1,44 @@
+export interface GameConfig { 
+    FIELD_WIDTH: number,
+    FIELD_HEIGHT: number,
+    PADDLE_HEIGHT: number,
+    PADDLE_WIDTH: number,
+    BALL_SIZE: number
+}
+
+export interface GameState {
+    players: { [key: number]: PlayerState };
+    ball: BallState;
+    gameStarted: boolean;
+    gameInitialized: boolean;
+    gameEnded: boolean;
+    winner: number | null;
+}
+
+export interface PlayerState {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    score: number;
+}
+
+export interface BallState {
+    x: number;
+    y: number;
+    size: number;
+}
+
+export interface FieldState {
+    width: number;
+    height: number;
+}
 export class GameWebSocket {
     private ws: WebSocket;
-    private onGameConfig: (config: any) => void;
-    private onGameState: (state: any) => void;
+    private onGameConfig: (config: GameConfig) => void;
+    private onGameState: (state: GameState) => void;
 
-    constructor(url: string, onGameConfig: (config: any) => void, onGameState: (state: any) => void) {
+    constructor(url: string, onGameConfig: (config: GameConfig) => void, onGameState: (state: GameState) => void) {
         this.onGameConfig = onGameConfig;
         this.onGameState = onGameState;
         this.ws = new WebSocket(url);
