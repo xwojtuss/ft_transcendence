@@ -3,7 +3,7 @@ export interface GameConfig {
     FIELD_HEIGHT: number,
     PADDLE_HEIGHT: number,
     PADDLE_WIDTH: number,
-    BALL_SIZE: number
+    BALL_RADIUS: number
 }
 
 export interface GameState {

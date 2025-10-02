@@ -3,7 +3,7 @@ export const FIELD_HEIGHT = 70;
 
 export const PADDLE_HEIGHT = 12;
 export const PADDLE_WIDTH = 2;
-export const BALL_SIZE = 2;
+export const BALL_RADIUS = 1;
 
 export const PADDLE_SPEED = 60;
 export const BALL_SPEED = 100; 

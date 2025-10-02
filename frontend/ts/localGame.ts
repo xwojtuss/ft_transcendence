@@ -1,4 +1,4 @@
-import { GameWebSocket } from "./gameUtils/websocketManager.js";
+import { GameState, GameWebSocket } from "./gameUtils/websocketManager.js";
 import { InputHandler } from "./gameUtils/inputHandler.js";
 import { GameRenderer } from "./gameUtils/GameRenderer.js";
 
@@ -18,7 +18,7 @@ export function initLocalGame() {
         if (!canvas || !(canvas instanceof HTMLCanvasElement)) return;
         const renderer = new GameRenderer(canvas);
 
-        let gameState: any = null;
+        let gameState: GameState | null = null;
 
         // Setup WebSocket
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -30,14 +30,23 @@ export function initLocalGame() {
                 renderer.configure(config);
             },
             (state) => {
-                gameState = state;
+                if (!gameState) {
+                    gameState = state;
+                    renderer.startRenderLoop(gameState);
+                    return;
+                }
+                gameState.ball = state.ball;
+                gameState.players = state.players;
+                gameState.gameEnded = state.gameEnded;
+                gameState.gameInitialized = state.gameInitialized;
+                gameState.gameStarted = state.gameStarted;
+                gameState.winner = state.winner;
             }
         );
 
         // Setup input handling
         const inputHandler = new InputHandler(gameWs);
 
-        renderer.startRenderLoop();
 
         // Store instance
         gameInstance = { ws: gameWs, input: inputHandler, renderer };

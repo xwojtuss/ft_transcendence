@@ -1,4 +1,4 @@
-import { FPS, FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE } from './gameConfig.js';
+import { FPS, FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_RADIUS } from './gameConfig.js';
 import { resetGameState } from './gameState.js';
 import { updateGame, startGame } from './gameLogic.js';
 import { createSession, getSession, removeSession, getAllSessions } from './sessionManager.js';
@@ -35,7 +35,7 @@ export function handleConnection(connection) {
             FIELD_HEIGHT,
             PADDLE_HEIGHT,
             PADDLE_WIDTH,
-            BALL_SIZE
+            BALL_RADIUS
         } 
     }));
 

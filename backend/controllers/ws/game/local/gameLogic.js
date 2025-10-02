@@ -1,4 +1,4 @@
-import { FIELD_WIDTH, FIELD_HEIGHT, BALL_SIZE, WINNING_SCORE, RESET_DELAY } from './gameConfig.js';
+import { FIELD_WIDTH, FIELD_HEIGHT, WINNING_SCORE, RESET_DELAY, BALL_RADIUS, PADDLE_WIDTH, PADDLE_HEIGHT } from './gameConfig.js';
 import { resetGameState } from './gameState.js';
 import { handlePaddleCollision, updatePlayerPositions, generateBallDirection } from './gamePhysics.js';
 
@@ -17,8 +17,8 @@ export function checkGameEnd(gameState, scoringPlayer) {
 
 export function resetBall(gameState, losingPlayer) {
     // Reset ball position and velocity
-    gameState.ball.x = FIELD_WIDTH / 2 - BALL_SIZE / 2;
-    gameState.ball.y = FIELD_HEIGHT / 2 - BALL_SIZE / 2;
+    gameState.ball.x = FIELD_WIDTH / 2;
+    gameState.ball.y = FIELD_HEIGHT / 2;
     gameState.ball.dx = 0;
     gameState.ball.dy = 0;
     gameState.gameStarted = false;
@@ -66,28 +66,36 @@ export function updateGame(gameState, deltaTime, broadcastCallback) {
     ball.y += ball.dy * deltaTime;
 
     // Bounce top/bottom
-    if (ball.y <= 0 || ball.y + ball.size >= FIELD_HEIGHT) {
+    if (ball.y - BALL_RADIUS <= 0 || ball.y + BALL_RADIUS >= FIELD_HEIGHT) {
         ball.dy *= -1;
+        if (ball.y - BALL_RADIUS < 0) ball.y = BALL_RADIUS;
+        if (ball.y + BALL_RADIUS > FIELD_HEIGHT) ball.y = FIELD_HEIGHT - BALL_RADIUS;
     }
 
     const p1 = gameState.players[1];
     const p2 = gameState.players[2];
 
     // Player collisions
-    if (ball.x <= p1.x + p1.width && ball.y + ball.size >= p1.y && ball.y <= p1.y + p1.height && ball.dx < 0) {
+    if (ball.x - BALL_RADIUS <= p1.x + PADDLE_WIDTH / 2
+        && ball.y + BALL_RADIUS >= p1.y - PADDLE_HEIGHT / 2
+        && ball.y - BALL_RADIUS <= p1.y + PADDLE_HEIGHT / 2
+        && ball.dx < 0) {
         handlePaddleCollision(ball, p1, true);
     }
 
-    if (ball.x + ball.size >= p2.x && ball.y + ball.size >= p2.y && ball.y <= p2.y + p2.height && ball.dx > 0) {
+    if (ball.x + BALL_RADIUS >= p2.x - PADDLE_WIDTH / 2
+        && ball.y + BALL_RADIUS >= p2.y - PADDLE_HEIGHT / 2
+        && ball.y - BALL_RADIUS <= p2.y + PADDLE_HEIGHT / 2
+        && ball.dx > 0) {
         handlePaddleCollision(ball, p2, false);
     }
 
     // Scoring
-    if (ball.x < 0) {
+    if (ball.x - BALL_RADIUS < 0) {
         gameState.players[2].score++;
         checkGameEnd(gameState, 2);
         if (!gameState.gameEnded) resetBall(gameState, 1);
-    } else if (ball.x + ball.size > FIELD_WIDTH) {
+    } else if (ball.x + BALL_RADIUS > FIELD_WIDTH) {
         gameState.players[1].score++;
         checkGameEnd(gameState, 1);
         if (!gameState.gameEnded) resetBall(gameState, 2);

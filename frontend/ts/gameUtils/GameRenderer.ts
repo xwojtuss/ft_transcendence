@@ -1,10 +1,12 @@
-import { GameConfig } from "./websocketManager";
+import { Environment } from "./Environment.js";
+import { GameConfig, GameState, BallState } from "./websocketManager.js";
 
 export class GameRenderer {
     private engine: BABYLON.Engine;
     private scene: BABYLON.Scene | null = null;
     private canvas: HTMLCanvasElement;
     private config: GameConfig | null = null;
+    private environment!: Environment;
 
     private createEngine(canvas: HTMLCanvasElement, tries: number = 1) {
         let engine: BABYLON.Engine;
@@ -19,31 +21,18 @@ export class GameRenderer {
         return engine;
     }
 
-    private createScene(canvas: HTMLCanvasElement) {
-        const scene = new BABYLON.Scene(this.engine);
-        const camera = new BABYLON.FreeCamera("camera1", 
-            new BABYLON.Vector3(0, 5, -10), scene);
-        camera.setTarget(BABYLON.Vector3.Zero());
-        camera.attachControl(canvas, true);
-        const light = new BABYLON.HemisphericLight("light", 
-            new BABYLON.Vector3(0, 1, 0), scene);
-        light.intensity = 0.7;
-        const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", 
-            {diameter: 2, segments: 32}, scene);
-        sphere.position.y = 1;
-        const ground = BABYLON.MeshBuilder.CreateGround("ground", 
-            {width: 6, height: 6}, scene);
-        return scene;
-    }
-
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.engine = this.createEngine(this.canvas);
     }
 
-    startRenderLoop() {
-        this.scene = this.createScene(this.canvas);
+    startRenderLoop(gameState: GameState) {
+        if (!this.config) throw new Error("Game not configured");
+        this.scene = new BABYLON.Scene(this.engine);
+        this.environment = new Environment(this.scene, this.config, this.canvas);
         this.engine.runRenderLoop(() => {
+            this.environment.setBallPosition(gameState.ball);
+            this.environment.setPaddlePositions(gameState.players);
             this.scene?.render();
         })
         window.addEventListener("resize", () => {
