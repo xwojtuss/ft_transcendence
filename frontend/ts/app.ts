@@ -109,7 +109,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
                 'X-Request-Navigation-Bar': `${requestNavBar}`
             }
         });
-        if (pathURL === '/2fa') app.innerHTML = spinner;
+        if (pathURL === '/2fa' || pathURL.startsWith('/game')) app.innerHTML = spinner;
         const response: Response = await responsePromise;
         switch (response.status) {
             case 400:// bad request
