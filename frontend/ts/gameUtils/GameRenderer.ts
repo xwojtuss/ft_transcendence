@@ -1,5 +1,5 @@
 import { Environment } from "./Environment.js";
-import { GameConfig, GameState, BallState } from "./websocketManager.js";
+import { GameConfig, GameState } from "./websocketManager.js";
 
 export class GameRenderer {
     private engine: BABYLON.Engine;
@@ -7,13 +7,14 @@ export class GameRenderer {
     private canvas: HTMLCanvasElement;
     private config: GameConfig | null = null;
     private environment!: Environment;
+    private initialized: boolean;
 
     private createEngine(canvas: HTMLCanvasElement, tries: number = 1) {
         let engine: BABYLON.Engine;
         try {
             engine = new BABYLON.Engine(canvas, true);
         } catch (error) {
-            console.log("Babylon has not been loaded, trying again in one second...");
+            // console.log("Babylon has not been loaded, trying again in one second...");
             if (tries > 10) throw error;
             setTimeout(() => this.createEngine(canvas, ++tries), 1000);
             throw new Error("Engine could not be created");
@@ -24,17 +25,39 @@ export class GameRenderer {
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.engine = this.createEngine(this.canvas);
+        this.initialized = false;
+    }
+
+    end() {
+        this.scene?.dispose();
+        this.engine.dispose();
+    }
+
+    private beforeRenderLoop(gameState: GameState) {
+        this.environment.setBallPosition(gameState.ball);
+        this.environment.setPaddlePositions(gameState.players);
+        if (gameState.gameEnded && gameState.winner) {
+            // Game just ended
+            this.environment.updatePlayerScore(gameState.players);
+            this.environment.showEndText(gameState.winner);
+        } else if (gameState.gameInitialized) {
+            // Game has been initialized - user pressed space
+            this.environment.updatePlayerScore(gameState.players);
+            this.environment.hideStartText();
+            this.environment.hideEndText();
+        }
     }
 
     startRenderLoop(gameState: GameState) {
+        this.engine.runRenderLoop(() => {
+            this.beforeRenderLoop(gameState);
+            this.scene?.render();
+        })
+        if (this.initialized) return;
         if (!this.config) throw new Error("Game not configured");
         this.scene = new BABYLON.Scene(this.engine);
         this.environment = new Environment(this.scene, this.config, this.canvas);
-        this.engine.runRenderLoop(() => {
-            this.environment.setBallPosition(gameState.ball);
-            this.environment.setPaddlePositions(gameState.players);
-            this.scene?.render();
-        })
+        this.initialized = true;
         window.addEventListener("resize", () => {
             this.engine.resize();
         });

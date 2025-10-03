@@ -37,10 +37,12 @@ export class GameWebSocket {
     private ws: WebSocket;
     private onGameConfig: (config: GameConfig) => void;
     private onGameState: (state: GameState) => void;
+    private onGameDisconnect: undefined | (() => void);
 
-    constructor(url: string, onGameConfig: (config: GameConfig) => void, onGameState: (state: GameState) => void) {
+    constructor(url: string, onGameConfig: (config: GameConfig) => void, onGameState: (state: GameState) => void, onGameDisconnect?: (() => void) | undefined) {
         this.onGameConfig = onGameConfig;
         this.onGameState = onGameState;
+        this.onGameDisconnect = onGameDisconnect;
         this.ws = new WebSocket(url);
         this.setupEventListeners();
     }
@@ -66,12 +68,14 @@ export class GameWebSocket {
 
         // Cleanup on unload
         window.addEventListener('beforeunload', () => {
+            if (this.onGameDisconnect) this.onGameDisconnect();
             this.disconnect();
         });
 
         // Disconnect if navigating away from game
         window.addEventListener('popstate', () => {
             if (window.location.pathname !== '/game/local') {
+                if (this.onGameDisconnect) this.onGameDisconnect();
                 this.disconnect();
             }
         });
@@ -88,6 +92,7 @@ export class GameWebSocket {
     }
 
     disconnect() {
+        if (this.onGameDisconnect) this.onGameDisconnect();
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             //console.log("Disconnecting WebSocket...");
             this.ws.close();

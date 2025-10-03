@@ -8,6 +8,23 @@ let gameInstance: {
     renderer: GameRenderer;
 } | null = null;
 
+export function copyGameState(from: GameState, to: GameState) {
+    to.ball.size = from.ball.size;
+    to.ball.x = from.ball.x;
+    to.ball.y = from.ball.y;
+    to.gameEnded = from.gameEnded;
+    to.gameInitialized = from.gameInitialized;
+    to.gameStarted = from.gameStarted;
+    to.winner = from.winner;
+    for(const player in from.players) {
+        to.players[player].height = from.players[player].height;
+        to.players[player].width = from.players[player].width;
+        to.players[player].x = from.players[player].x;
+        to.players[player].y = from.players[player].y;
+        to.players[player].score = from.players[player].score;
+    }
+}
+
 export function initLocalGame() {
     if (window.location.pathname !== '/game/local') {
         return;
@@ -19,6 +36,7 @@ export function initLocalGame() {
         const renderer = new GameRenderer(canvas);
 
         let gameState: GameState | null = null;
+        let previousGameState: GameState | null = null;
 
         // Setup WebSocket
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -30,18 +48,16 @@ export function initLocalGame() {
                 renderer.configure(config);
             },
             (state) => {
-                if (!gameState) {
+                if (!gameState || !previousGameState) {
                     gameState = state;
+                    previousGameState = JSON.parse(JSON.stringify(state));
                     renderer.startRenderLoop(gameState);
                     return;
                 }
-                gameState.ball = state.ball;
-                gameState.players = state.players;
-                gameState.gameEnded = state.gameEnded;
-                gameState.gameInitialized = state.gameInitialized;
-                gameState.gameStarted = state.gameStarted;
-                gameState.winner = state.winner;
-            }
+                copyGameState(gameState, previousGameState);
+                copyGameState(state, gameState);
+            },
+            renderer.end.bind(renderer)
         );
 
         // Setup input handling
@@ -64,6 +80,7 @@ export function initLocalGame() {
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && gameInstance) {
         gameInstance.ws.disconnect();
+        // gameInstance.renderer.end();
         gameInstance = null;
     }
 });
