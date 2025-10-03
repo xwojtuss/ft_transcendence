@@ -87,7 +87,7 @@ export class GameRenderer {
     
         this.canvas.width = width;
         this.canvas.height = Math.min(height, maxHeight);
-        this.engine.resize();
+        // this.engine.resize();
     }
 
     configure(gameConfiguration: GameConfig) {

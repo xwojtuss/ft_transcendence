@@ -9,7 +9,7 @@ let gameInstance: {
 } | null = null;
 
 export function copyGameState(from: GameState, to: GameState) {
-    to.ball.size = from.ball.size;
+    to.ball.radius = from.ball.radius;
     to.ball.x = from.ball.x;
     to.ball.y = from.ball.y;
     to.gameEnded = from.gameEnded;

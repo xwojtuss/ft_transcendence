@@ -26,7 +26,7 @@ export interface PlayerState {
 export interface BallState {
     x: number;
     y: number;
-    size: number;
+    radius: number;
 }
 
 export interface FieldState {
