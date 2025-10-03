@@ -1,6 +1,6 @@
 import changePasswordButton from "./login-register-form.js";
-import { initLocalGame } from "./localGame.js";
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler, changeOnlineStatus } from "./authenticate.js";
+import { initGameIfHome } from "./localGame.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
 import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
@@ -70,8 +70,11 @@ async function runHandlers(pathURL: string): Promise<void> {
 
 function runChosenGame(pathURL: string): void {
     switch (pathURL) {
+        case '/game/local?ai=1':
+            initGameIfHome(true);
+            break;
         case '/game/local':
-            initLocalGame();
+            initGameIfHome(false);
             break;
         case '/game/online':
             // add initialization for online game mode

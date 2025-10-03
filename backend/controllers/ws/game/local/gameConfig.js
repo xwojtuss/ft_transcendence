@@ -5,7 +5,7 @@ export const PADDLE_HEIGHT = 12;
 export const PADDLE_WIDTH = 2;
 export const BALL_SIZE = 2;
 
-export const PADDLE_SPEED = 60;
+export const PADDLE_SPEED = 130;
 export const BALL_SPEED = 100; 
 
 export const WINNING_SCORE = 11;
