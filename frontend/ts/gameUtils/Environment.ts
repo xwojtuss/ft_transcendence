@@ -2,50 +2,95 @@ import { fontData } from "./KenneyMiniSquare.js";
 import { BallState, GameConfig, PlayerState } from "./websocketManager.js";
 
 const environmentConfig = {
-    BALL_COLOR: BABYLON.Color3.White(),
-    PADDLE_COLOR: BABYLON.Color3.White(),
-    BOARD_COLOR: new BABYLON.Color3(128/255, 128/255, 128/255),
-    WALL_COLOR: BABYLON.Color3.Red(),
-    SCORE_TEXT_COLOR: BABYLON.Color3.White(),
-    START_MESSAGE: "Press SPACE to start",
-    START_TEXT_COLOR: BABYLON.Color3.White(),
-    END_MESSAGE: (player: number) => {
-        return `Player ${player} Won!\nPress SPACE to play again`;
-    },
-    END_TEXT_COLOR: BABYLON.Color3.White(),
-}
+    BACKGROUND_COLOR: BABYLON.Color4.FromHexString('#353535ff'),
+    BALL_COLOR: BABYLON.Color3.FromHexString('#3e3bff'),
+    BALL_SPEC_COLOR: BABYLON.Color3.FromHexString('#9031fd'),
+    PADDLE_COLOR: BABYLON.Color3.FromHexString('#d17000'),
+    PADDLE_SPEC_COLOR: BABYLON.Color3.FromHexString('#ff5100'),
+    BOARD_COLOR: BABYLON.Color3.FromHexString('#12122b'),
+    BOARD_SPEC_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
+    MAIN_AMBIENT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
+    WALL_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
+    SCORE_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
+    START_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
+    END_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
+    START_MESSAGE: "PRESS SPACE TO BEGIN",
+    END_MESSAGE: (player: number) => `PLAYER ${player} WINS!\nPRESS SPACE TO RESTART`
+};
 
 export class Environment {
     private ballMesh!: BABYLON.Mesh;
-    private ballLight!: BABYLON.PointLight;
+    private ballTrail!: BABYLON.TrailMesh;
     private boardPlane!: BABYLON.Mesh;
-    private camera: BABYLON.FreeCamera; // TODO change to static
+    private camera: BABYLON.FreeCamera;
     private centerPoint: BABYLON.Vector3;
-    private paddleMeshes!: Array<BABYLON.Mesh>;
-    private scoreText!: Array<BABYLON.Mesh>;
+    private paddleMeshes!: BABYLON.Mesh[];
+    private scoreText!: BABYLON.Mesh[];
     private startText!: BABYLON.Mesh;
-    private endTexts!: Array<BABYLON.Mesh>;
-    private currentScores: Array<number>;
+    private endTexts!: BABYLON.Mesh[];
+    private currentScores: number[];
+    private glowLayer!: BABYLON.GlowLayer;
+    private wallMeshes!: BABYLON.Mesh[];
 
     constructor(scene: BABYLON.Scene, configuration: GameConfig, canvas?: HTMLCanvasElement) {
         const numOfPlayers = 2;
-        this.currentScores = new Array<number>(numOfPlayers);
-        this.currentScores.fill(0);
-        this.centerPoint = new BABYLON.Vector3(configuration.FIELD_WIDTH / 2, -configuration.FIELD_HEIGHT / 2, 0)
-        this.camera = new BABYLON.FreeCamera("camera1", 
-            new BABYLON.Vector3(this.centerPoint.x, this.centerPoint.y, -90), scene);
+        this.currentScores = Array(numOfPlayers).fill(0);
+        this.centerPoint = new BABYLON.Vector3(configuration.FIELD_WIDTH / 2, -configuration.FIELD_HEIGHT / 2, 0);
+
+        this.camera = new BABYLON.FreeCamera(
+            "camera1",
+            new BABYLON.Vector3(this.centerPoint.x, this.centerPoint.y, -40),
+            scene
+        );
         this.camera.setTarget(this.centerPoint);
-        const ambient = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 1, -1), scene);
-        ambient.intensity = 0.2;
-        const motionBlur = new BABYLON.MotionBlurPostProcess("motionBlur", scene, {}, this.camera);
-        motionBlur.activate(this.camera);
-        if (canvas) this.camera.attachControl(canvas, true);
-        this.constructBall(scene, configuration);
+        this.camera.attachControl(canvas, true);
+        this.camera.fov = Math.PI * 1.5 / 3;
+
+        const ambient = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 6, -1), scene);
+        ambient.intensity = 0.1;
+        const ambientColored = new BABYLON.HemisphericLight("ambientColor", new BABYLON.Vector3(0, -1, -1), scene);
+        ambientColored.intensity = 0.6;
+        ambientColored.diffuse = environmentConfig.MAIN_AMBIENT_COLOR;
+        ambientColored.specular = environmentConfig.MAIN_AMBIENT_COLOR;
+
+        this.glowLayer = new BABYLON.GlowLayer("glow", scene);
+        this.glowLayer.intensity = 0.6;
+        const postProcessing = new BABYLON.DefaultRenderingPipeline("default", true, scene, [this.camera]);
+        postProcessing.chromaticAberrationEnabled = true;
+        postProcessing.chromaticAberration.aberrationAmount = 10;
+        postProcessing.bloomEnabled = true;
+        postProcessing.bloomThreshold = 75;
+        postProcessing.bloomWeight = 7;
+        postProcessing.grainEnabled = true;
+        postProcessing.grain.animated = true;
+        postProcessing.grain.intensity = 10;
+        postProcessing.fxaaEnabled = true;
+        postProcessing.sharpenEnabled = true;
+        postProcessing.sharpen.edgeAmount = 0.1;
+        postProcessing.imageProcessingEnabled = true;
+        postProcessing.imageProcessing.exposure = 0.55;
+        postProcessing.imageProcessing.contrast = 3;
+        postProcessing.imageProcessingEnabled = true;
+        postProcessing.imageProcessing.vignetteEnabled = true;
+
+        scene.imageProcessingConfiguration.applyByPostProcess = true;
+        scene.imageProcessingConfiguration.toneMappingEnabled = false;
+        scene.imageProcessingConfiguration.colorCurvesEnabled = false;
+        scene.imageProcessingConfiguration.colorGradingEnabled = false;
+        scene.imageProcessingConfiguration.vignetteWeight = 2.0;
+        scene.imageProcessingConfiguration.vignetteStretch = 0.5;
+        scene.imageProcessingConfiguration.vignetteColor = new BABYLON.Color4(0, 0, 0, 1);
+        scene.imageProcessingConfiguration.vignetteBlendMode = BABYLON.ImageProcessingConfiguration.VIGNETTEMODE_MULTIPLY;
+
         this.constructBoard(scene, configuration);
+        this.constructBall(scene, configuration);
         this.constructPaddles(scene, configuration);
         this.constructScoreText(scene, configuration);
         this.constructStartText(scene, configuration);
         this.constructEndTexts(scene, configuration);
+        this.constructWalls(scene, configuration);
+
+        scene.clearColor = environmentConfig.BACKGROUND_COLOR;
     }
 
     setBallPosition(ballState: BallState) {
@@ -97,91 +142,117 @@ export class Environment {
         this.startText.setEnabled(true);
     }
 
-    private constructPaddles(scene: BABYLON.Scene, configuration: GameConfig) {
+    enableBallTrail() {
+        this.ballTrail.setEnabled(true);
+    }
+
+    disableBallTrail() {
+        this.ballTrail.setEnabled(false);
+    }
+
+    private constructPaddles(scene: BABYLON.Scene, config: GameConfig) {
         const numOfPlayers = 2;
-        this.paddleMeshes = new Array<BABYLON.Mesh>(numOfPlayers);
-        const paddleMaterial = new BABYLON.StandardMaterial("paddleMat", scene);
-        paddleMaterial.emissiveColor = environmentConfig.PADDLE_COLOR;
-        paddleMaterial.diffuseColor = environmentConfig.PADDLE_COLOR;
-        const glowLayer = new BABYLON.GlowLayer("paddleGlow", scene);
-        glowLayer.intensity = 0.3;
-        // result[0] is the left paddle
+        this.paddleMeshes = [];
+        const mat = new BABYLON.StandardMaterial("paddleMat", scene);
+        mat.emissiveColor = environmentConfig.PADDLE_COLOR;
+        mat.specularColor = environmentConfig.PADDLE_SPEC_COLOR;
+
         for (let i = 0; i < numOfPlayers; i++) {
-            this.paddleMeshes[i] = BABYLON.MeshBuilder.CreateBox("paddle" + i, {
-                width: configuration.PADDLE_WIDTH,
-                height: configuration.PADDLE_HEIGHT,
-                depth: configuration.BALL_RADIUS
+            const paddle = BABYLON.MeshBuilder.CreateBox(`paddle${i}`, {
+                width: config.PADDLE_WIDTH,
+                height: config.PADDLE_HEIGHT,
+                depth: config.BALL_RADIUS
             }, scene);
-            this.paddleMeshes[i].position.z = -configuration.PADDLE_WIDTH / 2;
-            this.paddleMeshes[i].material = paddleMaterial;
-            glowLayer.addIncludedOnlyMesh(this.paddleMeshes[i]);
+            paddle.material = mat;
+            paddle.position.z = -config.PADDLE_WIDTH / 2;
+            this.glowLayer.addIncludedOnlyMesh(paddle);
+            this.paddleMeshes.push(paddle);
         }
     }
 
-    private constructBall(scene: BABYLON.Scene, configuration: GameConfig) {
-        this.ballMesh = BABYLON.MeshBuilder.CreateSphere("sphere", 
-            {diameter: configuration.BALL_RADIUS * 2, segments: 16}, scene);
-        this.ballMesh.receiveShadows = false;
-        this.ballLight = new BABYLON.PointLight("light", 
-            this.ballMesh.position, scene);
-        this.ballLight.parent = this.ballMesh;
-        this.ballLight.diffuse = environmentConfig.BALL_COLOR;
-        this.ballLight.specular = environmentConfig.BALL_COLOR;
-        this.ballMesh.position = new BABYLON.Vector3(this.centerPoint.x, this.centerPoint.y, -configuration.BALL_RADIUS);
-        this.ballLight.intensity = 0.7;
-        this.ballLight.excludedMeshes.push(this.ballMesh);
-        const ballMaterial = new BABYLON.StandardMaterial("ballMat", scene);
-        ballMaterial.disableLighting = true;
-        ballMaterial.emissiveColor = environmentConfig.BALL_COLOR;
-        ballMaterial.diffuseColor = environmentConfig.BALL_COLOR;
-        this.ballMesh.material = ballMaterial;
-        const glowLayer = new BABYLON.GlowLayer("ballGlow", scene);
-        glowLayer.intensity = 0.3;
-        glowLayer.addIncludedOnlyMesh(this.ballMesh);
+    private constructBall(scene: BABYLON.Scene, config: GameConfig) {
+        this.ballMesh = BABYLON.MeshBuilder.CreateSphere("ball", { diameter: config.BALL_RADIUS * 2, segments: 32 }, scene);
+        this.ballMesh.position = new BABYLON.Vector3(this.centerPoint.x, this.centerPoint.y, -config.BALL_RADIUS);
+        const mat = new BABYLON.StandardMaterial("ballMat", scene);
+        mat.emissiveColor = environmentConfig.BALL_COLOR;
+        mat.diffuseColor = environmentConfig.BALL_COLOR;
+        mat.specularColor = environmentConfig.BALL_SPEC_COLOR;
+        this.ballMesh.material = mat;
+        this.glowLayer.addIncludedOnlyMesh(this.ballMesh);
+        this.ballTrail = new BABYLON.TrailMesh("trail", this.ballMesh, scene, config.BALL_RADIUS * 1.5, 10, true);
+        const trailMat = new BABYLON.StandardMaterial("trailMat", scene);
+        this.glowLayer.addIncludedOnlyMesh(this.ballTrail);
+        trailMat.emissiveColor = environmentConfig.BALL_COLOR.scale(0.6);
+        trailMat.alphaMode = BABYLON.Engine.ALPHA_ADD;
+        trailMat.alpha = 0.2;
+        this.ballTrail.material = trailMat;
     }
 
-    private constructBoard(scene: BABYLON.Scene, configuration: GameConfig) {
-        this.boardPlane = BABYLON.MeshBuilder.CreatePlane("ground", {
-            width: configuration.FIELD_WIDTH,
-            height: configuration.FIELD_HEIGHT
+    private constructBoard(scene: BABYLON.Scene, config: GameConfig) {
+        this.boardPlane = BABYLON.MeshBuilder.CreateGround("board", {
+            width: config.FIELD_WIDTH + 2,
+            height: config.FIELD_HEIGHT + 2
         }, scene);
-        this.boardPlane.position = this.centerPoint;
-        const boardMaterial = new BABYLON.StandardMaterial("groundMat", scene);
-        boardMaterial.diffuseColor = environmentConfig.BOARD_COLOR;
-        boardMaterial.roughness = 0.1;
-        this.boardPlane.material = boardMaterial;
+        this.boardPlane.position = new BABYLON.Vector3(this.centerPoint.x, this.centerPoint.y, 1);
+        const mat = new BABYLON.StandardMaterial("boardMat", scene);
+        mat.diffuseColor = environmentConfig.BOARD_COLOR;
+        mat.specularColor = environmentConfig.BOARD_SPEC_COLOR;
+        mat.alpha = 0.55;
+        mat.alphaMode = BABYLON.Engine.ALPHA_ADD;
+        this.boardPlane.material = mat;
+        this.boardPlane.rotate(BABYLON.Vector3.Left(), Math.PI / 2);
+    }
+
+    private constructWalls(scene: BABYLON.Scene, config: GameConfig) {
+        const sides = 4;
+        const wallThickness = 1;
+        this.wallMeshes = new Array<BABYLON.Mesh>(sides);
+        const mat = new BABYLON.StandardMaterial("wallsMat", scene);
+        mat.emissiveColor = environmentConfig.WALL_COLOR;
+        for (let i = 0; i < sides; i++) {
+            this.wallMeshes[i] = BABYLON.MeshBuilder.CreateBox("wall" + i, {
+                width: i % 2 ? 1 : config.FIELD_WIDTH + wallThickness * 3,
+                height: i % 2 ? config.FIELD_HEIGHT + wallThickness * 3 : 1,
+                depth: wallThickness
+            });
+            const offset = new BABYLON.Vector3(
+                i % 2 ? config.FIELD_WIDTH / 2 + wallThickness : 0,
+                i % 2 ? 0 : config.FIELD_HEIGHT / 2 + wallThickness,
+                0
+            );
+            this.wallMeshes[i].position = i < sides / 2 ? this.centerPoint.add(offset) : this.centerPoint.subtract(offset);
+            this.wallMeshes[i].material = mat;
+        }
     }
 
     private reconstructScoreText(index: number, score: number) {
         if (this.currentScores[index] === score) return;
         const scene = this.scoreText[index].getScene();
-        const material = this.scoreText[index].material;
-        const position = this.scoreText[index].position;
+        const mat = this.scoreText[index].material;
+        const pos = this.scoreText[index].position;
         this.scoreText[index].dispose(false, false);
         const text = BABYLON.MeshBuilder.CreateText("scoreText", score.toString(), fontData, {
             size: 8,
             resolution: 16,
             depth: 1
         }, scene);
-        if (!text) throw new Error("Could not create text");
+        if (!text) throw new Error('Could not create text');
+        text.material = mat;
+        text.position = pos;
         this.scoreText[index] = text;
-        this.scoreText[index].material = material;
-        this.scoreText[index].position = position;
         this.currentScores[index] = score;
     }
 
-    private constructScoreText(scene: BABYLON.Scene, configuration: GameConfig) {
+    private constructScoreText(scene: BABYLON.Scene, config: GameConfig) {
         const numOfPlayers = 2;
-        this.scoreText = new Array<BABYLON.Mesh>(numOfPlayers + 1); // plus one for the delimiter
-        let text: BABYLON.Nullable<BABYLON.Mesh>;
-        const scoreMaterial = new BABYLON.StandardMaterial("scoreMat", scene);
-        scoreMaterial.emissiveColor = environmentConfig.SCORE_TEXT_COLOR;
-        scoreMaterial.diffuseColor = environmentConfig.SCORE_TEXT_COLOR;
-        const glowLayer = new BABYLON.GlowLayer("scoreTextGlow", scene);
-        glowLayer.intensity = 0.3;
-        const xOffset = configuration.FIELD_WIDTH / 4;
+        this.scoreText = [];
+        const mat = new BABYLON.StandardMaterial("scoreMat", scene);
+        mat.emissiveColor = environmentConfig.SCORE_TEXT_COLOR;
+        const xOffset = config.FIELD_WIDTH / 4;
+
         for (let i = 0; i <= numOfPlayers; i++) {
-            text = BABYLON.MeshBuilder.CreateText("scoreText", i === numOfPlayers ? ":" : "0", fontData, {
+            const char = i === numOfPlayers ? ":" : "0";
+            const text = BABYLON.MeshBuilder.CreateText("scoreText", char, fontData, {
                 size: 8,
                 resolution: 16,
                 depth: 1
@@ -189,58 +260,53 @@ export class Environment {
             if (!text) throw new Error("Could not create text");
             this.scoreText[i] = text;
             this.scoreText[i].position.z = 0.01;
-            this.scoreText[i].position.y = this.centerPoint.y + configuration.FIELD_HEIGHT / 4;
-            this.scoreText[i].material = scoreMaterial;
-            glowLayer.addIncludedOnlyMesh(this.scoreText[i]);
+            this.scoreText[i].position.y = this.centerPoint.y + config.FIELD_HEIGHT / 4;
+            this.scoreText[i].material = mat;
         }
         this.scoreText[0].position.x = this.centerPoint.x - xOffset;
         this.scoreText[2].position.x = this.centerPoint.x;
         this.scoreText[1].position.x = this.centerPoint.x + xOffset;
     }
 
-    private constructStartText(scene: BABYLON.Scene, configuration: GameConfig) {
-        const text = BABYLON.MeshBuilder.CreateText("startText", "PRESS SPACE TO PLAY", fontData, {
+    private constructStartText(scene: BABYLON.Scene, config: GameConfig) {
+        const text = BABYLON.MeshBuilder.CreateText("startText", environmentConfig.START_MESSAGE, fontData, {
             size: 4,
             resolution: 16,
             depth: 1
         }, scene);
-        if (!text) throw new Error("Could not create text");
+        const mat = new BABYLON.StandardMaterial("startTextMat", scene);
+        mat.emissiveColor = environmentConfig.START_TEXT_COLOR;
+        if (!text) throw new Error('Could not create text');
+        text.material = mat;
+        text.position = new BABYLON.Vector3(
+            this.centerPoint.x,
+            this.centerPoint.y - config.FIELD_HEIGHT / 4,
+            0.01
+        );
         this.startText = text;
-        this.startText.position.x = this.centerPoint.x;
-        this.startText.position.z = 0.01;
-        this.startText.position.y = this.centerPoint.y - configuration.FIELD_HEIGHT / 4;
-        const startMaterial = new BABYLON.StandardMaterial("startTextMat", scene);
-        startMaterial.emissiveColor = environmentConfig.START_TEXT_COLOR;
-        startMaterial.diffuseColor = environmentConfig.START_TEXT_COLOR;
-        this.startText.material = startMaterial;
-        const glowLayer = new BABYLON.GlowLayer("startTextGlow", scene);
-        glowLayer.intensity = 0.3;
-        glowLayer.addIncludedOnlyMesh(this.startText);
+        // this.glowLayer.addIncludedOnlyMesh(this.startText);
     }
 
-    private constructEndTexts(scene: BABYLON.Scene, configuration: GameConfig) {
-        const numOfPlayers = 2;
-        let text: BABYLON.Nullable<BABYLON.Mesh>;
-        this.endTexts = new Array<BABYLON.Mesh>(numOfPlayers);
-        const endMaterial = new BABYLON.StandardMaterial("endTextMat", scene);
-        endMaterial.emissiveColor = environmentConfig.END_TEXT_COLOR;
-        endMaterial.diffuseColor = environmentConfig.END_TEXT_COLOR;
-        const glowLayer = new BABYLON.GlowLayer("endTextGlow", scene);
-        glowLayer.intensity = 0.3;
-        for (let i = 0; i < numOfPlayers; i++) {
-            text = BABYLON.MeshBuilder.CreateText("endText", environmentConfig.END_MESSAGE(i + 1), fontData, {
+    private constructEndTexts(scene: BABYLON.Scene, config: GameConfig) {
+        this.endTexts = [];
+        const mat = new BABYLON.StandardMaterial("endTextMat", scene);
+        mat.emissiveColor = environmentConfig.END_TEXT_COLOR;
+        for (let i = 0; i < 2; i++) {
+            const text = BABYLON.MeshBuilder.CreateText("endText", environmentConfig.END_MESSAGE(i + 1), fontData, {
                 size: 4,
                 resolution: 16,
                 depth: 1
             }, scene);
-            if (!text) throw new Error("Could not create text");
-            this.endTexts[i] = text;
-            this.endTexts[i].position.x = this.centerPoint.x;
-            this.endTexts[i].position.y = this.centerPoint.y - configuration.FIELD_HEIGHT / 3;
-            this.endTexts[i].position.z = 0.01;
-            this.endTexts[i].setEnabled(false);
-            this.endTexts[i].material = endMaterial;
-            glowLayer.addIncludedOnlyMesh(this.endTexts[i]);
+            if (!text) throw new Error('Could not create text');
+            text.material = mat;
+            text.position = new BABYLON.Vector3(
+                this.centerPoint.x,
+                this.centerPoint.y - config.FIELD_HEIGHT / 3,
+                0.01
+            );
+            text.setEnabled(false);
+            // this.glowLayer.addIncludedOnlyMesh(text);
+            this.endTexts.push(text);
         }
     }
 }
