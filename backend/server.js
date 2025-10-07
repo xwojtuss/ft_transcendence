@@ -28,6 +28,10 @@ await fastify.register(helmet, {
             "https://cdn.jsdelivr.net",
             "https://cdn.babylonjs.com"
         ],
+        "media-src": [
+            "'self'",
+            "data:"
+        ]
       },
     },
     referrerPolicy: {

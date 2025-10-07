@@ -31,6 +31,10 @@ export class Environment {
     private currentScores: number[];
     private glowLayer!: BABYLON.GlowLayer;
     private wallMeshes!: BABYLON.Mesh[];
+    private audioEngine?: BABYLON.AudioEngineV2;
+    private ballBounceSound?: BABYLON.StaticSound;
+    private failSound?: BABYLON.StaticSound;
+    private applauseSound?: BABYLON.StaticSound;
 
     constructor(scene: BABYLON.Scene, configuration: GameConfig, canvas?: HTMLCanvasElement) {
         const numOfPlayers = 2;
@@ -57,13 +61,13 @@ export class Environment {
         this.glowLayer.intensity = 0.6;
         const postProcessing = new BABYLON.DefaultRenderingPipeline("default", true, scene, [this.camera]);
         postProcessing.chromaticAberrationEnabled = true;
-        postProcessing.chromaticAberration.aberrationAmount = 10;
+        postProcessing.chromaticAberration.aberrationAmount = 5;
         postProcessing.bloomEnabled = true;
         postProcessing.bloomThreshold = 75;
         postProcessing.bloomWeight = 7;
         postProcessing.grainEnabled = true;
         postProcessing.grain.animated = true;
-        postProcessing.grain.intensity = 10;
+        postProcessing.grain.intensity = 7;
         postProcessing.fxaaEnabled = true;
         postProcessing.sharpenEnabled = true;
         postProcessing.sharpen.edgeAmount = 0.1;
@@ -91,6 +95,66 @@ export class Environment {
         this.constructWalls(scene, configuration);
 
         scene.clearColor = environmentConfig.BACKGROUND_COLOR;
+
+        let passedThroughCenter: boolean = true;
+        scene.registerBeforeRender(async () => {
+            if (!this.audioEngine) await this.createSounds();
+            console.log(this.ballMesh.position.x);
+            const graceZoneX = 5;
+            const graceZoneY = 1.5;
+            const outsideZoneX = 3;
+            if (passedThroughCenter
+                && ((this.ballMesh.position.x < graceZoneX
+                    && this.ballMesh.position.y > this.paddleMeshes[0].position.y - configuration.PADDLE_HEIGHT / 2 - graceZoneY
+                    && this.ballMesh.position.y < this.paddleMeshes[0].position.y + configuration.PADDLE_HEIGHT / 2 + graceZoneY
+                ) || (this.ballMesh.position.x > configuration.FIELD_WIDTH - graceZoneX
+                    && this.ballMesh.position.y > this.paddleMeshes[1].position.y - configuration.PADDLE_HEIGHT / 2 - graceZoneY
+                    && this.ballMesh.position.y < this.paddleMeshes[1].position.y + configuration.PADDLE_HEIGHT / 2 + graceZoneY
+                ))) {
+                await this.playBallBounceSound();
+                passedThroughCenter = false;
+            } else if (this.ballMesh.position.x > this.centerPoint.x - graceZoneX && this.ballMesh.position.x < this.centerPoint.x + graceZoneX) {
+                passedThroughCenter = true;
+            } else if (!this.endTexts[0].isEnabled() && !this.endTexts[1].isEnabled()
+                && (this.ballMesh.position.x < outsideZoneX || this.ballMesh.position.x > configuration.FIELD_WIDTH - outsideZoneX)) {
+                await this.playBallFailSound();
+            }
+        });
+        scene.onDispose = () => {
+            this.audioEngine?.dispose();
+            this.ballBounceSound?.dispose();
+            this.failSound?.dispose();
+            this.applauseSound?.dispose();
+        };
+    }
+
+    async createSounds() {
+        this.audioEngine = await BABYLON.CreateAudioEngineAsync();
+        this.ballBounceSound = await BABYLON.CreateSoundAsync('ballBounce', '../assets/sounds/metal-hit.mp3', {
+            volume: 0.2
+        });
+        this.applauseSound = await BABYLON.CreateSoundAsync('ballBounce', '../assets/sounds/applause.mp3');
+        this.failSound = await BABYLON.CreateSoundAsync('ballBounce', '../assets/sounds/fail.mp3', {
+            volume: 0.2
+        });
+    }
+
+    async playBallBounceSound() {
+        if (!this.audioEngine || !this.ballBounceSound) return;
+        await this.audioEngine.unlockAsync();
+        this.ballBounceSound.play();
+    }
+
+    async playBallFailSound() {
+        if (!this.audioEngine || !this.failSound) return;
+        await this.audioEngine.unlockAsync();
+        this.failSound.play();
+    }
+
+    async playApplauseSound() {
+        if (!this.audioEngine || !this.applauseSound) return;
+        await this.audioEngine.unlockAsync();
+        this.applauseSound.play();
     }
 
     setBallPosition(ballState: BallState) {

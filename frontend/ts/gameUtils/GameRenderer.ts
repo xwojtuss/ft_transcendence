@@ -54,9 +54,16 @@ export class GameRenderer {
     }
 
     startRenderLoop(gameState: GameState) {
+        let playedSound: boolean = false;
         this.engine.runRenderLoop(() => {
             this.beforeRenderLoop(gameState);
             this.scene?.render();
+            if (!playedSound && gameState.gameEnded && gameState.winner) {
+                this.environment.playApplauseSound();
+                playedSound = true;
+            } else if (playedSound && !gameState.gameEnded && gameState.gameInitialized) {
+                playedSound = false;
+            }
         })
         if (this.initialized) return;
         if (!this.config) throw new Error("Game not configured");
