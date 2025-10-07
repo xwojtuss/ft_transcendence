@@ -74,7 +74,6 @@ export class GameRenderer {
             this.engine.resize();
         });
         window.addEventListener("keydown", (e) => {
-            console.log('Key', e.key, 'pressed!');
             if (e.key !== "c") return;
             this.environment.toggleCameraMovement(this.canvas);
         })
