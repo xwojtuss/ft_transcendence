@@ -49,36 +49,53 @@ export class GameWebSocket {
 
     private setupEventListeners() {
         this.ws.onopen = () => {
-            //console.log("WebSocket connection established");
+        console.log("WebSocket connection established");
         };
 
         this.ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === "gameConfig") {
-                this.onGameConfig(data.config);
-            } else if (data.type === "state" && data.state) {
-                this.onGameState(data.state);
-            }
+        const data = JSON.parse(event.data);
+        if (data.type === "gameConfig") {
+            this.onGameConfig(data.config);
+        } else if (data.type === "state" && data.state) {
+            this.onGameState(data.state);
+        }
         };
 
         this.ws.onclose = () => {
-            //console.log("WebSocket connection closed");
+        console.log("WebSocket connection closed");
         };
 
         // Cleanup on unload
         window.addEventListener('beforeunload', () => {
             if (this.onGameDisconnect) this.onGameDisconnect();
-            this.disconnect();
         });
 
         // Disconnect if navigating away from game
         window.addEventListener('popstate', () => {
-            if (window.location.pathname !== '/game/local') {
-                if (this.onGameDisconnect) this.onGameDisconnect();
-                this.disconnect();
-            }
+        if (window.location.pathname !== '/game/local') {
+            if (this.onGameDisconnect) this.onGameDisconnect();
+        }
         });
+    }
+
+    // UPDATED WITH AI PLAYER: raw sender so we can greet the server with a mode.
+
+    public sendRaw(payload: any): void {
+        const trySend = () => this.ws.send(JSON.stringify(payload));
+
+        if (this.ws.readyState === WebSocket.OPEN) {
+            trySend();
+            return;
+        }
+
+        const onOpen = () => {
+            try {
+                trySend();
+            } finally {
+                this.ws.removeEventListener('open', onOpen as any);
+            }
+        };
+        this.ws.addEventListener('open', onOpen as any);
     }
 
     sendInput(type: string, key: string) {

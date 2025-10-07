@@ -71,8 +71,11 @@ async function runHandlers(pathURL: string): Promise<void> {
 
 function runChosenGame(pathURL: string): void {
     switch (pathURL) {
+        case '/game/local?ai=1':
+            initLocalGame(true);
+            break;
         case '/game/local':
-            initLocalGame();
+            initLocalGame(false);
             break;
         case '/game/online':
             // add initialization for online game mode
