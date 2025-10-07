@@ -80,7 +80,20 @@ export function initLocalGame() {
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && gameInstance) {
         gameInstance.ws.disconnect();
-        // gameInstance.renderer.end();
         gameInstance = null;
+    }
+});
+
+// Cleanup when page changes
+document.addEventListener('click', (e) => {
+    const target: EventTarget | null = e.target;
+
+    if (!target || !(target instanceof HTMLElement) || !gameInstance) return;
+    if (target.tagName === 'A') {
+        const href: string | null = target.getAttribute('href');
+        if (href) {
+            gameInstance.ws.disconnect();
+            gameInstance = null;
+        }
     }
 });

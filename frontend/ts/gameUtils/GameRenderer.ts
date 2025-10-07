@@ -68,11 +68,16 @@ export class GameRenderer {
         if (this.initialized) return;
         if (!this.config) throw new Error("Game not configured");
         this.scene = new BABYLON.Scene(this.engine);
-        this.environment = new Environment(this.scene, this.config, this.canvas);
+        this.environment = new Environment(this.scene, this.config);
         this.initialized = true;
         window.addEventListener("resize", () => {
             this.engine.resize();
         });
+        window.addEventListener("keydown", (e) => {
+            console.log('Key', e.key, 'pressed!');
+            if (e.key !== "c") return;
+            this.environment.toggleCameraMovement(this.canvas);
+        })
     }
 
     resizeGame() {

@@ -47,7 +47,7 @@ export class Environment {
             scene
         );
         this.camera.setTarget(this.centerPoint);
-        this.camera.attachControl(canvas, true);
+        if (canvas) this.camera.attachControl(canvas, true);
         this.camera.fov = Math.PI * 1.5 / 3;
 
         const ambient = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 6, -1), scene);
@@ -99,7 +99,7 @@ export class Environment {
         let passedThroughCenter: boolean = true;
         scene.registerBeforeRender(async () => {
             if (!this.audioEngine) await this.createSounds();
-            console.log(this.ballMesh.position.x);
+            // console.log(this.ballMesh.position.x);
             const graceZoneX = 5;
             const graceZoneY = 1.5;
             const outsideZoneX = 3;
@@ -212,6 +212,14 @@ export class Environment {
 
     disableBallTrail() {
         this.ballTrail.setEnabled(false);
+    }
+
+    toggleCameraMovement(canvas: HTMLCanvasElement) {
+        if (this.camera.inputs.attachedToElement) {
+            this.camera.detachControl();
+        } else {
+            this.camera.attachControl(canvas, true);
+        }
     }
 
     private constructPaddles(scene: BABYLON.Scene, config: GameConfig) {
