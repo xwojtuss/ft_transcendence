@@ -1,5 +1,11 @@
 import { drawBackground, drawOutline, drawDottedLine, drawPongText, drawScore } from "./drawBoard.js";
 
+// ^^^^^ TRDM ^^^^^ 
+// helper to compute a readable name font based on canvas height
+function nameFontPx(canvas: HTMLCanvasElement): number {
+    return Math.max(12, Math.floor(canvas.height * 0.05)); // 5% of height, min 12px
+}  
+
 interface PlayerState {
     x: number;
     y: number;
@@ -83,12 +89,36 @@ export class GameRenderer {
         }
     }
 
+    // draw player names at top-left and top-right
+    private drawPlayerNames() {
+        const name1 = (window as any).player1Name as string | undefined;
+        const name2 = (window as any).player2Name as string | undefined;
+
+        if (!name1 && !name2) return;
+
+        this.ctx.fillStyle = "white";
+        this.ctx.font = `${nameFontPx(this.canvas)}px Arial`;
+        this.ctx.textBaseline = "top";
+
+        if (name1) {
+            this.ctx.textAlign = "left";
+            this.ctx.fillText(name1, 50, 50);
+        }
+        if (name2) {
+            this.ctx.textAlign = "right";
+            this.ctx.fillText(name2, this.canvas.width - 50, 50);
+        }
+    }
+
     render(gameState: GameState | null) {
         // Draw background and static elements
         drawBackground();
         drawOutline();
         drawDottedLine();
         drawPongText();
+
+        // ^^^^^ TRDM ^^^^^ draw player names at top-left and top-right
+        this.drawPlayerNames();
 
         if (!gameState?.players || !gameState?.ball) return;
 

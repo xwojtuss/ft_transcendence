@@ -16,6 +16,12 @@ export class GameWebSocket {
             }
             else if (data.type === "state" && data.state) {
                 this.onGameState(data.state);
+                // ^^^^^ TRDM ^^^^^ if the game ended, dispatch a custom event with the winner index
+                if (data.state.gameEnded && data.state.winner) {
+                    window.dispatchEvent(new CustomEvent("gameEndedLocal", {
+                        detail: data.state.winner
+                    }));
+                }
             }
         };
         this.ws.onclose = () => {
