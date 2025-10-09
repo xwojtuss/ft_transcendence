@@ -210,6 +210,9 @@ export function startLocalGameLoop() {
         const deltaTime = (now - lastUpdateTime) / 1000;
         lastUpdateTime = now;
         for (const [sessionId, session] of getAllSessions()) {
+            // Handle only local/AI sessions
+            if (session.mode !== "local" && session.mode !== "ai") continue;
+            if (!session.gameState) continue;
             session.lastUpdateTime = now;
             // Run AI only when the session is in AI mode
             if (session.mode === "ai") {

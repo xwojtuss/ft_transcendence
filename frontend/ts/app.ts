@@ -1,10 +1,11 @@
 import changePasswordButton from "./login-register-form.js";
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler, changeOnlineStatus } from "./authenticate.js";
-import { initGameIfHome } from "./localGame.js";
+import { initLocalGame } from "./localGame.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
 import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
+import { initRemoteGame } from "./remoteGame.js";
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
@@ -71,12 +72,13 @@ async function runHandlers(pathURL: string): Promise<void> {
 function runChosenGame(pathURL: string): void {
     switch (pathURL) {
         case '/game/local?ai=1':
-            initGameIfHome(true);
+            initLocalGame(true);
             break;
         case '/game/local':
-            initGameIfHome(false);
+            initLocalGame(false);
             break;
         case '/game/online':
+            initRemoteGame();
             // add initialization for online game mode
             break;
         case '/game/multiplayer':

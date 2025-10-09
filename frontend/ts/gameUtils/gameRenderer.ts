@@ -90,6 +90,7 @@ export class GameRenderer {
         drawDottedLine();
         drawPongText();
 
+        // console.log("gameState in render:", gameState);
         if (!gameState?.players || !gameState?.ball) return;
 
         // Draw players

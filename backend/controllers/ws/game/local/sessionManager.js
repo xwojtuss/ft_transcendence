@@ -3,6 +3,7 @@ import { createGameSession } from './gameState.js';
 const sessions = new Map();
 let sessionIdCounter = 0;
 
+// Dla lokalnej gry (AI/single)
 export function createSession(socket) {
     const sessionId = ++sessionIdCounter;
     const gameState = createGameSession();
@@ -14,8 +15,17 @@ export function createSession(socket) {
     });
     
     socket.sessionId = sessionId;
-    
-    //console.log(`Created game session ${sessionId}. Total sessions: ${sessions.size}`);
+    return sessionId;
+}
+
+export function createRemoteSession() {
+    const sessionId = "remote_" + Math.floor(Math.random() * 1000000);
+    const session = {
+        sessionId,
+        players: [],
+        lastUpdateTime: Date.now()
+    };
+    sessions.set(sessionId, session);
     return sessionId;
 }
 
@@ -26,7 +36,6 @@ export function getSession(sessionId) {
 export function removeSession(sessionId) {
     if (sessions.has(sessionId)) {
         sessions.delete(sessionId);
-        //console.log(`Removed game session ${sessionId}. Total sessions: ${sessions.size}`);
     }
 }
 
@@ -37,7 +46,6 @@ export function getAllSessions() {
 export function cleanupInactiveSessions() {
     const now = Date.now();
     const TIMEOUT = 30 * 1000;
-    
     for (const [sessionId, session] of sessions) {
         if (now - session.lastUpdateTime > TIMEOUT) {
             removeSession(sessionId);

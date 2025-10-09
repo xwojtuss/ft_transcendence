@@ -1,7 +1,7 @@
-import { initCanvas, resizeCanvas, setGameDimensions } from "./gameUtils/drawBoard.js";
-import { GameWebSocket } from "./gameUtils/websocketManager.js";
-import { InputHandler } from "./gameUtils/inputHandler.js";
 import { GameRenderer } from "./gameUtils/gameRenderer.js";
+import { GameWebSocket } from "./gameUtils/websocketManager.js";
+import { initCanvas, resizeCanvas, setGameDimensions } from "./gameUtils/drawBoard.js";
+import { InputHandler } from "./gameUtils/inputHandler.js";
 
 /*handle to the running game, so other code (outside the init function) can reach the live objects and shut them down cleanly.
 It is either:
@@ -14,12 +14,10 @@ let gameInstance: {
     renderer: GameRenderer;
 } | null = null;
 
-export function initGameIfHome(aiEnabled: boolean) {
+export function initLocalGame(aiEnabled: boolean) {
     if (window.location.pathname !== '/game/local') {
         return;
     }
-
-    //console.log("Initializing local game...");
 
     function waitForCanvas() {
         const canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement; //   // Try to grab the <canvas id="local-game-canvas"> from the DOM.

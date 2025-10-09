@@ -18,22 +18,29 @@ export function setGameDimensions(width: number, height: number) {
 
 // Initialize the canvas and its context
 export function initCanvas(): boolean {
+    let canvasId: string | null = null;
+
     if (window.location.pathname === '/game/local') {
-        canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement;
-        if (!canvas) {
-            throw new Error("Failed to get canvas element");
-        }
-
-        ctx = canvas.getContext("2d");
-        if (!ctx) {
-            throw new Error("Failed to get canvas 2D context");
-        }
-
-        maxHeight = window.innerHeight * 0.8;
-        resizeCanvas();
-        return true;
+        canvasId = "local-game-canvas";
+    } else if (window.location.pathname === '/game/online') {
+        canvasId = "remote-game-canvas";
+    } else {
+        return false;
     }
-    return false;
+
+    canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    if (!canvas) {
+        throw new Error(`Failed to get canvas element: ${canvasId}`);
+    }
+
+    ctx = canvas.getContext("2d");
+    if (!ctx) {
+        throw new Error("Failed to get canvas 2D context");
+    }
+
+    maxHeight = window.innerHeight * 0.8;
+    resizeCanvas();
+    return true;
 }
 
 function calculateCanvasSize(maxHeight: number) {

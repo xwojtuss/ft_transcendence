@@ -103,7 +103,7 @@ export default async function viewsRoutes(fastify) {
     });
 
     fastify.get("/game/online", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        const view = await getStaticView('online-game');
+        const view = await getStaticView('remote-game');
         return await sendView(view, request.currentUser, request, reply);
     });
 
