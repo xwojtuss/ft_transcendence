@@ -21,6 +21,8 @@ export class GameWebSocket {
         this.onGameConfig(data.config);
       } else if (data.type === "state" && data.state) {
         this.onGameState(data.state);
+      } else if (data.type === "waiting" || data.type === "ready") {
+        this.onGameState(data);
       }
     };
 

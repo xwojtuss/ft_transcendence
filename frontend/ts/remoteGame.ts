@@ -22,13 +22,15 @@ export function initRemoteGame(sessionId?: string) {
     if (sessionId) wsUrl += `?sessionId=${sessionId}`;
     console.log("Connecting to WebSocket URL:", wsUrl);
 
-    // Tylko obsługa oczekiwania na drugiego gracza
+    // Obsługa oczekiwania i gotowości do gry
     const gameWs = new GameWebSocket(
         wsUrl,
         () => {},
         (data) => {
             if (data.type === "waiting") {
-                console.log(data.message); // Wypisuje "Waiting for second player..."
+                console.log(data.message);
+            } else if (data.type === "ready") {
+                console.log(data.message);
             }
         }
     );
