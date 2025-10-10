@@ -13,26 +13,49 @@ import { GameWebSocket } from "./gameUtils/websocketManager.js";
 
         // initCanvas();
 
-export function initRemoteGame(sessionId?: string) {
+export function initRemoteGame() {
     if (window.location.pathname !== '/game/online') return;
 
-    // Setup WebSocket
+    // Stały playerId w localStorage
+    let playerId = localStorage.getItem("playerId");
+    if (!playerId) {
+        playerId = crypto.randomUUID();
+        localStorage.setItem("playerId", playerId);
+    }
+    console.debug(`[FRONT DEBUG] playerId: ${playerId}`);
+
+    // Pobierz sessionId z localStorage (jeśli istnieje)
+    let sessionId = localStorage.getItem("sessionId");
+    console.debug(`[FRONT DEBUG] sessionId (from storage): ${sessionId}`);
+
+    // Buduj URL WebSocket z parametrami
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     let wsUrl = `${protocol}//${window.location.host}/ws/remoteGame`;
-    if (sessionId) wsUrl += `?sessionId=${sessionId}`;
-    console.log("Connecting to WebSocket URL:", wsUrl);
+    const params = [];
+    if (sessionId) params.push(`sessionId=${sessionId}`);
+    params.push(`playerId=${playerId}`);
+    wsUrl += `?${params.join("&")}`;
+    console.debug(`[FRONT DEBUG] Connecting to WebSocket URL: ${wsUrl}`);
 
-    // Obsługa oczekiwania i gotowości do gry
+    // Obsługa komunikatów z backendu
     const gameWs = new GameWebSocket(
         wsUrl,
         () => {},
         (data) => {
+            console.debug("[FRONT DEBUG] Otrzymano wiadomość z backendu:", data);
+            if (data.sessionId && data.sessionId !== sessionId) {
+                localStorage.setItem("sessionId", data.sessionId);
+                sessionId = data.sessionId;
+                console.debug(`[FRONT DEBUG] Zapisano nowy sessionId: ${sessionId}`);
+            }
             if (data.type === "waiting") {
                 console.log(data.message);
             } else if (data.type === "ready") {
                 console.log(data.message);
+            } else if (data.type === "reconnected") {
+                console.log(data.message);
             }
         }
     );
-    console.log("WebSocket initialized:", gameWs);
+    console.debug("[FRONT DEBUG] WebSocket initialized:", gameWs);
 }
