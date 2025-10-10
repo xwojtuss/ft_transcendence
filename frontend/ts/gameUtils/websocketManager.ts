@@ -23,6 +23,10 @@ export class GameWebSocket {
         this.onGameState(data.state);
       } else if (data.type === "waiting" || data.type === "ready") {
         this.onGameState(data);
+      } else if (data.type === "error") {
+        console.error("Error from server:", data.message);
+      } else if (data.type === "reconnected") {
+        this.onGameState(data);
       }
     };
 
