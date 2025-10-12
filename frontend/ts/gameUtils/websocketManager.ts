@@ -39,15 +39,18 @@ export class GameWebSocket {
       this.disconnect();
     });
 
-    // Disconnect if navigating away from game
-    window.addEventListener('popstate', () => {
+    const checkRouteChange = () => {
       if (
-        window.location.pathname !== '/game/local' &&
-        window.location.pathname !== '/game/online'
+        window.location.pathname !== "/game/online" &&
+        window.location.pathname !== "/game/local"
       ) {
+        console.debug("[FRONT DEBUG] Route changed away from game, disconnecting WebSocket...");
         this.disconnect();
       }
-    });
+    };
+
+    // Back/forward navigation (popstate)
+    window.addEventListener("popstate", checkRouteChange);
   }
 
   // UPDATED WITH AI PLAYER: raw sender so we can greet the server with a mode.
@@ -82,8 +85,19 @@ export class GameWebSocket {
 
   disconnect() {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log("Disconnecting WebSocket...");
+      console.log("Disconnecting WebSocket... informing server first");
+      try {
+        this.ws.send(JSON.stringify({ type: "clientDisconnecting" }));
+      } catch (err) {
+        console.warn("Failed to send disconnect message:", err);
+      }
       this.ws.close();
+    }
+  }
+
+  public close() {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.close();
     }
   }
 }
