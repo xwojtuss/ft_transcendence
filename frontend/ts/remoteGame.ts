@@ -57,5 +57,14 @@ export function initRemoteGame() {
             }
         }
     );
+    (window as any).activeGameWs = gameWs;
     console.debug("[FRONT DEBUG] WebSocket initialized:", gameWs);
+
+    window.addEventListener("beforeunload", () => {
+        if (gameWs) gameWs.close();
+    });
+    window.addEventListener("popstate", () => {
+        if (gameWs) gameWs.close();
+    });
 }
+

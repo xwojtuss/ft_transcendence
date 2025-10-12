@@ -58,6 +58,17 @@ export function handleRemoteConnection(connection, req) {
         player.connected = true;
         player.lastDisconnect = null;
         socket.playerId = existingIdx + 1;
+
+        // Dodaj nowy handler close dla nowego socketu!
+        socket.on('close', () => {
+            const idx = session.players.findIndex(p => p.id === playerId);
+            if (idx !== -1) {
+                session.players[idx].connected = false;
+                session.players[idx].lastDisconnect = Date.now();
+                console.log(`[DEBUG] Player ${playerId} disconnected from session ${session.id}`);
+            }
+        });
+
         socket.send(JSON.stringify({
             type: "reconnected",
             message: "Reconnected to session.",
@@ -97,14 +108,20 @@ export function handleRemoteConnection(connection, req) {
         return;
     }
 
-    // Rozłączenie: tylko ustaw flagę i czas
-    socket.on('close', () => {
-        const idx = session.players.findIndex(p => p.id === playerId);
-        if (idx !== -1) {
-            session.players[idx].connected = false;
-            session.players[idx].lastDisconnect = Date.now();
-            console.log(`[DEBUG] Player ${playerId} disconnected from session ${session.id}`);
+    socket.on('message', (msg) => {
+        const data = JSON.parse(msg);
+        if (data.type === "clientDisconnecting") {
+            console.log(`[DEBUG] Player ${playerId} is leaving or refreshing`);
+            const idx = session.players.findIndex(p => p.id === playerId);
+            if (idx !== -1) {
+                session.players[idx].connected = false;
+                session.players[idx].lastDisconnect = Date.now();
+            }
         }
+    });
+
+    socket.on('close', () => {
+        console.log(`[DEBUG] socket closed for player ${playerId}`);
     });
 }
 
@@ -118,6 +135,11 @@ export function handleRemoteConnection(connection, req) {
 export function startRemoteGameLoop() {
     setInterval(() => {
         for (const [sessionId, session] of sessions.entries()) {
+            // Debug: wypisz stan graczy
+            session.players.forEach((p, idx) => {
+                console.log(`[DEBUG] Sesja ${sessionId} - Gracz ${idx}: id=${p.id}, connected=${p.connected}, lastDisconnect=${p.lastDisconnect}`);
+            });
+
             // Usuwanie rozłączonych graczy po timeout
             session.players = session.players.filter(p => {
                 if (!p.connected && p.lastDisconnect && Date.now() - p.lastDisconnect > 5000) {
