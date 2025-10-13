@@ -37,6 +37,26 @@ export function initRemoteGame() {
     wsUrl += `?${params.join("&")}`;
     console.debug(`[FRONT DEBUG] Connecting to WebSocket URL: ${wsUrl}`);
 
+    // Dodaj element do wyświetlania statusu gry
+    let statusDiv = document.getElementById("remote-game-status");
+    if (!statusDiv) {
+        statusDiv = document.createElement("div");
+        statusDiv.id = "remote-game-status";
+        statusDiv.style.position = "fixed";
+        statusDiv.style.top = "50%";
+        statusDiv.style.left = "50%";
+        statusDiv.style.transform = "translate(-50%, -50%)";
+        statusDiv.style.fontSize = "min(6vw, 6vh, 2rem)";
+        statusDiv.style.fontWeight = "bold";
+        statusDiv.style.color = "#fff";
+        statusDiv.style.background = "none";
+        statusDiv.style.padding = "0";
+        statusDiv.style.borderRadius = "0";
+        statusDiv.style.boxShadow = "none";
+        statusDiv.style.zIndex = "1000";
+        document.body.appendChild(statusDiv);
+    }
+
     // Obsługa komunikatów z backendu
     const gameWs = new GameWebSocket(
         wsUrl,
@@ -49,11 +69,13 @@ export function initRemoteGame() {
                 console.debug(`[FRONT DEBUG] Zapisano nowy sessionId: ${sessionId}`);
             }
             if (data.type === "waiting") {
-                console.log(data.message);
+                statusDiv.textContent = "Waiting for opponent...";
             } else if (data.type === "ready") {
                 console.log(data.message);
+                statusDiv.textContent = "Opponent found! Game starting...";
             } else if (data.type === "reconnected") {
                 console.log(data.message);
+                statusDiv.textContent = "Reconnected to session.";
             }
         }
     );
@@ -67,4 +89,3 @@ export function initRemoteGame() {
         if (gameWs) gameWs.close();
     });
 }
-

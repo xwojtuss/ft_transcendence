@@ -45,6 +45,13 @@ function setupSocketHandlers(socket, session, playerId) {
                 session.players[idx].lastDisconnect = Date.now();
             }
         }
+        if (data.type === "loginStatus") {
+            const idx = session.players.findIndex(p => p.id === playerId);
+            if (idx !== -1) {
+                session.players[idx].isLoggedIn = data.isLoggedIn;
+                session.players[idx].nick = data.nick;
+            }
+        }
     });
 
     socket.on('close', () => {
@@ -161,6 +168,43 @@ export function startRemoteGameLoop() {
                 sessions.delete(sessionId);
                 console.log(`[DEBUG] Empty session removed: ${sessionId}`);
                 continue;
+            }
+
+            // Sprawdź czy jeden gracz jest połączony, a drugi rozłączony (ale nie usunięty)
+            const activePlayers = session.players.filter(p => p.connected && !p.removed);
+            const disconnectedPlayers = session.players.filter(p => !p.connected && !p.removed);
+
+            // Waiting info
+            if (
+                activePlayers.length === 1 &&
+                disconnectedPlayers.length === 1
+            ) {
+                const player = activePlayers[0];
+                player.socket.send(JSON.stringify({
+                    type: "waiting",
+                    message: "Waiting for opponent to reconnect...",
+                    players: session.players.filter(p => !p.removed).length,
+                    playerId: player.playerNumber,
+                    sessionId
+                }));
+            }
+
+            // Ready info (obaj połączeni)
+            if (
+                activePlayers.length === 2 &&
+                session.players.filter(p => !p.removed).length === 2
+            ) {
+                session.players.forEach((p, idx) => {
+                    if (p.connected && !p.removed) {
+                        p.socket.send(JSON.stringify({
+                            type: "ready",
+                            message: "Opponent reconnected! Game starting...",
+                            players: 2,
+                            playerId: p.playerNumber,
+                            sessionId
+                        }));
+                    }
+                });
             }
         }
     }, 1000 / FPS);
