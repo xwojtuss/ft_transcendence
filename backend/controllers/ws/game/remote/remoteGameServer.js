@@ -12,20 +12,20 @@ function generateId() {
 // --- GAMELOOP ---
 
 function findOrCreateSessionForPlayer(playerId, socket) {
-    // 1. Szukaj sesji, gdzie gracz już istnieje (reconnect)
+    // 1. Look for a session where the player already exists (reconnect)
     for (const session of sessions.values()) {
         const idx = session.players.findIndex(p => p.id === playerId);
         if (idx !== -1) {
             return session;
         }
     }
-    // 2. Szukaj sesji z jednym graczem
+    // 2. Look for a session with one player (waiting for opponent)
     for (const session of sessions.values()) {
         if (session.players.length === 1 && session.players[0].connected) {
             return session;
         }
     }
-    // 3. Brak sesji z jednym graczem, twórz nową
+    // 3. No session with one player, create a new one
     const sessionId = generateId();
     const session = {
         id: sessionId,
@@ -36,20 +36,14 @@ function findOrCreateSessionForPlayer(playerId, socket) {
     return session;
 }
 
-/*
-    1. Funkcja jest wywoływana przy nowym połączeniu WebSocket do /ws/remoteGame
-    2. Wysyła zapytanie do startRemoteGameLoop do jakiej sesji ma dołączyć
-    3. Otrzymuje ID sesji i informacje o graczu (1 lub 2)
-    4. Przy odświeżeniu strony/zerwaniu połączenia wysyła informację o rozłączeniu do startRemoteGameLoop -> startRemoteGameLoop czeka 5 sekund na ponowne połączenie jeżeli nie nastąpi to usuwa gracza
-*/
 export function handleRemoteConnection(connection, req) {
     const socket = connection.socket || connection;
     const playerId = req.query.playerId;
 
-    // Zapytaj game loop o sesję do dołączenia
+    // Ask game loop for the session to join
     let session = findOrCreateSessionForPlayer(playerId, socket);
 
-    // Sprawdź, czy gracz już jest w tej sesji (reconnect)
+    // Check if the player is already in this session (reconnect)
     const existingIdx = session.players.findIndex(p => p.id === playerId);
     if (existingIdx !== -1) {
         // Reconnect
@@ -57,9 +51,11 @@ export function handleRemoteConnection(connection, req) {
         player.socket = socket;
         player.connected = true;
         player.lastDisconnect = null;
+        player.removed = false; // <-- PRZYWRÓĆ GRACZA!
         socket.playerId = existingIdx + 1;
+        socket.playerNumber = player.playerNumber;
 
-        // Dodaj nowy handler close dla nowego socketu!
+        // Add new close handler for the new socket
         socket.on('close', () => {
             const idx = session.players.findIndex(p => p.id === playerId);
             if (idx !== -1) {
@@ -72,21 +68,28 @@ export function handleRemoteConnection(connection, req) {
         socket.send(JSON.stringify({
             type: "reconnected",
             message: "Reconnected to session.",
-            players: session.players.length,
-            playerId: socket.playerId,
+            players: session.players.filter(p => !p.removed).length,
+            playerId: socket.playerNumber,
             sessionId: session.id
         }));
         return;
     }
 
-    // Dodaj nowego gracza
-    if (session.players.length < 2) {
-        session.players.push({ id: playerId, socket, connected: true, lastDisconnect: null });
+    // Add new player
+    if (session.players.filter(p => !p.removed).length < 2) {
+        session.players.push({
+            id: playerId,
+            socket,
+            connected: true,
+            lastDisconnect: null,
+            playerNumber: session.players.length + 1,
+            removed: false
+        });
         socket.playerId = session.players.length;
         if (session.players.length === 1) {
             socket.send(JSON.stringify({
                 type: "waiting",
-                message: "Czekam na przeciwnika",
+                message: "Waiting for opponent...",
                 players: 1,
                 playerId: 1,
                 sessionId: session.id
@@ -95,7 +98,7 @@ export function handleRemoteConnection(connection, req) {
             session.players.forEach((p, idx) => {
                 p.socket.send(JSON.stringify({
                     type: "ready",
-                    message: "Znalazłem przeciwnika! Możesz zacząć grę.",
+                    message: "Enemy found! Starting game...",
                     players: 2,
                     playerId: idx + 1,
                     sessionId: session.id
@@ -125,47 +128,29 @@ export function handleRemoteConnection(connection, req) {
     });
 }
 
-/*
-    1. Funkcja jest wywoływana w pętli co 1000/FPS ms od początku programu
-    2. Odpowiada za stan sesji oraz informuje graczy do których sesji dołączyć
-    3. Przechodzi przez wszystkie sesje i wykonuje logikę gry (fizyka, AI, scoring)
-    4. Wysyła aktualizacje stanu gry do obu graczy w sesji
-*/
 // --- GAMELOOP ---
 export function startRemoteGameLoop() {
     setInterval(() => {
         for (const [sessionId, session] of sessions.entries()) {
-            // Debug: wypisz stan graczy
+            // Debug: print player states
             session.players.forEach((p, idx) => {
-                console.log(`[DEBUG] Sesja ${sessionId} - Gracz ${idx}: id=${p.id}, connected=${p.connected}, lastDisconnect=${p.lastDisconnect}`);
+                console.log(`[DEBUG] Session ${sessionId} - Player ${idx}: id=${p.id}, connected=${p.connected}, lastDisconnect=${p.lastDisconnect}, removed=${p.removed}`);
             });
 
-            // Usuwanie rozłączonych graczy po timeout
-            session.players = session.players.filter(p => {
-                if (!p.connected && p.lastDisconnect && Date.now() - p.lastDisconnect > 5000) {
-                    console.log(`[DEBUG] Usuwam gracza ${p.id} z sesji ${sessionId} po timeout`);
-                    return false;
+            // Remove disconnected players after timeout (set removed flag)
+            session.players.forEach(p => {
+                if (!p.connected && p.lastDisconnect && Date.now() - p.lastDisconnect > 5000 && !p.removed) {
+                    p.removed = true;
+                    console.log(`[DEBUG] Marking player as removed: ${p.id} from session ${sessionId} after timeout`);
                 }
-                return true;
             });
 
-            // Usuwanie pustych sesji
-            if (session.players.length === 0) {
+            // Remove empty sessions (all players removed)
+            if (session.players.every(p => p.removed)) {
                 sessions.delete(sessionId);
-                console.log(`[DEBUG] Usunięto pustą sesję: ${sessionId}`);
+                console.log(`[DEBUG] Empty session removed: ${sessionId}`);
                 continue;
             }
-
-            // --- LOGIKA GRY ---
-            // if (session.players.length === 2 && session.players.every(p => p.connected)) {
-            //     const gameState = session.gameState || {};
-            //     session.players.forEach(p => {
-            //         p.socket.send(JSON.stringify({
-            //             type: "state",
-            //             state: gameState
-            //         }));
-            //     });
-            // }
         }
     }, 1000 / FPS);
 }
