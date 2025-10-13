@@ -9,8 +9,6 @@ function generateId() {
     return Math.random().toString(36).slice(2);
 }
 
-// --- GAMELOOP ---
-
 function findOrCreateSessionForPlayer(playerId, socket) {
     // 1. Look for a session where the player already exists (reconnect)
     for (const session of sessions.values()) {
@@ -36,81 +34,7 @@ function findOrCreateSessionForPlayer(playerId, socket) {
     return session;
 }
 
-export function handleRemoteConnection(connection, req) {
-    const socket = connection.socket || connection;
-    const playerId = req.query.playerId;
-
-    // Ask game loop for the session to join
-    let session = findOrCreateSessionForPlayer(playerId, socket);
-
-    // Check if the player is already in this session (reconnect)
-    const existingIdx = session.players.findIndex(p => p.id === playerId);
-    if (existingIdx !== -1) {
-        // Reconnect
-        const player = session.players[existingIdx];
-        player.socket = socket;
-        player.connected = true;
-        player.lastDisconnect = null;
-        player.removed = false; // <-- PRZYWRÓĆ GRACZA!
-        socket.playerId = existingIdx + 1;
-        socket.playerNumber = player.playerNumber;
-
-        // Add new close handler for the new socket
-        socket.on('close', () => {
-            const idx = session.players.findIndex(p => p.id === playerId);
-            if (idx !== -1) {
-                session.players[idx].connected = false;
-                session.players[idx].lastDisconnect = Date.now();
-                console.log(`[DEBUG] Player ${playerId} disconnected from session ${session.id}`);
-            }
-        });
-
-        socket.send(JSON.stringify({
-            type: "reconnected",
-            message: "Reconnected to session.",
-            players: session.players.filter(p => !p.removed).length,
-            playerId: socket.playerNumber,
-            sessionId: session.id
-        }));
-        return;
-    }
-
-    // Add new player
-    if (session.players.filter(p => !p.removed).length < 2) {
-        session.players.push({
-            id: playerId,
-            socket,
-            connected: true,
-            lastDisconnect: null,
-            playerNumber: session.players.length + 1,
-            removed: false
-        });
-        socket.playerId = session.players.length;
-        if (session.players.length === 1) {
-            socket.send(JSON.stringify({
-                type: "waiting",
-                message: "Waiting for opponent...",
-                players: 1,
-                playerId: 1,
-                sessionId: session.id
-            }));
-        } else if (session.players.length === 2) {
-            session.players.forEach((p, idx) => {
-                p.socket.send(JSON.stringify({
-                    type: "ready",
-                    message: "Enemy found! Starting game...",
-                    players: 2,
-                    playerId: idx + 1,
-                    sessionId: session.id
-                }));
-            });
-        }
-    } else {
-        socket.send(JSON.stringify({ type: "error", message: "Session full or not found" }));
-        socket.close();
-        return;
-    }
-
+function setupSocketHandlers(socket, session, playerId) {
     socket.on('message', (msg) => {
         const data = JSON.parse(msg);
         if (data.type === "clientDisconnecting") {
@@ -124,8 +48,95 @@ export function handleRemoteConnection(connection, req) {
     });
 
     socket.on('close', () => {
-        console.log(`[DEBUG] socket closed for player ${playerId}`);
+        const idx = session.players.findIndex(p => p.id === playerId);
+        if (idx !== -1) {
+            session.players[idx].connected = false;
+            session.players[idx].lastDisconnect = Date.now();
+            console.log(`[DEBUG] Player ${playerId} disconnected from session ${session.id}`);
+        }
     });
+}
+
+function reconnectPlayer(session, socket, playerId, existingIdx) {
+    const player = session.players[existingIdx];
+    player.socket = socket;
+    player.connected = true;
+    player.lastDisconnect = null;
+    player.removed = false;
+    socket.playerId = existingIdx + 1;
+    socket.playerNumber = player.playerNumber;
+    setupSocketHandlers(socket, session, playerId);
+
+    socket.send(JSON.stringify({
+        type: "reconnected",
+        message: "Reconnected to session.",
+        players: session.players.filter(p => !p.removed).length,
+        playerId: socket.playerNumber,
+        sessionId: session.id
+    }));
+}
+
+function addNewPlayer(session, socket, playerId) {
+    const playerNumber = session.players.length + 1;
+    session.players.push({
+        id: playerId,
+        socket,
+        connected: true,
+        lastDisconnect: null,
+        playerNumber,
+        removed: false
+    });
+    socket.playerId = session.players.length;
+    socket.playerNumber = playerNumber;
+    setupSocketHandlers(socket, session, playerId);
+
+    if (session.players.length === 1) {
+        socket.send(JSON.stringify({
+            type: "waiting",
+            message: "Waiting for opponent...",
+            players: 1,
+            playerId: 1,
+            sessionId: session.id
+        }));
+    } else if (session.players.length === 2) {
+        session.players.forEach((p, idx) => {
+            p.socket.send(JSON.stringify({
+                type: "ready",
+                message: "Enemy found! Starting game...",
+                players: 2,
+                playerId: idx + 1,
+                sessionId: session.id
+            }));
+        });
+    }
+}
+
+function handleSessionFull(socket) {
+    socket.send(JSON.stringify({ type: "error", message: "Session full or not found" }));
+    socket.close();
+}
+
+export function handleRemoteConnection(connection, req) {
+    const socket = connection.socket || connection;
+    const playerId = req.query.playerId;
+
+    // Ask game loop for the session to join
+    let session = findOrCreateSessionForPlayer(playerId, socket);
+
+    // Check if the player is already in this session (reconnect)
+    const existingIdx = session.players.findIndex(p => p.id === playerId);
+    if (existingIdx !== -1) {
+        // Reconnect
+        reconnectPlayer(session, socket, playerId, existingIdx);
+        return;
+    }
+
+    // Add new player
+    if (session.players.filter(p => !p.removed).length < 2) {
+        addNewPlayer(session, socket, playerId);
+    } else {
+        handleSessionFull(socket);
+    }
 }
 
 // --- GAMELOOP ---
