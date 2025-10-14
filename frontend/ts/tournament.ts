@@ -6,7 +6,16 @@
 // - Local game posts winner to backend, sets 'tournamentResult', returns to /game/local-tournament
 // - On return, we show 'Winner' screen and continue with next match/round
 // - Pass objects between pages via sessionStorage (simple key/value storage in the browser).
+import { renderPage } from "./app.js";
 import { clearTournamentAll } from "./tournamentCleanup.js"; // put at file top with other imports
+import { registration as getRegisterAliasesHTML,
+    initialBracket as getInitialBracketHTML,
+    nextMatch as getNextMatchHTML, 
+    bracket as getNextBracketHTML,
+    playNextRound as getNextRoundHTML,
+    finalBracket as getFinalBracketHTML,
+    finalScores as getFinalScoresHTML} from "./tournamentViews.js";
+import { checkNickname } from "./validateInput.js";
 
 /* ------------------------- small DOM helpers ------------------------- */
 
@@ -151,53 +160,17 @@ function renderFinalScreen(tournamentId: number, data: any): void {
     }
 
     // === Render with your original layout / classes ===
-    let html = `
-    <div class="w-screen h-screen flex items-center justify-center">
-      <div class="bg-black rounded-xl p-10 text-center shadow-lg max-w-2xl w-[90%]">
-        <h2 class="text-4xl font-extrabold text-white mb-8">Final Results</h2>
-        ${champion ? `<p class="text-3xl font-extrabold text-yellow-400 mb-6">Champion: ${esc(champion)} 🏆</p>` : ''}
-  
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-left text-white border-separate border-spacing-y-2">
-            <thead>
-              <tr class="text-gray-300 text-lg">
-                <th class="px-4 py-2">Rank</th>
-                <th class="px-4 py-2">Player</th>
-                <th class="px-4 py-2">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(r => `
-                <tr class="bg-zinc-800/60 rounded-xl">
-                  <td class="px-4 py-3 font-semibold">${esc(r.rank)}</td>
-                  <td class="px-4 py-3">${esc(r.player)}</td>
-                  <td class="px-4 py-3">${esc(r.notes)}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-  
-        <div class="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-          <button id="btn-bracket" class="bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-            Bracket
-          </button>
-          <button id="play-again" class="bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-            Play Again
-          </button>
-          <button id="finish" class="bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-            Finish
-          </button>
-        </div>
-      </div>
-    </div>`;
-
-    app.innerHTML = html;
+    
+    app.innerHTML = getFinalScoresHTML(champion, rows);
 
     // Buttons
-    document.getElementById('btn-bracket')!.addEventListener('click', () => {
-        showBracketScreen(tournamentId, data);
+    document.getElementById('finish')!.addEventListener('click', () => {
+        // showBracketScreen(tournamentId, data);
+        clearTournamentAll("user-clicked-finish");
+        renderPage("/", false);
     });
-    document.getElementById('play-again')!.addEventListener('click', async () => {
+    document.getElementById('tournament-scores-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
         const aliases = data.players.map((p: any) => p.alias);
         const res2 = await fetch('/api/tournaments', {
             method: 'POST',
@@ -206,13 +179,6 @@ function renderFinalScreen(tournamentId: number, data: any): void {
         });
         const data2 = await res2.json();
         renderInitialBracket(data2.matches, data2.tournamentId);
-    });
-    document.getElementById('finish')!.addEventListener('click', () => {
-        // proactively nuke any remaining tournament crumbs
-        clearTournamentAll("user-clicked-finish");
-        window.history.pushState({}, "", "/");
-        window.dispatchEvent(new PopStateEvent("popstate"));
-        window.location.href = '/';
     });
 }
 
@@ -226,33 +192,14 @@ async function showBracketScreen(tournamentId: number, dataFromCaller?: any): Pr
 
     clearApp();
     const app = document.getElementById('app')!;
-    const list = buildBracketListHTML(data.matches);
-
-    const html = `
-    <div class="w-screen h-screen flex items-center justify-center">
-      <div class="bg-black rounded-xl p-10 text-center shadow-lg max-w-2xl w-[90%]">
-        <h2 class="text-4xl font-extrabold text-white mb-8">Tournament Bracket</h2>
-        ${list}
-        <div class="flex flex-col sm:flex-row justify-center gap-4">
-          <button id="btn-results" class="bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-            Final Results
-          </button>
-          <button id="play-again" class="bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-            Play Again
-          </button>
-          <button id="finish" class="bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-            Finish
-          </button>
-        </div>
-      </div>
-    </div>`;
-    app.innerHTML = html;
+    app.innerHTML = getFinalBracketHTML(data.matches);
 
     // Buttons
-    document.getElementById('btn-results')!.addEventListener('click', () => {
+    document.getElementById('finish')?.addEventListener('click', () => {
         renderFinalScreen(tournamentId, data);
     });
-    document.getElementById('play-again')!.addEventListener('click', async () => {
+    document.getElementById('tournament-final-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
         const aliases = data.players.map((p: any) => p.alias);
         const res2 = await fetch('/api/tournaments', {
             method: 'POST',
@@ -262,12 +209,12 @@ async function showBracketScreen(tournamentId: number, dataFromCaller?: any): Pr
         const data2 = await res2.json();
         renderInitialBracket(data2.matches, data2.tournamentId);
     });
-    document.getElementById('finish')!.addEventListener('click', () => {
-        clearTournamentAll("user-clicked-finish");
-        window.history.pushState({}, "", "/");
-        window.dispatchEvent(new PopStateEvent("popstate"));
-        window.location.href = '/';
-    });
+    // document.getElementById('finish')!.addEventListener('click', () => {
+    //     clearTournamentAll("user-clicked-finish");
+    //     window.history.pushState({}, "", "/");
+    //     window.dispatchEvent(new PopStateEvent("popstate"));
+    //     window.location.href = '/';
+    // });
 }
 
 /* --------------------- navigation & return handling --------------------- */
@@ -283,8 +230,9 @@ function goToLocalGameForMatch(tournamentId: number, match: any): void {
     }));
 
     // SPA navigation to /game/local (no full reload)
-    window.history.pushState({}, "", "/game/local");
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    renderPage("/game/local", false);
+    // window.history.pushState({}, "", "/game/local");
+    // window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 /**
@@ -300,18 +248,10 @@ async function handleReturnFromLocal(): Promise<boolean> {
 
     clearApp();
     const app = document.getElementById('app')!;
-    app.innerHTML = `
-    <div class="w-screen h-screen flex items-center justify-center">
-      <div class="bg-black rounded-xl p-10 text-center shadow-lg max-w-xl w-[90%]">
-        <p class="text-3xl font-extrabold text-white mb-8">Winner: <span class="text-yellow-400">${esc(res.winnerAlias)}</span></p>
-        <button id="next-btn" class="w-full bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-          Next
-        </button>
-      </div>
-    </div>
-  `;
+    app.innerHTML = getNextMatchHTML(res.winnerAlias);
 
-    document.getElementById('next-btn')!.addEventListener('click', async () => {
+    document.getElementById('tournament-match-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
         await continueTournament(res.tournamentId);
     });
 
@@ -348,25 +288,6 @@ export function initLocalTournament(): void {
         delete (window as any).player1Name;
         delete (window as any).player2Name;
 
-        clearApp();
-        const app = document.getElementById('app')!;
-        app.innerHTML = `
-      <div class="w-screen h-screen flex items-center justify-center">
-        <div class="bg-black rounded-xl p-10 text-center shadow-lg">
-          <h2 class="text-4xl font-extrabold text-white mb-8">Select Number of Players</h2>
-          <div class="flex items-center justify-center space-x-10">
-            <button id="btn-4players" class="px-8 py-4 bg-gray-400 text-black font-bold text-xl rounded-lg hover:bg-yellow-300 transition">
-              4 Players
-            </button>
-            <div class="text-6xl text-yellow-400">🏆</div>
-            <button id="btn-8players" class="px-8 py-4 bg-gray-400 text-black font-bold text-xl rounded-lg hover:bg-yellow-300 transition">
-              8 Players
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-
         document.getElementById('btn-4players')!.addEventListener('click', () => showRegistration(4));
         document.getElementById('btn-8players')!.addEventListener('click', () => showRegistration(8));
     });
@@ -377,28 +298,8 @@ export function initLocalTournament(): void {
 async function showRegistration(playerCount: number): Promise<void> {
     clearApp();
     const app = document.getElementById('app')!;
-    let inputsHtml = '';
-    for (let i = 1; i <= playerCount; i++) {
-        inputsHtml += `
-        <div class="mb-2">
-          <label class="block font-medium">Player ${i} ________ </label>
-          <input id="player${i}" type="text" class="w-full border px-2 py-1 rounded" />
-        </div>`;
-    }
-    app.innerHTML = `
-    <div class="w-screen h-screen flex items-center justify-center">
-      <div class="bg-black rounded-xl p-10 text-center shadow-lg">
-        <h2 class="text-4xl font-extrabold text-white mb-8">Enter Player Names</h2>
-        <form id="tournament-form" class="space-y-4">
-          ${inputsHtml}
-          <button type="submit" class="w-full bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-            Register
-          </button>
-        </form>
-      </div>
-    </div>
-    `;
-
+    app.innerHTML = getRegisterAliasesHTML(playerCount);
+    document.getElementById('cancel-form')?.addEventListener('click', async () => await renderPage('/game/local-tournament', false))
     document.getElementById('tournament-form')!.addEventListener('submit', async (e) => {
         e.preventDefault();
         const aliases: string[] = [];
@@ -408,6 +309,16 @@ async function showRegistration(playerCount: number): Promise<void> {
             if (!val) { alert("All names must be filled in."); return; }
             const key = val.toLowerCase();
             if (namesSet.has(key)) { alert("Names must be unique."); return; }
+            try {
+              checkNickname(val, "Alias");
+            } catch (error) {
+              if (!(error instanceof Error)) {
+                alert("Invalid alias");
+                return;
+              }
+              alert(error.message);
+              return;
+            }
             namesSet.add(key);
             aliases.push(val);
         }
@@ -427,33 +338,13 @@ async function showRegistration(playerCount: number): Promise<void> {
 }
 
 function renderInitialBracket(matches: any[], tournamentId: number): void {
-    clearApp();
+    // clearApp();
     const app = document.getElementById('app')!;
+    app.innerHTML = getInitialBracketHTML(matches);
 
-    let html = `
-      <div class="w-screen h-screen flex items-center justify-center">
-        <div class="bg-black rounded-xl p-10 text-center shadow-lg max-w-xl w-[90%]">
-          <h2 class="text-4xl font-extrabold text-white mb-8">First Round Matchups</h2>
-          <ul class="text-white text-left list-disc list-inside space-y-2 mb-8 text-lg">
-    `;
-
-    for (const m of matches) {
-        html += `        <li>${esc(m.player1)} vs ${esc(m.player2)}</li>\n`;
-    }
-
-    html += `
-          </ul>
-          <button id="begin-btn"
-            class="w-full bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-            Begin Tournament
-          </button>
-        </div>
-      </div>
-    `;
-
-    app.innerHTML = html;
-
-    document.getElementById('begin-btn')!.addEventListener('click', () => {
+    document.getElementById('cancel-form')?.addEventListener('click', async () => await renderPage('/game/local-tournament', false))
+    document.getElementById('tournament-confirm-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
         playRound(matches, 0, tournamentId);
     });
 }
@@ -479,17 +370,7 @@ async function playRound(matches: any[], index: number, tournamentId: number): P
 
     clearApp();
     const app = document.getElementById('app')!;
-    app.innerHTML = `
-    <div class="w-screen h-screen flex items-center justify-center">
-      <div class="bg-black rounded-xl p-10 text-center shadow-lg max-w-xl w-[90%]">
-        <h2 class="text-4xl font-extrabold text-white mb-4">${esc(roundLabel)}</h2>
-        <p class="text-white text-lg mb-4">
-          Players: <span class="font-bold">${esc(match.player1)}</span> vs <span class="font-bold">${esc(match.player2)}</span>
-        </p>
-        <div id="countdown" class="text-6xl font-extrabold text-yellow-400 my-6">3</div>
-      </div>
-    </div>
-  `;
+    app.innerHTML = getNextRoundHTML(roundLabel, match.player1, match.player2);
 
     let count = 3;
     const countdownEl = document.getElementById('countdown')!;
@@ -497,15 +378,13 @@ async function playRound(matches: any[], index: number, tournamentId: number): P
         count--;
         if (count > 0) {
             countdownEl.textContent = count.toString();
+        } else if (count === 0) {
+            countdownEl.textContent = "Go!";
+        } else if (window.location.pathname !== '/game/local-tournament') {
+            return;
         } else {
             clearInterval(t);
-            countdownEl.textContent = "Go!";
-            // Launch the actual Local game view with this match context
-            if (window.location.pathname === '/game/local-tournament') {
-                goToLocalGameForMatch(tournamentId, match);
-            } else {
-                return;
-            }
+            goToLocalGameForMatch(tournamentId, match);
         }
     }, 1000);
 }
@@ -526,34 +405,20 @@ async function showBracket(tournamentId: number): Promise<void> {
     // Mid-tournament: show bracket list + Next Round
     clearApp();
     const app = document.getElementById('app')!;
-    const list = buildBracketListHTML(data.matches);
+    app.innerHTML = getNextBracketHTML(data.matches);
 
-    const html = `
-    <div class="w-screen h-screen flex items-center justify-center">
-      <div class="bg-black rounded-xl p-10 text-center shadow-lg max-w-2xl w-[90%]">
-        <h2 class="text-4xl font-extrabold text-white mb-8">Tournament Bracket</h2>
-        ${list}
-        <button id="next-round-btn" class="w-full bg-gray-400 text-black font-bold text-xl py-3 px-6 rounded-lg hover:bg-yellow-300 transition">
-          Next Round
-        </button>
-      </div>
-    </div>`;
-    app.innerHTML = html;
-
-    const nextRoundBtn = document.getElementById('next-round-btn');
-    if (nextRoundBtn) {
-        nextRoundBtn.addEventListener('click', async () => {
-            const r = await fetch(`/api/tournaments/${tournamentId}`);
-            const d = await r.json();
-            const pending2 = d.matches.filter((m: any) => !m.winner);
-            if (pending2.length === 0) {
-                renderFinalScreen(tournamentId, d);
-                return;
-            }
-            const minRound = Math.min(...pending2.map((m: any) => m.round));
-            const allThisRound = d.matches.filter((m: any) => m.round === minRound);
-            const pendThisRound = allThisRound.filter((m: any) => !m.winner);
-            playRound(pendThisRound, 0, tournamentId);
-        });
-    }
+    document.getElementById('tournament-next-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const r = await fetch(`/api/tournaments/${tournamentId}`);
+        const d = await r.json();
+        const pending2 = d.matches.filter((m: any) => !m.winner);
+        if (pending2.length === 0) {
+            renderFinalScreen(tournamentId, d);
+            return;
+        }
+        const minRound = Math.min(...pending2.map((m: any) => m.round));
+        const allThisRound = d.matches.filter((m: any) => m.round === minRound);
+        const pendThisRound = allThisRound.filter((m: any) => !m.winner);
+        playRound(pendThisRound, 0, tournamentId);
+    });
 }

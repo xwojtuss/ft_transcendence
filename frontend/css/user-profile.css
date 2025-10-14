@@ -10,6 +10,10 @@
     @apply sm:max-h-7/9 pt-10 gap-5;
 }
 
+.game-floater {
+    @apply sm:gap-12;
+}
+
 .user-info {
     @apply flex items-center gap-5 sm:gap-10 w-full;
 }

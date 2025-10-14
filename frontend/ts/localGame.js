@@ -43,11 +43,13 @@ function setupTournamentBridgeIfNeeded() {
         const winnerIndex = e.detail;
         const winnerAlias = (winnerIndex === 1) ? ctx.player1 : ctx.player2;
         try {
-            yield fetch(`/api/tournaments/${ctx.tournamentId}/match`, {
+            const resultPromise = fetch(`/api/tournaments/${ctx.tournamentId}/match`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ matchId: ctx.matchId, winnerAlias })
             });
+            yield sleep(150);
+            yield resultPromise;
         }
         catch (err) {
             console.error('Failed to store tournament result', err);
@@ -181,3 +183,6 @@ document.addEventListener('visibilitychange', () => {
         gameInstance = null;
     }
 });
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
