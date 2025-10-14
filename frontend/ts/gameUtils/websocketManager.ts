@@ -58,6 +58,13 @@ export class GameWebSocket {
             this.onGameConfig(data.config);
         } else if (data.type === "state" && data.state) {
             this.onGameState(data.state);
+
+            // ^^^^^ TRDM ^^^^^ if the game ended, dispatch a custom event with the winner index
+          if (data.state.gameEnded && data.state.winner) {
+            window.dispatchEvent(new CustomEvent("gameEndedLocal", {
+                detail: data.state.winner
+            }));
+          }
         }
         };
 
@@ -72,9 +79,9 @@ export class GameWebSocket {
 
         // Disconnect if navigating away from game
         window.addEventListener('popstate', () => {
-        if (window.location.pathname !== '/game/local') {
-            if (this.onGameDisconnect) this.onGameDisconnect();
-        }
+            if (window.location.pathname !== '/game/local') {
+                if (this.onGameDisconnect) this.onGameDisconnect();
+            }
         });
     }
 

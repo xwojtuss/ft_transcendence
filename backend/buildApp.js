@@ -15,6 +15,7 @@ import authRoutes from "./routes/authRoutes.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fastifyWebsocket from "@fastify/websocket";
 import wsRoutes from "./routes/wsRoutes.js";
+import tournamentRoutes from "./routes/tournamentRoutes.js";  //^^^^^ TRDM ^^^^^
 import { startLocalGameLoop } from "./controllers/ws/game/local/localGameServer.js";
 import { cleanupInactiveSessions } from "./controllers/ws/game/local/sessionManager.js";
 
@@ -68,6 +69,7 @@ export default function buildApp(logger) {
     fastify.register(viewsRoutes);
     fastify.register(friendsRoutes);
     fastify.register(wsRoutes);
+    fastify.register(tournamentRoutes);                           //^^^^^ TRDM ^^^^^
     
     fastify.setErrorHandler((error, request, reply) => {
         fastify.log.error(error);
