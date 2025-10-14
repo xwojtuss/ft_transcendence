@@ -95,6 +95,12 @@ function setupTournamentBridgeIfNeeded() {
                 lastOnEndedHandler = null;
             }
             tournamentBridgeSetup = false;
+            
+            // Clean up the WebSocket connection and game instance
+            if (gameInstance) {
+                gameInstance.ws.disconnect();
+                gameInstance = null;
+            }
         }
     }, 200);
 
@@ -135,6 +141,13 @@ export function initGameIfHome(aiEnabled: boolean) {
     if (!['/game/local', '/game/local-tournament'].includes(window.location.pathname)) {
         return;
     }
+    
+    // Clean up any existing game instance before starting a new one
+    if (gameInstance) {
+        gameInstance.ws.disconnect();
+        gameInstance = null;
+    }
+    
     // ^^^^^ TRDM ^^^^^  
     setupTournamentBridgeIfNeeded();
     

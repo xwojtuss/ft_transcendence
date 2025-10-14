@@ -2,6 +2,7 @@ export class GameWebSocket {
   private ws: WebSocket;
   private onGameConfig: (config: any) => void;
   private onGameState: (state: any) => void;
+  private gameEndedDispatched: boolean = false;
 
   constructor(url: string, onGameConfig: (config: any) => void, onGameState: (state: any) => void) {
     this.onGameConfig = onGameConfig;
@@ -23,7 +24,9 @@ export class GameWebSocket {
         this.onGameState(data.state);
 
         // ^^^^^ TRDM ^^^^^ if the game ended, dispatch a custom event with the winner index
-        if (data.state.gameEnded && data.state.winner) {
+        // Only dispatch once per WebSocket instance to prevent duplicate tournament results
+        if (data.state.gameEnded && data.state.winner && !this.gameEndedDispatched) {
+          this.gameEndedDispatched = true;
           window.dispatchEvent(new CustomEvent("gameEndedLocal", {
               detail: data.state.winner
           }));
