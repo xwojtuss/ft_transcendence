@@ -26,6 +26,7 @@ export class GameWebSocket {
 
         // Track gameEnded state transitions to reset flag when a new game starts
         const currentGameEnded = data.state.gameEnded || false;
+        // Detect transition from 'ended' -> 'not ended' which indicates a new game started
         if (this.lastGameEndedState && !currentGameEnded) {
           // Game was ended, now it's not (new game started) - reset the flag
           this.gameEndedDispatched = false;
@@ -96,7 +97,8 @@ export class GameWebSocket {
       console.log("Disconnecting WebSocket...");
       this.ws.close();
     }
-    // Reset the flag so if this instance is somehow reused, it can dispatch again
+    // Reset flags so if this instance is somehow reused, it starts with clean state
     this.gameEndedDispatched = false;
+    this.lastGameEndedState = false;
   }
 }
