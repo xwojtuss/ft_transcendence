@@ -103,3 +103,26 @@ BEGIN
     SET lost_games = lost_games - 1
     WHERE user_id = OLD.participant;
 END;
+
+-- ^^^^^ TRDM ^^^^^
+-- Tournament tables for local-tournament feature
+CREATE TABLE IF NOT EXISTS tournaments (
+    tournament_id INTEGER PRIMARY KEY,
+    num_players   INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tournament_players (
+    player_id     INTEGER PRIMARY KEY,
+    tournament_id INTEGER NOT NULL REFERENCES tournaments(tournament_id),
+    alias         TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tournament_matches (
+    match_id      INTEGER PRIMARY KEY,
+    tournament_id INTEGER NOT NULL REFERENCES tournaments(tournament_id),
+    round         INTEGER NOT NULL,
+    is_third      BOOLEAN NOT NULL DEFAULT 0,
+    player1_id    INTEGER REFERENCES tournament_players(player_id),
+    player2_id    INTEGER REFERENCES tournament_players(player_id),
+    winner_id     INTEGER REFERENCES tournament_players(player_id)
+);

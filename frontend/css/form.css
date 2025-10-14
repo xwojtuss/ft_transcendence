@@ -2,7 +2,7 @@ form {
     @apply text-gray-700;
 }
 
-form div {
+form div, div.game-floater div {
     @apply mx-auto content-stretch flex justify-center-safe relative my-2 sm:my-3;
 }
 
@@ -18,7 +18,7 @@ form select {
     @apply cursor-pointer appearance-none;
 }
 
-form input, form .cancel, form label.file-input, form select {
+form input, form .cancel, form label.file-input, form select, button.game-button {
     @apply bg-white rounded-xl px-4 sm:px-5 py-2 sm:py-3 text-sm border-slate-300 border sm:mx-10 shadow-xs;
 }
 
@@ -46,7 +46,7 @@ form#tfa-form input[type=submit]:not(.no-margin), form#tfa-form .cancel:not(.no-
     @apply mt-8;
 }
 
-form input[type=submit], form .cancel {
+form input[type=submit], form .cancel, button.game-button {
     @apply font-semibold sm:px-7 py-2 px-5 transition-colors ease-in-out delay-50 duration-300 shadow-md shadow-stone-200;
 }
 
@@ -58,19 +58,19 @@ form input[type=submit].sm-button:not(.no-margin), form .cancel.sm-button:not(.n
     @apply mt-3;
 }
 
-form input[type=submit]:not(.cancel) {
+form input[type=submit]:not(.cancel), button.game-button {
     @apply bg-stone-700 border-stone-500 text-white;
 }
 
-form input[type=submit]:not(.cancel):hover {
+form input[type=submit]:not(.cancel):hover, button.game-button:hover {
     @apply bg-stone-900 border-stone-700;
 }
 
-form input[type=submit]:not(.cancel):active {
+form input[type=submit]:not(.cancel):active, button.game-button:active {
     @apply shadow-stone-300/50;
 }
 
-form input[type=submit]:active {
+form input[type=submit]:active, button.game-button:active {
     @apply translate-y-[2px] shadow-lg;
 }
 
@@ -126,7 +126,7 @@ form .cancel:active {
     @apply translate-y-[2px] shadow-gray-200/50 shadow-md;
 }
 
-form div.buttons {
+form div.buttons, div.game-floater div {
     @apply gap-3 sm:gap-3;
 }
 

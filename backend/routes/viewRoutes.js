@@ -108,7 +108,8 @@ export default async function viewsRoutes(fastify) {
     });
 
     fastify.get("/game/local-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        const view = await getStaticView('local-tournament-game');
+        // const view = await getStaticView('local-tournament-game');
+        const view = await getStaticView('local-tournament'); // ^^^^^ TRDM ^^^^^ 
         return await sendView(view, request.currentUser, request, reply);
     });
 

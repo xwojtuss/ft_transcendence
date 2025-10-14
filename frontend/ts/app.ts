@@ -5,9 +5,21 @@ import { accessToken, tfaTempToken } from "./authenticate.js";
 import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
+import { initLocalTournament } from "./tournament.js";
+import { clearTournamentAll, isTournamentPath, cleanupTournamentOnRouteChange } from "./tournamentCleanup.js";
+
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
+
+window.addEventListener("beforeunload", () => {
+    // If the user refreshes or closes the tab while not on a tournament page,
+    // make sure stale keys won’t linger into the next session.
+    const p = window.location.pathname;
+    if (p !== "/game/local" && p !== "/game/local-tournament") {
+        try { clearTournamentAll("beforeunload"); } catch {}
+    }
+});
 
 // to make the <a> links render different views in <main>
 document.addEventListener('click', (e) => {
@@ -83,7 +95,7 @@ function runChosenGame(pathURL: string): void {
             // add initialization for multiplayer game mode
             break;
         case '/game/local-tournament':
-            // add initialization for local tournament game mode
+            initLocalTournament();                  // ^^^^^ TRDM ^^^^^
             break;
         case '/game/online-tournament':
             // add initialization for online tournament game mode
@@ -100,9 +112,24 @@ function runChosenGame(pathURL: string): void {
  * @returns
  */
 export async function renderPage(pathURL: string, requestNavBar: boolean): Promise<void> {
-    if (!app)
-        return;
+    if (!app) return;
+
+    // ^^^^^ TRDM ^^^^^
+    const prev = window.location.pathname;
+    const next = new URL(pathURL, window.location.origin).pathname;
+
+    // If we are leaving the tournament flow entirely, purge stale crumbs.
+    // Allowed in-flow transitions (/game/local <-> /game/local-tournament) are preserved.
+    if (isTournamentPath(prev) && !isTournamentPath(next)) {
+        clearTournamentAll("leaving-tournament-flow");
+    }
+
+    // Clean tournament crumbs if we’re leaving that flow (e.g., user clicked title or PLAY).
+    try {
+        cleanupTournamentOnRouteChange(window.location.pathname, pathURL);
+    } catch {}
     addToHistory(pathURL);
+
     try {
         const responsePromise: Promise<Response> = fetch(`${pathURL}`, {
             headers: {
@@ -114,16 +141,16 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         if (pathURL === '/2fa') app.innerHTML = spinner;
         const response: Response = await responsePromise;
         switch (response.status) {
-            case 400:// bad request
+            case 400: // bad request
                 alert((await response.json()).message);
                 break;
-            case 401:// unauthorized
+            case 401: // unauthorized
                 // e.g. to a /profile if the user is not logged in
                 if (await refreshAccessToken() === false) {
                     break;
                 }
                 return renderPage(pathURL, requestNavBar);
-            case 403:// forbidden
+            case 403: // forbidden
                 // e.g. to /login if user is logged in already
                 // return renderPage('/', true);
                 break;
@@ -132,7 +159,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         }
         let view: string;
         if (requestNavBar && navigation) {
-            const jsonHTML: { nav: string, app: string } = await response.json();
+            const jsonHTML: { nav: string; app: string } = await response.json();
             view = jsonHTML.app;
             navigation.innerHTML = DOMPurify.sanitize(jsonHTML.nav);
         } else {
@@ -148,7 +175,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         if (window.location.pathname !== newUrl) {
             window.history.pushState({}, '', newUrl);
         }
-        
+
         runChosenGame(pathURL);
     } catch (error) {
         if (error instanceof Error) alert(error.message);
@@ -218,4 +245,4 @@ const spinner: string = `
       stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" class="text-white">
     </path>
   </svg>
-</div>`
+</div>`;
