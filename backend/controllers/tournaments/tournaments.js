@@ -1,4 +1,6 @@
+import { StatusCodes } from "http-status-codes";
 import { db } from "../../buildApp.js";  // SQLite database instance
+import HTTPError from "../../utils/error.js";
 
 // POST /api/tournaments
 export async function createTournament(req, reply) {

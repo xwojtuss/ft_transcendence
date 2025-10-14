@@ -19,12 +19,6 @@ import { checkNickname } from "./validateInput.js";
 
 /* ------------------------- small DOM helpers ------------------------- */
 
-// Clear main app container
-function clearApp(): void {
-    const app = document.getElementById('app');
-    if (app) app.innerHTML = '';
-}
-
 // Minimal HTML-escape to avoid XSS when inserting user aliases
 function esc(s: string): string {
     return s.replace(/[&<>"']/g, (ch) => {
@@ -111,7 +105,6 @@ function buildBracketListHTML(matches: any[]): string {
 /* --------------------- render final screen --------------------- */
 /** Final Results screen — no bracket list. Adds "Bracket" button on the left. */
 function renderFinalScreen(tournamentId: number, data: any): void {
-    clearApp();
     const app = document.getElementById('app')!;
 
     const matches: any[] = data.matches || [];
@@ -190,7 +183,6 @@ async function showBracketScreen(tournamentId: number, dataFromCaller?: any): Pr
         data = await res.json();
     }
 
-    clearApp();
     const app = document.getElementById('app')!;
     app.innerHTML = getFinalBracketHTML(data.matches);
 
@@ -209,12 +201,6 @@ async function showBracketScreen(tournamentId: number, dataFromCaller?: any): Pr
         const data2 = await res2.json();
         renderInitialBracket(data2.matches, data2.tournamentId);
     });
-    // document.getElementById('finish')!.addEventListener('click', () => {
-    //     clearTournamentAll("user-clicked-finish");
-    //     window.history.pushState({}, "", "/");
-    //     window.dispatchEvent(new PopStateEvent("popstate"));
-    //     window.location.href = '/';
-    // });
 }
 
 /* --------------------- navigation & return handling --------------------- */
@@ -231,8 +217,6 @@ function goToLocalGameForMatch(tournamentId: number, match: any): void {
 
     // SPA navigation to /game/local (no full reload)
     renderPage("/game/local", false);
-    // window.history.pushState({}, "", "/game/local");
-    // window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 /**
@@ -246,7 +230,6 @@ async function handleReturnFromLocal(): Promise<boolean> {
     const res = JSON.parse(raw);
     sessionStorage.removeItem('tournamentResult');
 
-    clearApp();
     const app = document.getElementById('app')!;
     app.innerHTML = getNextMatchHTML(res.winnerAlias);
 
@@ -296,7 +279,6 @@ export function initLocalTournament(): void {
 /* ------------------------ registration & creation ------------------------ */
 
 async function showRegistration(playerCount: number): Promise<void> {
-    clearApp();
     const app = document.getElementById('app')!;
     app.innerHTML = getRegisterAliasesHTML(playerCount);
     document.getElementById('cancel-form')?.addEventListener('click', async () => await renderPage('/game/local-tournament', false))
@@ -338,7 +320,6 @@ async function showRegistration(playerCount: number): Promise<void> {
 }
 
 function renderInitialBracket(matches: any[], tournamentId: number): void {
-    // clearApp();
     const app = document.getElementById('app')!;
     app.innerHTML = getInitialBracketHTML(matches);
 
@@ -368,7 +349,6 @@ async function playRound(matches: any[], index: number, tournamentId: number): P
         (match && typeof match.is_third === 'boolean') ? match.is_third : undefined
     );
 
-    clearApp();
     const app = document.getElementById('app')!;
     app.innerHTML = getNextRoundHTML(roundLabel, match.player1, match.player2);
 
@@ -403,7 +383,6 @@ async function showBracket(tournamentId: number): Promise<void> {
     }
 
     // Mid-tournament: show bracket list + Next Round
-    clearApp();
     const app = document.getElementById('app')!;
     app.innerHTML = getNextBracketHTML(data.matches);
 

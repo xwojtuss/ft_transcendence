@@ -2,7 +2,7 @@
 
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import HTTPError from "../utils/error.js";
-import { createTournament, recordMatchResult, getTournament } from "../controllers/api/tournaments.js";
+import { createTournament, recordMatchResult, getTournament } from "../controllers/tournaments/tournaments.js";
 
 // Schema for creating a tournament (array of aliases)
 const createSchema = {
