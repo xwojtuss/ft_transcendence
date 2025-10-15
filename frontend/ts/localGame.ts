@@ -167,7 +167,10 @@ export function initLocalGame(aiEnabled: boolean) {
     
     function waitForCanvas() {
         const canvas = document.getElementById("local-game-canvas");
-        if (!canvas || !(canvas instanceof HTMLCanvasElement)) return;
+        if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+            setTimeout(waitForCanvas, 100);
+            return;
+        }
         const renderer = new GameRenderer(canvas);
 
         let gameState: GameState | null = null;

@@ -16,7 +16,7 @@ export const PADDLE_INFLUENCE = 0.1;
 export const MAX_BALL_Y_SPEED = 0.8;
 
 /** The noise for the AI, the higher the more mistakes it makes
- * 1.1 - diffuculty easy
+ * 1.1 - difficulty easy
  * 1 - difficulty medium
  * 0.7 - difficulty hard
  * 0 - impossible
