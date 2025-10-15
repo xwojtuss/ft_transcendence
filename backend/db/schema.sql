@@ -113,13 +113,15 @@ END;
 -- Tournament tables for local-tournament feature
 CREATE TABLE IF NOT EXISTS tournaments (
     tournament_id INTEGER PRIMARY KEY,
-    num_players   INTEGER NOT NULL
+    num_players   INTEGER NOT NULL,
+    user_id       INTEGER REFERENCES users(user_id)
 );
 
 CREATE TABLE IF NOT EXISTS tournament_players (
     player_id     INTEGER PRIMARY KEY,
     tournament_id INTEGER NOT NULL REFERENCES tournaments(tournament_id),
-    alias         TEXT    NOT NULL
+    alias         TEXT    NOT NULL,
+    is_logged_user BOOLEAN DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS tournament_matches (

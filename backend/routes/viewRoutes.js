@@ -3,7 +3,8 @@ import { get2FAview } from "../controllers/view/2fa.js";
 import { getUpdate } from "../controllers/view/update.js";
 import { getProfile } from "../controllers/view/profile.js";
 import { getFriendsView } from "../controllers/view/friends.js";
-import { getUserSession, sendErrorPage, getStaticView, sendView } from "../controllers/view/viewUtils.js";
+import { getUserSession, sendErrorPage, getStaticView, sendView, getForcedUserSession } from "../controllers/view/viewUtils.js";
+import { getAliasRegistrationHTML } from "../controllers/view/aliasRegistration.js";
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUserById } from "../db/dbQuery.js";
@@ -32,6 +33,11 @@ async function loggedOutPreHandler(req, reply) {
 
 async function loggedInOrOutPreHandler(req, reply) {
     const user = await getUserSession(this, req.cookies.refreshToken, req.headers);
+    req.currentUser = user ? user : null;
+}
+
+async function forcedLoggedInOrOutPreHandler(req, reply) {
+    const user = await getForcedUserSession(this, req.cookies.refreshToken);
     req.currentUser = user ? user : null;
 }
 
@@ -92,8 +98,21 @@ export default async function viewsRoutes(fastify) {
         return await sendView(view, payload, request, reply);
     });
 
-    fastify.get("/game/local", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        const view = await getStaticView('local-game');
+    fastify.get("/game/local", { preHandler: forcedLoggedInOrOutPreHandler }, async (request, reply) => {
+        // Check if user has registered aliases via query param
+        const registered = request.query.registered === 'true';
+        const isAI = request.query.ai === '1';
+        
+        // If registered or coming from tournament (checked on client side), show the game
+        if (registered) {
+            const view = await getStaticView('local-game');
+            return await sendView(view, request.currentUser, request, reply);
+        }
+        
+        // Otherwise, show alias registration form
+        const playerCount = isAI ? 1 : 2;
+        const gameMode = isAI ? 'ai' : 'local';
+        const view = getAliasRegistrationHTML(playerCount, gameMode, request.currentUser);
         return await sendView(view, request.currentUser, request, reply);
     });
 
@@ -102,14 +121,23 @@ export default async function viewsRoutes(fastify) {
         return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/game/online", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
+    fastify.get("/game/online", { preHandler: loggedInPreHandler }, async (request, reply) => {
         const view = await getStaticView('online-game');
         return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/game/local-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        // const view = await getStaticView('local-tournament-game');
-        const view = await getStaticView('local-tournament'); // ^^^^^ TRDM ^^^^^ 
+    fastify.get("/game/local-tournament", { preHandler: forcedLoggedInOrOutPreHandler }, async (request, reply) => {
+        // Check if user is requesting alias registration form
+        const playerCount = request.query.players;
+        
+        if (playerCount && (playerCount === '4' || playerCount === '8')) {
+            // Show alias registration form
+            const view = getAliasRegistrationHTML(parseInt(playerCount), 'tournament', request.currentUser);
+            return await sendView(view, request.currentUser, request, reply);
+        }
+        
+        // Otherwise show the tournament selection view
+        const view = await getStaticView('local-tournament');
         return await sendView(view, request.currentUser, request, reply);
     });
 

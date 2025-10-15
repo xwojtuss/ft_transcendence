@@ -215,8 +215,8 @@ function goToLocalGameForMatch(tournamentId: number, match: any): void {
         player2: match.player2
     }));
 
-    // SPA navigation to /game/local (no full reload)
-    renderPage("/game/local", false);
+    // SPA navigation to /game/local with registered=true to skip alias registration
+    renderPage("/game/local?registered=true", false);
 }
 
 /**
@@ -260,6 +260,14 @@ async function continueTournament(tournamentId: number): Promise<void> {
 /* --------------------------- main entry point --------------------------- */
 
 export function initLocalTournament(): void {
+    // Check if we just created a new tournament
+    const newTournamentData = sessionStorage.getItem('newTournament');
+    if (newTournamentData) {
+        sessionStorage.removeItem('newTournament');
+        const data = JSON.parse(newTournamentData);
+        renderInitialBracket(data.matches, data.tournamentId);
+        return;
+    }
     // If a Local match just finished and we returned here, show Winner & continue.
     handleReturnFromLocal().then((handled) => {
         if (handled) return;
@@ -279,44 +287,8 @@ export function initLocalTournament(): void {
 /* ------------------------ registration & creation ------------------------ */
 
 async function showRegistration(playerCount: number): Promise<void> {
-    const app = document.getElementById('app')!;
-    app.innerHTML = getRegisterAliasesHTML(playerCount);
-    document.getElementById('cancel-form')?.addEventListener('click', async () => await renderPage('/game/local-tournament', false))
-    document.getElementById('tournament-form')!.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const aliases: string[] = [];
-        const namesSet = new Set<string>();
-        for (let i = 1; i <= playerCount; i++) {
-            const val = (document.getElementById(`player${i}`) as HTMLInputElement).value.trim();
-            if (!val) { alert("All names must be filled in."); return; }
-            const key = val.toLowerCase();
-            if (namesSet.has(key)) { alert("Names must be unique."); return; }
-            try {
-              checkNickname(val, "Alias");
-            } catch (error) {
-              if (!(error instanceof Error)) {
-                alert("Invalid alias");
-                return;
-              }
-              alert(error.message);
-              return;
-            }
-            namesSet.add(key);
-            aliases.push(val);
-        }
-        try {
-            const res = await fetch('/api/tournaments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ players: aliases })
-            });
-            if (!res.ok) throw new Error(await res.text());
-            const data = await res.json();
-            renderInitialBracket(data.matches, data.tournamentId);
-        } catch (err: any) {
-            alert("Error creating tournament: " + (err?.message || err));
-        }
-    });
+    // Navigate to backend route that will show SSR alias registration form
+    await renderPage(`/game/local-tournament?players=${playerCount}`, false);
 }
 
 function renderInitialBracket(matches: any[], tournamentId: number): void {
