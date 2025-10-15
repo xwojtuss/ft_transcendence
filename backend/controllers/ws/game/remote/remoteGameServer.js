@@ -11,6 +11,7 @@ import { startGame, updateGame } from '../local/gameLogic.js';
 const sessions = new Map();
 
 const SEND_TIMEOUT_MS = 5000;
+const BROADCAST_INTERVAL = 2; // broadcast co N ticków (zmniejsz, żeby oszczędzić CPU)
 
 // --- Utilities --------------------------------------------------------------
 
@@ -380,11 +381,6 @@ export function handleRemoteConnection(connection, req, fastify) {
 export function startRemoteGameLoop() {
     setInterval(() => {
         for (const [sessionId, session] of sessions.entries()) {
-            // Debug info
-            session.players.forEach((p, idx) => {
-                console.log(`[DEBUG] Session ${sessionId} Player ${idx}: id=${p.id}, connected=${p.connected}, lastDisconnect=${p.lastDisconnect}, removed=${p.removed}, nick=${p.nick}`);
-            });
-
             markTimedOutPlayers(session);
 
             if (pruneEmptySession(sessionId, session)) continue;
@@ -399,13 +395,12 @@ export function startRemoteGameLoop() {
             );
 
             if (hasTempDisconnected) {
-                // set paused flag (if not already) and broadcast state, don't advance the game
                 if (!session.gameState.paused) session.gameState.paused = true;
                 try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
                 continue;
             }
 
-            // if previously paused and now everyone is present, resume the game timing and broadcast
+            // resume from pause
             if (session.gameState.paused) {
                 session.gameState.paused = false;
                 session.lastUpdate = now();
@@ -413,6 +408,10 @@ export function startRemoteGameLoop() {
             }
 
             try {
+                // initialize per-session tick bookkeeping
+                if (typeof session._tick !== 'number') session._tick = 0;
+                session._tick++;
+
                 const nowTs = now();
                 if (!session.lastUpdate) session.lastUpdate = nowTs;
                 const dt = (nowTs - session.lastUpdate) / 1000;
@@ -424,7 +423,17 @@ export function startRemoteGameLoop() {
                     // keep loop running despite update errors
                 }
 
-                broadcastRemoteGameState(session.gameState, session);
+                if (session._tick % BROADCAST_INTERVAL === 0) {
+                    try {
+                        const serialized = JSON.stringify(session.gameState);
+                        if (session._lastBroadcast !== serialized) {
+                            session._lastBroadcast = serialized;
+                            broadcastRemoteGameState(session.gameState, session);
+                        }
+                    } catch (err) {
+                        try { broadcastRemoteGameState(session.gameState, session); } catch (_) {  }
+                    }
+                }
 
                 if (session.gameState.gameEnded) {
                     const migrated = migrateEndedGame(sessionId, session);
