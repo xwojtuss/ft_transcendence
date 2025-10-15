@@ -46,6 +46,10 @@ export class GameRenderer {
             this.environment.hideStartText();
             this.environment.hideEndText();
         }
+        if (!gameState.gameInitialized && !gameState.gameEnded && !gameState.gameStarted) {
+            this.environment.hideEndText();
+            this.environment.showStartText();
+        }
         if (!gameState.gameStarted) {
             this.environment.disableBallTrail();
         } else if (gameState.gameStarted && gameState.gameInitialized) {

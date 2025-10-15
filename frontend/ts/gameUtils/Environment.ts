@@ -14,6 +14,7 @@ const environmentConfig = {
     SCORE_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
     START_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
     END_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
+    PLAYER_NAMES_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
     START_MESSAGE: "PRESS SPACE TO BEGIN",
     END_MESSAGE: (player: number) => `PLAYER ${player} WINS!\nPRESS SPACE TO RESTART`
 };
@@ -28,6 +29,7 @@ export class Environment {
     private scoreText!: BABYLON.Mesh[];
     private startText!: BABYLON.Mesh;
     private endTexts!: BABYLON.Mesh[];
+    private playerNames: BABYLON.Mesh[] | undefined;
     private currentScores: number[];
     private glowLayer!: BABYLON.GlowLayer;
     private wallMeshes!: BABYLON.Mesh[];
@@ -93,6 +95,7 @@ export class Environment {
         this.constructStartText(scene, configuration);
         this.constructEndTexts(scene, configuration);
         this.constructWalls(scene, configuration);
+        this.constructPlayerNames(scene, configuration);
 
         scene.clearColor = environmentConfig.BACKGROUND_COLOR;
 
@@ -380,5 +383,35 @@ export class Environment {
             // this.glowLayer.addIncludedOnlyMesh(text);
             this.endTexts.push(text);
         }
+    }
+
+    private constructPlayerNames(scene: BABYLON.Scene, config: GameConfig) {
+        const names = new Array<string | undefined>(2);
+        names[0] = (window as any).player1Name as string | undefined;
+        names[1] = (window as any).player2Name as string | undefined;
+
+        if (!names[0] || !names[1]) return;
+        this.playerNames = [];
+        const mat = new BABYLON.StandardMaterial("playersTextMat", scene);
+        const xOffset = config.FIELD_WIDTH / 3;
+        mat.emissiveColor = environmentConfig.PLAYER_NAMES_TEXT_COLOR;
+        for (let i = 0; i < 2; i++) {
+            const text = BABYLON.MeshBuilder.CreateText("playersText", names[i] as string, fontData, {
+                size: 3,
+                resolution: 8,
+                depth: 0.1
+            }, scene);
+            if (!text) throw new Error('Could not create text');
+            text.material = mat;
+            text.position = new BABYLON.Vector3(
+                0,
+                this.centerPoint.y + config.FIELD_HEIGHT * 3 / 7,
+                0.01
+            );
+            // this.glowLayer.addIncludedOnlyMesh(text);
+            this.playerNames.push(text);
+        }
+        this.playerNames[0].position.x = this.centerPoint.x - xOffset;
+        this.playerNames[1].position.x = this.centerPoint.x + xOffset;
     }
 }

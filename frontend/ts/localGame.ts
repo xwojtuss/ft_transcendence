@@ -45,7 +45,7 @@ function setupTournamentBridgeIfNeeded() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ matchId: ctx.matchId, winnerAlias })
             });
-            await sleep(150);
+            await sleep(1000);
             await resultPromise;
         } catch (err) {
             console.error('Failed to store tournament result', err);
