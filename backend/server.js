@@ -1,4 +1,4 @@
-import { runSecretsTest } from "./tests/utilTest.js";
+import testDatabase, { runSecretsTest } from "./tests/utilTest.js";
 import buildApp from "./buildApp.js";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
@@ -42,6 +42,7 @@ await fastify.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute'
 });
+// await testDatabase();
 
 fastify.listen({ port: process.env.PORT || 3000 }, (err, address) => {
     if (err) {

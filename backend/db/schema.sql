@@ -52,56 +52,61 @@ CREATE TABLE IF NOT EXISTS friends_with (
 
 CREATE TABLE IF NOT EXISTS match_history (
     match_id INTEGER PRIMARY KEY,
+    game TEXT NOT NULL,
+    mode TEXT NOT NULL,
     ended_at TIMESTAMP NOT NULL,
     num_of_players INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS matches (
+CREATE TABLE IF NOT EXISTS participants (
     match_id INTEGER NOT NULL REFERENCES match_history(match_id),
-    participant INTEGER NOT NULL REFERENCES users(user_id),
+    participant_id INTEGER PRIMARY KEY,
+    user_account INTEGER DEFAULT NULL,
+    alias TEXT DEFAULT NULL,
     is_originator BOOLEAN NOT NULL,
-    rank INTEGER NOT NULL,
-    PRIMARY KEY (match_id, participant)
+    is_logged_in BOOLEAN NOT NULL DEFAULT false,
+    outcome TEXT NOT NULL,
+    FOREIGN KEY (user_account) REFERENCES users(user_id)
 );
 
 CREATE TRIGGER IF NOT EXISTS increment_won_games
-AFTER INSERT ON matches
+AFTER INSERT ON participants
 FOR EACH ROW
-WHEN NEW.rank = 1
+WHEN NEW.outcome = "Won"
 BEGIN
     UPDATE users
     SET won_games = won_games + 1
-    WHERE user_id = NEW.participant;
+    WHERE user_id = NEW.user_account;
 END;
 
 CREATE TRIGGER IF NOT EXISTS decrement_won_games
-AFTER DELETE ON matches
+AFTER DELETE ON participants
 FOR EACH ROW
-WHEN OLD.rank = 1
+WHEN OLD.outcome = "Won"
 BEGIN
     UPDATE users
     SET won_games = won_games - 1
-    WHERE user_id = OLD.participant;
+    WHERE user_id = OLD.user_account;
 END;
 
 CREATE TRIGGER IF NOT EXISTS increment_lost_games
-AFTER INSERT ON matches
+AFTER INSERT ON participants
 FOR EACH ROW
-WHEN NEW.rank != 1
+WHEN NEW.outcome != "Won"
 BEGIN
     UPDATE users
     SET lost_games = lost_games + 1
-    WHERE user_id = NEW.participant;
+    WHERE user_id = NEW.user_account;
 END;
 
 CREATE TRIGGER IF NOT EXISTS decrement_lost_games
-AFTER DELETE ON matches
+AFTER DELETE ON participants
 FOR EACH ROW
-WHEN OLD.rank != 1
+WHEN OLD.outcome != "Won"
 BEGIN
     UPDATE users
     SET lost_games = lost_games - 1
-    WHERE user_id = OLD.participant;
+    WHERE user_id = OLD.user_account;
 END;
 
 -- ^^^^^ TRDM ^^^^^

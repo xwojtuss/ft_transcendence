@@ -1,4 +1,4 @@
-import getAllUsers, { addUser, addMatch, getAllMatchHistory, getAllMatches, getUserMatchHistory } from "../db/dbQuery.js";
+import getAllUsers, { addUser, getAllMatchHistory, getAllMatches, getUser } from "../db/dbQuery.js";
 import User from "../utils/User.js";
 import Match from "../utils/Match.js";
 import assert from "assert";
@@ -10,46 +10,95 @@ import path from "path";
  */
 export default async function testDatabase() {
     try {
-        let newuser = new User("wkornato");
+        let nickname = "wkornato";
+        let newuser = new User(nickname);
         await newuser.setPassword("zaq1@WSX");
-        newuser.email = "wkornatoemail@gmail.com";
+        newuser.email = nickname + "@gmail.com";
 
         await addUser(newuser);
+        newuser = await getUser(nickname);
 
+        nickname = "pzurawic";
         let pzurawic = new User("pzurawic");
         await pzurawic.setPassword("zaq1@WSX");
-        pzurawic.email = "pzurawicemail@gmail.com";
+        pzurawic.email = nickname + "@gmail.com";
 
         await addUser(pzurawic);
+        pzurawic = await getUser(nickname);
 
-        let pingwin = new User("pingwin");
+        nickname = "pingwin";
+        let pingwin = new User(nickname);
         await pingwin.setPassword("zaq1@WSX");
-        pingwin.email = "pingwinemail@gmail.com";
+        pingwin.email = nickname + "@gmail.com";
 
         await addUser(pingwin);
+        pingwin = await getUser(nickname);
 
-        let newmatch = new Match(newuser);
+        // TEST MATCHES WITH REGISTERED USERS
+        let newmatch = new Match(newuser, "Pong", "Local");
         newmatch.addParticipant(pzurawic);
         newmatch.endMatch();
-        newmatch.addRank(newuser, 2);
-        newmatch.addRank(pzurawic, 1);
+        newmatch.addRank(newuser, "Lost");
+        newmatch.addRank(pzurawic, "Won");
+        newmatch.endMatch();
 
-        await addMatch(newmatch);
+        await newmatch.commitMatch();
 
-        let secondMatch = new Match(pzurawic);
+        let secondMatch = new Match(pzurawic, "Pong", "Tournament");
         secondMatch.addParticipant(newuser);
         secondMatch.addParticipant(pingwin);
         secondMatch.endMatch();
-        secondMatch.addRank(pingwin, 1);
-        secondMatch.addRank(pzurawic, 2);
-        secondMatch.addRank(newuser, 3);
+        secondMatch.addRank(pingwin, "Won");
+        secondMatch.addRank(pzurawic, "Lost");
+        secondMatch.addRank(newuser, "Lost");
+        secondMatch.endMatch();
 
-        await addMatch(secondMatch);
+        await secondMatch.commitMatch();
 
-        //console.log(await getAllUsers());
-        //console.log(await getAllMatchHistory());
-        //console.log(await getAllMatches());
-        //console.log(await getUserMatchHistory('wkornato'));
+        // TEST MATCHES WITH ALIASES ONLY
+
+        let aliasMatch = new Match("aliasTest", "Pong", "Local", 2);
+        aliasMatch.addParticipant("test");
+        aliasMatch.addRank("test", "Lost");
+        aliasMatch.addRank("aliasTest", "Won");
+        aliasMatch.endMatch();
+
+        await aliasMatch.commitMatch();
+
+        let aliasTournament = new Match("aliasTourn", "Pong", "Tournament");
+        aliasTournament.addParticipant("one");
+        aliasTournament.addParticipant("two");
+        aliasTournament.addRank("one", "Lost");
+        aliasTournament.addRank("two", "Lost");
+        aliasTournament.addRank("aliasTourn", "Won");
+        aliasTournament.endMatch();
+
+        await aliasTournament.commitMatch();
+
+        // TEST MIXED MATCHES
+
+        let mixedPong = new Match(pzurawic, "Pong", "Online");
+        mixedPong.addParticipant("haha");
+        mixedPong.addRank("haha", "Lost");
+        mixedPong.addRank(pzurawic, "Lost");
+        mixedPong.endMatch();
+
+        await mixedPong.commitMatch();
+
+        let mixedTournament = new Match("mixedTourn", "Pong", "Tournament");
+        mixedTournament.addParticipant(pingwin);
+        mixedTournament.addParticipant("two");
+        mixedTournament.addRank(pingwin, "Lost");
+        mixedTournament.addRank("two", "Lost");
+        mixedTournament.addRank("mixedTourn", "Won");
+        mixedTournament.endMatch();
+
+        await mixedTournament.commitMatch();
+
+        console.log(await getAllUsers());
+        console.log(await getAllMatchHistory());
+        console.log(await getAllMatches());
+        console.log(await Match.getUserMatches(pzurawic));
     } catch (error) {
         console.error(error);
     }

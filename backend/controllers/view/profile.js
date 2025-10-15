@@ -1,9 +1,10 @@
 import fs from "fs/promises";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import { getUser, getUserMatchHistory } from "../../db/dbQuery.js";
+import { getUser } from "../../db/dbQuery.js";
 import { areFriends } from "../../db/friendQueries.js";
 import { cheerio } from '../../buildApp.js';
 import HTTPError from "../../utils/error.js";
+import Match from "../../utils/Match.js";
 
 let cachedProfileHtmlPromise = fs.readFile('./backend/views/profile.html', 'utf8');
 
@@ -131,7 +132,7 @@ export async function getProfile(loggedInNickname, toFetchNickname) {
     profilePage('.wins-losses div:last-child span:first-child').text(user.lost_games);
     profilePage('.user-info .avatar img').attr('src', user.avatar ? `/api/avatars/${user.id}?t=${Date.now()}` : '/assets/default-avatar.svg');
     profilePage('.match-history-desktop table caption, .match-history-mobile p').text(user.nickname + "'s Match History");
-    const userMatches = await getUserMatchHistory(user.nickname);
+    const userMatches = await Match.getUserMatches(user);
     userMatches.forEach(match => {
         profilePage('.match-history-desktop table tbody').append(getDesktopMatchHTML(match, toFetchNickname));
         profilePage('.match-history-mobile ol').append(getMobileMatchHTML(match, toFetchNickname));
