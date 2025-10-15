@@ -17,7 +17,7 @@ export const getAliasRegistrationHTML = function (playerCount, gameMode, loggedI
         const isFirstAndLoggedIn = loggedInUser && i === 1;
         inputs += `
             <div>
-                <input type="text" name="player${i}" id="player${i}" value="${isFirstAndLoggedIn ? loggedInUser.nickname : ''}" autocomplete="off" required ${isFirstAndLoggedIn ? 'disabled class="disabled"' : ''}>
+                <input type="text" name="player${i}" id="player${i}" value="${isFirstAndLoggedIn ? loggedInUser.nickname : ''}" autocomplete="off" required ${isFirstAndLoggedIn ? 'disabled class="input-not-allowed"' : ''}>
                 <label for="player${i}">Player ${i}</label>
             </div>`;
     }

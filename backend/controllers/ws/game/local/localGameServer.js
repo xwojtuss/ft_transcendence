@@ -146,6 +146,13 @@ export function handleConnection(connection) {
             // client greets with desired mode ("local" or "ai")
             if (data.type === "hello" && (data.mode === "local" || data.mode === "ai")) {
                 currentSession.mode = data.mode;
+                // Store player aliases for match history
+                if (data.player1Alias) {
+                    currentSession.player1Alias = data.player1Alias;
+                }
+                if (data.player2Alias) {
+                    currentSession.player2Alias = data.player2Alias;
+                }
                 return; // nothing else to do for hello
             }
             // Input handling
@@ -222,7 +229,8 @@ export function startLocalGameLoop() {
             updateGame(
                 session.gameState,
                 deltaTime,
-                () => broadcastToSession(sessionId, session.gameState)
+                () => broadcastToSession(sessionId, session.gameState),
+                session
             );
         }
     }, 1000 / FPS);

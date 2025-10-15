@@ -2,7 +2,7 @@ import { FIELD_WIDTH, FIELD_HEIGHT, WINNING_SCORE, RESET_DELAY, BALL_RADIUS, PAD
 import { resetGameState } from './gameState.js';
 import { handlePaddleCollision, updatePlayerPositions, generateBallDirection } from './gamePhysics.js';
 
-export function checkGameEnd(gameState, scoringPlayer) {
+export function checkGameEnd(gameState, scoringPlayer, session) {
     if (gameState.players[scoringPlayer].score >= WINNING_SCORE) {
         gameState.gameEnded = true;
         gameState.winner = scoringPlayer;
@@ -10,6 +10,15 @@ export function checkGameEnd(gameState, scoringPlayer) {
         
         gameState.ball.dx = 0;
         gameState.ball.dy = 0;
+        
+        // Print match result with player aliases/nicknames
+        const losingPlayer = scoringPlayer === 1 ? 2 : 1;
+        console.log('\n=== MATCH ENDED ===');
+        console.log(`Player 1 (${session?.player1Alias || 'Unknown'}): ${gameState.players[1].score}`);
+        console.log(`Player 2 (${session?.player2Alias || 'Unknown'}): ${gameState.players[2].score}`);
+        console.log(`Winner: Player ${scoringPlayer} (${scoringPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'})`);
+        console.log(`Mode: ${session?.mode || 'unknown'}`);
+        console.log('==================\n');
         
         // Store the winner at the time of game end for the timeout check
         const winnerAtEnd = scoringPlayer;
@@ -54,7 +63,7 @@ export function startGame(gameState) {
     gameState.ball.dy = direction.dy;
 }
 
-export function updateGame(gameState, deltaTime, broadcastCallback) {
+export function updateGame(gameState, deltaTime, broadcastCallback, session) {
     if (gameState.gameEnded) {
         broadcastCallback();
         return;
@@ -101,11 +110,11 @@ export function updateGame(gameState, deltaTime, broadcastCallback) {
     // Scoring
     if (ball.x - BALL_RADIUS < 0) {
         gameState.players[2].score++;
-        checkGameEnd(gameState, 2);
+        checkGameEnd(gameState, 2, session);
         if (!gameState.gameEnded) resetBall(gameState, 1);
     } else if (ball.x + BALL_RADIUS > FIELD_WIDTH) {
         gameState.players[1].score++;
-        checkGameEnd(gameState, 1);
+        checkGameEnd(gameState, 1, session);
         if (!gameState.gameEnded) resetBall(gameState, 2);
     }
 
