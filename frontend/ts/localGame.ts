@@ -142,10 +142,10 @@ export function initGameIfHome(aiEnabled: boolean) {
         return;
     }
     
-    // Clean up any existing game instance before starting a new one
+    // If we already have an active game instance, don't recreate it
+    // This prevents random resets in regular local mode when page re-renders
     if (gameInstance) {
-        gameInstance.ws.disconnect();
-        gameInstance = null;
+        return;
     }
     
     // ^^^^^ TRDM ^^^^^  
