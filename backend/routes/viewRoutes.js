@@ -4,6 +4,7 @@ import { getUpdate } from "../controllers/view/update.js";
 import { getProfile } from "../controllers/view/profile.js";
 import { getFriendsView } from "../controllers/view/friends.js";
 import { getUserSession, sendErrorPage, getStaticView, sendView } from "../controllers/view/viewUtils.js";
+import { getAliasRegistrationHTML } from "../controllers/view/aliasRegistration.js";
 import HTTPError from "../utils/error.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import { getUserById } from "../db/dbQuery.js";
@@ -93,7 +94,20 @@ export default async function viewsRoutes(fastify) {
     });
 
     fastify.get("/game/local", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        const view = await getStaticView('local-game');
+        // Check if user has registered aliases via query param
+        const registered = request.query.registered === 'true';
+        const isAI = request.query.ai === '1';
+        
+        // If registered or coming from tournament (checked on client side), show the game
+        if (registered) {
+            const view = await getStaticView('local-game');
+            return await sendView(view, request.currentUser, request, reply);
+        }
+        
+        // Otherwise, show alias registration form
+        const playerCount = isAI ? 1 : 2;
+        const gameMode = isAI ? 'ai' : 'local';
+        const view = getAliasRegistrationHTML(playerCount, gameMode, request.currentUser);
         return await sendView(view, request.currentUser, request, reply);
     });
 
@@ -108,8 +122,17 @@ export default async function viewsRoutes(fastify) {
     });
 
     fastify.get("/game/local-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        // const view = await getStaticView('local-tournament-game');
-        const view = await getStaticView('local-tournament'); // ^^^^^ TRDM ^^^^^ 
+        // Check if user is requesting alias registration form
+        const playerCount = request.query.players;
+        
+        if (playerCount && (playerCount === '4' || playerCount === '8')) {
+            // Show alias registration form
+            const view = getAliasRegistrationHTML(parseInt(playerCount), 'tournament', request.currentUser);
+            return await sendView(view, request.currentUser, request, reply);
+        }
+        
+        // Otherwise show the tournament selection view
+        const view = await getStaticView('local-tournament');
         return await sendView(view, request.currentUser, request, reply);
     });
 

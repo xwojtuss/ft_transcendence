@@ -23,9 +23,10 @@ It is either:
 function setupTournamentBridgeIfNeeded() {
     const raw = sessionStorage.getItem('tournamentMatch');
 
-    // No tournament context -> make sure we're clean
+    // No tournament context -> check for local game aliases
     if (!raw) {
         clearTournamentContext('no-context-on-local');
+        setupLocalGameAliases();
         return;
     }
 
@@ -128,6 +129,23 @@ function clearTournamentContext(reason?: string) {
     // Clear the global names so the canvas stops drawing them
     delete (window as any).player1Name;
     delete (window as any).player2Name;
+}
+
+/**
+ * Setup player names for local games (non-tournament)
+ * Uses aliases from sessionStorage if available
+ */
+function setupLocalGameAliases() {
+    try {
+        const aliasData = sessionStorage.getItem('localGameAliases');
+        if (aliasData) {
+            const aliases = JSON.parse(aliasData);
+            (window as any).player1Name = aliases.player1;
+            (window as any).player2Name = aliases.player2;
+        }
+    } catch (err) {
+        console.error('Failed to load local game aliases:', err);
+    }
 }
 
 let gameInstance: {

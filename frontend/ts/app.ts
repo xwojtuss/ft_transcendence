@@ -7,6 +7,7 @@ import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.j
 import { initLocalGame } from "./localGame.js";
 import { initLocalTournament } from "./tournament.js";
 import { clearTournamentAll, isTournamentPath, cleanupTournamentOnRouteChange } from "./tournamentCleanup.js";
+import { initAliasRegistration } from "./aliasRegistration.js";
 
 
 const app: HTMLElement | null = document.getElementById('app');
@@ -101,6 +102,10 @@ function runChosenGame(pathURL: string): void {
             // add initialization for online tournament game mode
             break;
         default:
+            // Check if this is an alias registration form
+            if (pathURL.startsWith('/game/local')) {
+                initAliasRegistration();
+            }
             return;
     }
 }
