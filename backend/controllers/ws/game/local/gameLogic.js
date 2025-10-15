@@ -11,7 +11,15 @@ export function checkGameEnd(gameState, scoringPlayer) {
         gameState.ball.dx = 0;
         gameState.ball.dy = 0;
         
-        setTimeout(() => resetGameState(gameState), RESET_DELAY);
+        // Store the winner at the time of game end for the timeout check
+        const winnerAtEnd = scoringPlayer;
+        setTimeout(() => {
+            // Only auto-reset if game is still in ended state with same winner
+            // This prevents resetting a new game if user manually restarted
+            if (gameState.gameEnded && gameState.winner === winnerAtEnd) {
+                resetGameState(gameState);
+            }
+        }, RESET_DELAY);
     }
 }
 
