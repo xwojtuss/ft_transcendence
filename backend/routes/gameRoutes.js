@@ -1,5 +1,6 @@
 import { registerLocalGameAliases, registerTournamentAliases } from "../controllers/game/localGameAliases.js";
 import { getUserSession } from "../controllers/view/viewUtils.js";
+import { errorHandler } from "./friendsRoutes.js";
 
 // Schema for local game aliases
 const localAliasSchema = {
@@ -33,6 +34,7 @@ async function attachUserSession(request, reply) {
 }
 
 export default async function gameRoutes(fastify, options) {
+    fastify.setErrorHandler(errorHandler);
     // Validate and register local game aliases
     fastify.post('/api/game/local/aliases', { 
         schema: localAliasSchema,

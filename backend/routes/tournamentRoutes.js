@@ -3,6 +3,7 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import HTTPError from "../utils/error.js";
 import { createTournament, recordMatchResult, getTournament } from "../controllers/tournaments/tournaments.js";
+import { errorHandler } from "./friendsRoutes.js";
 
 // Schema for creating a tournament (array of aliases)
 const createSchema = {
@@ -32,6 +33,7 @@ const resultSchema = {
   
 
 export default async function tournamentRoutes (fastify, options) {
+    fastify.setErrorHandler(errorHandler);
     // Create new tournament
     fastify.post('/api/tournaments', { schema: createSchema }, createTournament);
     // Record a match result
