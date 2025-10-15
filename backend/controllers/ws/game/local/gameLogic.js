@@ -13,12 +13,15 @@ export function checkGameEnd(gameState, scoringPlayer, session) {
         
         // Print match result with player aliases/nicknames
         const losingPlayer = scoringPlayer === 1 ? 2 : 1;
-        console.log('\n=== MATCH ENDED ===');
-        console.log(`Player 1 (${session?.player1Alias || 'Unknown'}): ${gameState.players[1].score}`);
-        console.log(`Player 2 (${session?.player2Alias || 'Unknown'}): ${gameState.players[2].score}`);
-        console.log(`Winner: Player ${scoringPlayer} (${scoringPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'})`);
-        console.log(`Mode: ${session?.mode || 'unknown'}`);
-        console.log('==================\n');
+        const gameType = session?.mode === 'ai' ? 'GAME:AI' : 'GAME:LOCAL';
+        
+        console.log('\n=== GAME COMPLETED ===');
+        console.log(`Game Type: ${gameType}`);
+        console.log(`Player 1: ${session?.player1Alias || 'Unknown'} - Score: ${gameState.players[1].score}`);
+        console.log(`Player 2: ${session?.player2Alias || 'Unknown'} - Score: ${gameState.players[2].score}`);
+        console.log(`Winner: ${scoringPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'} (Player ${scoringPlayer})`);
+        console.log(`Loser: ${losingPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'} (Player ${losingPlayer})`);
+        console.log('======================\n');
         
         // Store the winner at the time of game end for the timeout check
         const winnerAtEnd = scoringPlayer;
