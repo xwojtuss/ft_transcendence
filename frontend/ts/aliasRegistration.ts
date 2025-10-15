@@ -62,7 +62,8 @@ function handleTournamentAliasForm(form: HTMLFormElement): void {
                 return;
             }
             
-            // Skip validation for disabled inputs (they're already validated)
+            // For disabled inputs (logged-in user), always use the value as-is
+            // For other inputs, validate
             if (!input.disabled) {
                 const key = val.toLowerCase();
                 if (namesSet.has(key)) {
@@ -85,6 +86,31 @@ function handleTournamentAliasForm(form: HTMLFormElement): void {
             }
             
             aliases.push(val);
+        }
+        
+        // Validate aliases on backend first
+        try {
+            const validateRes = await fetch('/api/game/tournament/aliases', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aliases: aliases })
+            });
+            
+            if (!validateRes.ok) {
+                const error = await validateRes.json();
+                alert(error.message || 'Validation failed');
+                return;
+            }
+            
+            const validateData = await validateRes.json();
+            if (!validateData.success) {
+                alert('Validation failed');
+                return;
+            }
+        } catch (err) {
+            console.error('Failed to validate aliases:', err);
+            alert('Failed to validate aliases. Please try again.');
+            return;
         }
         
         // Create tournament
@@ -136,37 +162,64 @@ function handleLocalAliasForm(form: HTMLFormElement, isAI: boolean): void {
             const input = document.getElementById(`player${i}`) as HTMLInputElement;
             if (!input) continue;
             
-            // Skip disabled inputs (logged in user)
-            if (input.disabled) {
-                aliases.push(input.value);
-                continue;
-            }
-            
             const val = input.value.trim();
             if (!val) {
                 alert("All names must be filled in.");
                 return;
             }
             
-            const key = val.toLowerCase();
-            if (namesSet.has(key)) {
-                alert("Names must be unique.");
-                return;
-            }
-            
-            try {
-                checkNickname(val, "Alias");
-            } catch (error) {
-                if (!(error instanceof Error)) {
-                    alert("Invalid alias");
+            // For disabled inputs (logged-in user), always use the value as-is
+            // For other inputs, validate
+            if (!input.disabled) {
+                const key = val.toLowerCase();
+                if (namesSet.has(key)) {
+                    alert("Names must be unique.");
                     return;
                 }
-                alert(error.message);
+                
+                try {
+                    checkNickname(val, "Alias");
+                } catch (error) {
+                    if (!(error instanceof Error)) {
+                        alert("Invalid alias");
+                        return;
+                    }
+                    alert(error.message);
+                    return;
+                }
+                
+                namesSet.add(key);
+            }
+            
+            aliases.push(val);
+        }
+        
+        // Validate aliases on backend
+        try {
+            const res = await fetch('/api/game/local/aliases', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    aliases: aliases,
+                    gameMode: isAI ? 'ai' : 'local'
+                })
+            });
+            
+            if (!res.ok) {
+                const error = await res.json();
+                alert(error.message || 'Validation failed');
                 return;
             }
             
-            namesSet.add(key);
-            aliases.push(val);
+            const data = await res.json();
+            if (!data.success) {
+                alert('Validation failed');
+                return;
+            }
+        } catch (err) {
+            console.error('Failed to validate aliases:', err);
+            alert('Failed to validate aliases. Please try again.');
+            return;
         }
         
         // Store aliases in sessionStorage for the game to use
