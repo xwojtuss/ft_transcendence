@@ -312,6 +312,99 @@ export function startRemoteGameLoop() {
                     }
 
                     broadcastRemoteGameState(session.gameState, session);
+
+                    // If the game ended, automatically move connected players into a fresh session
+                    if (session.gameState && session.gameState.gameEnded) {
+                        try {
+                            // Create new session
+                            const newSessionId = generateId();
+                            const newSession = {
+                                id: newSessionId,
+                                players: [],
+                                gameState: {},
+                                lastUpdate: Date.now()
+                            };
+                            sessions.set(newSessionId, newSession);
+
+                            // Move active players into new session
+                            for (const oldP of session.players) {
+                                if (!oldP.removed && oldP.connected && oldP.socket) {
+                                    const playerId = oldP.id;
+                                    const socket = oldP.socket;
+                                    const playerNumber = newSession.players.length + 1;
+
+                                    const newPlayer = {
+                                        id: playerId,
+                                        socket,
+                                        connected: true,
+                                        lastDisconnect: null,
+                                        playerNumber,
+                                        removed: false,
+                                        nick: oldP.nick
+                                    };
+
+                                    newSession.players.push(newPlayer);
+
+                                    // Update socket bookkeeping
+                                    socket.playerId = playerId;
+                                    socket.playerNumber = playerNumber;
+
+                                    // Re-attach socket handlers for the new session context
+                                    setupSocketHandlers(socket, newSession, playerId);
+                                }
+                            }
+
+                            // Notify players in the new session and optionally initialize game state
+                            if (newSession.players.length === 1) {
+                                const p = newSession.players[0];
+                                try {
+                                    p.socket.send(JSON.stringify({ type: "waiting", message: "Waiting for opponent...", players: 1, playerId: 1, sessionId: newSession.id }));
+                                    p.socket.send(JSON.stringify({ type: "config", width: FIELD_WIDTH, height: FIELD_HEIGHT }));
+                                } catch (err) {
+                                    // ignore
+                                }
+                            } else if (newSession.players.length === 2) {
+                                newSession.players.forEach((p, idx) => {
+                                    try {
+                                        p.socket.send(JSON.stringify({ type: "ready", message: "Enemy found! Starting game...", players: 2, playerId: idx + 1, sessionId: newSession.id }));
+                                        p.socket.send(JSON.stringify({ type: "config", width: FIELD_WIDTH, height: FIELD_HEIGHT }));
+                                    } catch (err) {
+                                        // ignore
+                                    }
+                                });
+
+                                // Initialize and broadcast initial state for the new session, then auto-start
+                                try {
+                                    newSession.gameState = createRemoteGameState();
+                                    newSession.players.forEach((p, idx) => {
+                                        const playerNumber = idx + 1;
+                                        if (newSession.gameState.players[playerNumber]) {
+                                            newSession.gameState.players[playerNumber].connected = !!p.connected;
+                                            newSession.gameState.players[playerNumber].removed = !!p.removed;
+                                            newSession.gameState.players[playerNumber].nick = p.nick;
+                                        }
+                                    });
+                                    broadcastRemoteGameState(newSession.gameState, newSession);
+
+                                    setTimeout(() => {
+                                        if (!newSession.gameState) return;
+                                        startGame(newSession.gameState);
+                                        broadcastRemoteGameState(newSession.gameState, newSession);
+                                    }, 3000);
+                                } catch (err) {
+                                    // ignore
+                                }
+                            }
+
+                            // Remove the old session
+                            sessions.delete(sessionId);
+                            console.log(`[DEBUG] Session ${sessionId} ended and players moved to new session ${newSessionId}`);
+                            // break out of normal processing for this old session
+                            continue;
+                        } catch (err) {
+                            // ignore any migration errors and continue
+                        }
+                    }
                 } catch (err) {
                     // ignore
                 }
