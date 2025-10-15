@@ -1,3 +1,5 @@
+import { getUserSession } from '../../../view/viewUtils.js';
+
 import {
     FPS, FIELD_WIDTH, FIELD_HEIGHT,
     PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE
@@ -45,13 +47,6 @@ function setupSocketHandlers(socket, session, playerId) {
                 session.players[idx].lastDisconnect = Date.now();
             }
         }
-        if (data.type === "loginStatus") {
-            const idx = session.players.findIndex(p => p.id === playerId);
-            if (idx !== -1) {
-                session.players[idx].isLoggedIn = data.isLoggedIn;
-                session.players[idx].nick = data.nick;
-            }
-        }
     });
 
     socket.on('close', () => {
@@ -81,17 +76,29 @@ function reconnectPlayer(session, socket, playerId, existingIdx) {
         playerId: socket.playerNumber,
         sessionId: session.id
     }));
+
+    // If the game state already exists, send the current state and game config to the reconnected player
+    if (session.gameState) {
+        try {
+            socket.send(JSON.stringify({ type: "state", state: session.gameState }));
+            socket.send(JSON.stringify({ type: "config", width: FIELD_WIDTH, height: FIELD_HEIGHT }));
+        } catch (err) {
+            // ignore
+        }
+    }
 }
 
-function addNewPlayer(session, socket, playerId) {
+function addNewPlayer(session, socket, playerId, fastify) {
     const playerNumber = session.players.length + 1;
+    const playerNick = getUserSession(fastify).nickname;
     session.players.push({
         id: playerId,
         socket,
         connected: true,
         lastDisconnect: null,
         playerNumber,
-        removed: false
+        removed: false,
+        nick: playerNick
     });
     socket.playerId = session.players.length;
     socket.playerNumber = playerNumber;
@@ -105,15 +112,34 @@ function addNewPlayer(session, socket, playerId) {
             playerId: 1,
             sessionId: session.id
         }));
+        // Send game config so the lone player can size the canvas correctly
+        try {
+            socket.send(JSON.stringify({ type: "config", width: FIELD_WIDTH, height: FIELD_HEIGHT }));
+        } catch (err) {
+            // ignore send errors
+        }
     } else if (session.players.length === 2) {
         session.players.forEach((p, idx) => {
-            p.socket.send(JSON.stringify({
-                type: "ready",
-                message: "Enemy found! Starting game...",
-                players: 2,
-                playerId: idx + 1,
-                sessionId: session.id
-            }));
+            try {
+                p.socket.send(JSON.stringify({
+                    type: "ready",
+                    message: "Enemy found! Starting game...",
+                    players: 2,
+                    playerId: idx + 1,
+                    sessionId: session.id
+                }));
+            } catch (err) {
+                // ignore
+            }
+        });
+
+        // Send game config (field dimensions) so the frontend can size the canvas correctly
+        session.players.forEach((p) => {
+            try {
+                p.socket.send(JSON.stringify({ type: "config", width: FIELD_WIDTH, height: FIELD_HEIGHT }));
+            } catch (err) {
+                // ignore
+            }
         });
     }
 }
@@ -123,7 +149,7 @@ function handleSessionFull(socket) {
     socket.close();
 }
 
-export function handleRemoteConnection(connection, req) {
+export function handleRemoteConnection(connection, req, fastify) {
     const socket = connection.socket || connection;
     const playerId = req.query.playerId;
 
@@ -140,7 +166,7 @@ export function handleRemoteConnection(connection, req) {
 
     // Add new player
     if (session.players.filter(p => !p.removed).length < 2) {
-        addNewPlayer(session, socket, playerId);
+        addNewPlayer(session, socket, playerId, fastify);
     } else {
         handleSessionFull(socket);
     }
@@ -152,7 +178,10 @@ export function startRemoteGameLoop() {
         for (const [sessionId, session] of sessions.entries()) {
             // Debug: print player states
             session.players.forEach((p, idx) => {
-                console.log(`[DEBUG] Session ${sessionId} - Player ${idx}: id=${p.id}, connected=${p.connected}, lastDisconnect=${p.lastDisconnect}, removed=${p.removed}`);
+                console.log(`[DEBUG] Session ${sessionId}
+                    Player ${idx}: id=${p.id}, connected=${p.connected}, lastDisconnect=${p.lastDisconnect},
+                    removed=${p.removed},
+                    playerNick=${p.nick}`);
             });
 
             // Remove disconnected players after timeout (set removed flag)
