@@ -97,6 +97,26 @@ export async function getUserSession(fastify, refreshToken, headers) {
 }
 
 /**
+ * Tries to get the 'forced' user session, meaning this function checks only the refresh token
+ * So this function is not safe to authorize the user in any way
+ * This is only good for places where we want to check if the user is logged in without refreshing the access token
+ * @param {*} fastify The fastify instance
+ * @param {string} refreshToken the refresh token
+ * @returns {Promise<User | null>} returns the user nickname if logged in
+ */
+export async function getForcedUserSession(fastify, refreshToken) {
+    try {
+        const refreshPayload = await checkRefreshToken(fastify, refreshToken);
+        if (!refreshPayload || !refreshPayload.id) return null;
+        const refreshUser = await getUserById(refreshPayload.id);
+        if (!refreshUser) return null;
+        return refreshUser;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
  * Gets the static views e.g. login
  * @param {string} name Name of the view to get
  * @returns {Promise<string>} The rendered static view

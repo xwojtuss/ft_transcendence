@@ -2,7 +2,7 @@ import { FIELD_WIDTH, FIELD_HEIGHT, WINNING_SCORE, RESET_DELAY, BALL_RADIUS, PAD
 import { resetGameState } from './gameState.js';
 import { handlePaddleCollision, updatePlayerPositions, generateBallDirection } from './gamePhysics.js';
 
-export function checkGameEnd(gameState, scoringPlayer) {
+export function checkGameEnd(gameState, scoringPlayer, session) {
     if (gameState.players[scoringPlayer].score >= WINNING_SCORE) {
         gameState.gameEnded = true;
         gameState.winner = scoringPlayer;
@@ -10,6 +10,22 @@ export function checkGameEnd(gameState, scoringPlayer) {
         
         gameState.ball.dx = 0;
         gameState.ball.dy = 0;
+        
+        // Only log match results if this is NOT a tournament match
+        // Tournament matches are logged by the tournament controller when the tournament finishes
+        if (!session?.isTournamentMatch) {
+            // Print match result with player aliases/nicknames
+            const losingPlayer = scoringPlayer === 1 ? 2 : 1;
+            const gameType = session?.mode === 'ai' ? 'GAME:AI' : 'GAME:LOCAL';
+            
+            console.log('\n=== GAME COMPLETED ===');
+            console.log(`Game Type: ${gameType}`);
+            console.log(`Player 1: ${session?.player1Alias || 'Unknown'} - Score: ${gameState.players[1].score}`);
+            console.log(`Player 2: ${session?.player2Alias || 'Unknown'} - Score: ${gameState.players[2].score}`);
+            console.log(`Winner: ${scoringPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'} (Player ${scoringPlayer})`);
+            console.log(`Loser: ${losingPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'} (Player ${losingPlayer})`);
+            console.log('======================\n');
+        }
         
         // Store the winner at the time of game end for the timeout check
         const winnerAtEnd = scoringPlayer;
@@ -54,7 +70,7 @@ export function startGame(gameState) {
     gameState.ball.dy = direction.dy;
 }
 
-export function updateGame(gameState, deltaTime, broadcastCallback) {
+export function updateGame(gameState, deltaTime, broadcastCallback, session) {
     if (gameState.gameEnded) {
         broadcastCallback();
         return;
@@ -101,11 +117,11 @@ export function updateGame(gameState, deltaTime, broadcastCallback) {
     // Scoring
     if (ball.x - BALL_RADIUS < 0) {
         gameState.players[2].score++;
-        checkGameEnd(gameState, 2);
+        checkGameEnd(gameState, 2, session);
         if (!gameState.gameEnded) resetBall(gameState, 1);
     } else if (ball.x + BALL_RADIUS > FIELD_WIDTH) {
         gameState.players[1].score++;
-        checkGameEnd(gameState, 1);
+        checkGameEnd(gameState, 1, session);
         if (!gameState.gameEnded) resetBall(gameState, 2);
     }
 

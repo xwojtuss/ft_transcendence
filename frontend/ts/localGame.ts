@@ -23,9 +23,10 @@ It is either:
 function setupTournamentBridgeIfNeeded() {
     const raw = sessionStorage.getItem('tournamentMatch');
 
-    // No tournament context -> make sure we're clean
+    // No tournament context -> check for local game aliases
     if (!raw) {
         clearTournamentContext('no-context-on-local');
+        setupLocalGameAliases();
         return;
     }
 
@@ -130,6 +131,23 @@ function clearTournamentContext(reason?: string) {
     delete (window as any).player2Name;
 }
 
+/**
+ * Setup player names for local games (non-tournament)
+ * Uses aliases from sessionStorage if available
+ */
+function setupLocalGameAliases() {
+    try {
+        const aliasData = sessionStorage.getItem('localGameAliases');
+        if (aliasData) {
+            const aliases = JSON.parse(aliasData);
+            (window as any).player1Name = aliases.player1;
+            (window as any).player2Name = aliases.player2;
+        }
+    } catch (err) {
+        console.error('Failed to load local game aliases:', err);
+    }
+}
+
 let gameInstance: {
     ws: GameWebSocket;
     input: InputHandler;
@@ -203,7 +221,33 @@ export function initLocalGame(aiEnabled: boolean) {
 
         // UPDATED WITH AI PLAYER
         // Tell the server which mode this session should run
-        gameWs.sendRaw({ type: "hello", mode: aiEnabled ? "ai" : "local" });
+        // Also send player aliases for match history
+        const aliasData = sessionStorage.getItem('localGameAliases');
+        const tournamentData = sessionStorage.getItem('tournamentMatch');
+        let player1Alias = null;
+        let player2Alias = null;
+        let isTournamentMatch = false;
+        
+        if (tournamentData) {
+            // Tournament match - get aliases from tournament context
+            const ctx = JSON.parse(tournamentData);
+            player1Alias = ctx.player1;
+            player2Alias = ctx.player2;
+            isTournamentMatch = true;
+        } else if (aliasData) {
+            // Regular local game - get aliases from local storage
+            const aliases = JSON.parse(aliasData);
+            player1Alias = aliases.player1;
+            player2Alias = aliases.player2;
+        }
+        
+        gameWs.sendRaw({ 
+            type: "hello", 
+            mode: aiEnabled ? "ai" : "local",
+            player1Alias: player1Alias,
+            player2Alias: player2Alias,
+            isTournamentMatch: isTournamentMatch
+        });
 
         // Setup input handling
         //Hook up keyboard/mouse/touch and send inputs through the WebSocket.

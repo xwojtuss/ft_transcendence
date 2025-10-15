@@ -48,7 +48,7 @@ async function friendsPreHandler(req, reply) {
     }
 }
 
-function errorHandler(error, req, reply) {
+export function errorHandler(error, req, reply) {
     if (error instanceof HTTPError) {
         return reply.code(error.code).send({ message: error.message });
     }

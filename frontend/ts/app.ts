@@ -7,6 +7,7 @@ import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.j
 import { initLocalGame } from "./localGame.js";
 import { initLocalTournament } from "./tournament.js";
 import { clearTournamentAll, isTournamentPath, cleanupTournamentOnRouteChange } from "./tournamentCleanup.js";
+import { initAliasRegistration } from "./aliasRegistration.js";
 
 
 const app: HTMLElement | null = document.getElementById('app');
@@ -17,7 +18,7 @@ window.addEventListener("beforeunload", () => {
     // make sure stale keys won’t linger into the next session.
     const p = window.location.pathname;
     if (p !== "/game/local" && p !== "/game/local-tournament") {
-        try { clearTournamentAll("beforeunload"); } catch {}
+        try { clearTournamentAll("beforeunload"); sessionStorage.removeItem('localGameAliases'); } catch {}
     }
 });
 
@@ -81,21 +82,41 @@ async function runHandlers(pathURL: string): Promise<void> {
 }
 
 function runChosenGame(pathURL: string): void {
-    switch (pathURL) {
-        case '/game/local?ai=1':
-            initLocalGame(true);
-            break;
-        case '/game/local':
-            initLocalGame(false);
-            break;
+    const url = new URL(pathURL, window.location.origin);
+    const pathname = url.pathname;
+    const params = url.searchParams;
+    
+    // Handle local game with parameters
+    if (pathname === '/game/local') {
+        const isAI = params.get('ai') === '1';
+        const isRegistered = params.get('registered') === 'true';
+        
+        if (isRegistered) {
+            initLocalGame(isAI);
+        } else {
+            initAliasRegistration();
+        }
+        return;
+    }
+    
+    // Handle tournament with parameters
+    if (pathname === '/game/local-tournament') {
+        const hasPlayers = params.has('players');
+        
+        if (hasPlayers) {
+            initAliasRegistration();
+        } else {
+            initLocalTournament();
+        }
+        return;
+    }
+    
+    switch (pathname) {
         case '/game/online':
             // add initialization for online game mode
             break;
         case '/game/multiplayer':
             // add initialization for multiplayer game mode
-            break;
-        case '/game/local-tournament':
-            initLocalTournament();                  // ^^^^^ TRDM ^^^^^
             break;
         case '/game/online-tournament':
             // add initialization for online tournament game mode
@@ -122,6 +143,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
     // Allowed in-flow transitions (/game/local <-> /game/local-tournament) are preserved.
     if (isTournamentPath(prev) && !isTournamentPath(next)) {
         clearTournamentAll("leaving-tournament-flow");
+        sessionStorage.removeItem('localGameAliases');
     }
 
     // Clean tournament crumbs if we’re leaving that flow (e.g., user clicked title or PLAY).
