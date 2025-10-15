@@ -5,6 +5,10 @@ import {
     PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE
 } from '../local/gameConfig.js';
 
+import { createRemoteGameState } from './remoteGameState.js';
+import { broadcastRemoteGameState } from './remoteClientManager.js';
+import { startGame, updateGame } from '../local/gameLogic.js';
+
 const sessions = new Map();
 
 function generateId() {
@@ -30,7 +34,8 @@ function findOrCreateSessionForPlayer(playerId, socket) {
     const session = {
         id: sessionId,
         players: [],
-        gameState: {}
+        gameState: {},
+        lastUpdate: Date.now()
     };
     sessions.set(sessionId, session);
     return session;
@@ -39,13 +44,42 @@ function findOrCreateSessionForPlayer(playerId, socket) {
 function setupSocketHandlers(socket, session, playerId) {
     socket.on('message', (msg) => {
         const data = JSON.parse(msg);
+        const idx = session.players.findIndex(p => p.id === playerId);
         if (data.type === "clientDisconnecting") {
             console.log(`[DEBUG] Player ${playerId} is leaving or refreshing`);
-            const idx = session.players.findIndex(p => p.id === playerId);
             if (idx !== -1) {
                 session.players[idx].connected = false;
                 session.players[idx].lastDisconnect = Date.now();
             }
+            return;
+        }
+
+        // Input handling: keydown/keyup from frontend
+        if ((data.type === 'keydown' || data.type === 'keyup') && idx !== -1) {
+            const key = data.key;
+            const sessionPlayer = session.players[idx];
+            const playerNumber = sessionPlayer.playerNumber;
+
+            // If gameState not created yet, ignore inputs safely
+            if (!session.gameState || !session.gameState.players || !session.gameState.players[playerNumber]) {
+                return;
+            }
+
+            const gsPlayer = session.gameState.players[playerNumber];
+            if (!gsPlayer.keyState) gsPlayer.keyState = { up: false, down: false };
+
+            const isDown = data.type === 'keydown';
+            if (key === 'w' || key === 'ArrowUp') {
+                gsPlayer.keyState.up = isDown;
+            } else if (key === 's' || key === 'ArrowDown') {
+                gsPlayer.keyState.down = isDown;
+            }
+
+            // compute dy: -1 for up, +1 for down, 0 if both or none
+            const up = gsPlayer.keyState.up ? 1 : 0;
+            const down = gsPlayer.keyState.down ? 1 : 0;
+            gsPlayer.dy = (down - up);
+            return;
         }
     });
 
@@ -141,6 +175,33 @@ function addNewPlayer(session, socket, playerId, fastify) {
                 // ignore
             }
         });
+
+        // Initialize game state for this session and broadcast it so clients can render players/ball/score
+        try {
+            session.gameState = createRemoteGameState();
+            // copy connected/removed/nick info into gameState players
+            session.players.forEach((p, idx) => {
+                const playerNumber = idx + 1;
+                if (session.gameState.players[playerNumber]) {
+                    session.gameState.players[playerNumber].connected = !!p.connected;
+                    session.gameState.players[playerNumber].removed = !!p.removed;
+                    session.gameState.players[playerNumber].nick = p.nick;
+                }
+            });
+            // Broadcast initial state
+            broadcastRemoteGameState(session.gameState, session);
+
+            // Auto-start the game after 3 seconds
+            setTimeout(() => {
+                if (!session.gameState) return;
+                // startGame will set initial ball dx/dy and mark started/initialized
+                startGame(session.gameState);
+                // send state immediately after starting
+                broadcastRemoteGameState(session.gameState, session);
+            }, 3000);
+        } catch (err) {
+            // ignore
+        }
     }
 }
 
@@ -234,6 +295,26 @@ export function startRemoteGameLoop() {
                         }));
                     }
                 });
+            }
+
+            // Update and broadcast current game state (if created) so clients receive updated positions
+            if (session.gameState) {
+                try {
+                    const now = Date.now();
+                    if (!session.lastUpdate) session.lastUpdate = now;
+                    const dt = (now - session.lastUpdate) / 1000; // seconds
+                    session.lastUpdate = now;
+
+                    try {
+                        updateGame(session.gameState, dt, () => {});
+                    } catch (err) {
+                        // swallow update errors to keep loop running
+                    }
+
+                    broadcastRemoteGameState(session.gameState, session);
+                } catch (err) {
+                    // ignore
+                }
             }
         }
     }, 1000 / FPS);
