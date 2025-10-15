@@ -226,12 +226,14 @@ export function initLocalGame(aiEnabled: boolean) {
         const tournamentData = sessionStorage.getItem('tournamentMatch');
         let player1Alias = null;
         let player2Alias = null;
+        let isTournamentMatch = false;
         
         if (tournamentData) {
             // Tournament match - get aliases from tournament context
             const ctx = JSON.parse(tournamentData);
             player1Alias = ctx.player1;
             player2Alias = ctx.player2;
+            isTournamentMatch = true;
         } else if (aliasData) {
             // Regular local game - get aliases from local storage
             const aliases = JSON.parse(aliasData);
@@ -243,7 +245,8 @@ export function initLocalGame(aiEnabled: boolean) {
             type: "hello", 
             mode: aiEnabled ? "ai" : "local",
             player1Alias: player1Alias,
-            player2Alias: player2Alias
+            player2Alias: player2Alias,
+            isTournamentMatch: isTournamentMatch
         });
 
         // Setup input handling

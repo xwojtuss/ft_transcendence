@@ -153,6 +153,10 @@ export function handleConnection(connection) {
                 if (data.player2Alias) {
                     currentSession.player2Alias = data.player2Alias;
                 }
+                // Store if this is a tournament match
+                if (data.isTournamentMatch) {
+                    currentSession.isTournamentMatch = true;
+                }
                 return; // nothing else to do for hello
             }
             // Input handling
