@@ -1,8 +1,8 @@
-import { BALL_SPEED, PADDLE_SPEED, FIELD_HEIGHT } from './gameConfig.js';
+import { BALL_SPEED, PADDLE_SPEED, FIELD_HEIGHT, PADDLE_HEIGHT, BALL_RADIUS } from './gameConfig.js';
 
 export function handlePaddleCollision(ball, paddle, isLeftPaddle) {
-    const hitPosition = (ball.y + ball.size/2 - paddle.y) / paddle.height;
-    const relativePosition = (hitPosition - 0.5) * 2;
+    const hitPosition = (ball.y - paddle.y) / (paddle.height / 2);
+    const relativePosition = hitPosition; 
     
     const maxAngle = Math.PI / 4;
     const bounceAngle = relativePosition * maxAngle;
@@ -18,17 +18,18 @@ export function handlePaddleCollision(ball, paddle, isLeftPaddle) {
 
     // Set ball position to avoid intersecting with paddle
     if (isLeftPaddle) {
-        ball.x = paddle.x + paddle.width;
+        ball.x = paddle.x + paddle.width / 2 + BALL_RADIUS;
     } else {
-        ball.x = paddle.x - ball.size;
+        ball.x = paddle.x - paddle.width / 2 - BALL_RADIUS;
     }
+
 }
 
 export function updatePlayerPositions(players, deltaTime) {
     for (const id of [1, 2]) {
         const player = players[id];
         player.y += player.dy * PADDLE_SPEED * deltaTime;
-        player.y = Math.max(1, Math.min(FIELD_HEIGHT - 1 - player.height, player.y));
+        player.y = Math.max(1 + PADDLE_HEIGHT / 2, Math.min(FIELD_HEIGHT - 1 - PADDLE_HEIGHT / 2, player.y));
     }
 }
 

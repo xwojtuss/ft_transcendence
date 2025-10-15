@@ -1,10 +1,10 @@
 import changePasswordButton from "./login-register-form.js";
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler, changeOnlineStatus } from "./authenticate.js";
-import { initGameIfHome } from "./localGame.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
 import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
+import { initLocalGame } from "./localGame.js";
 import { initLocalTournament } from "./tournament.js";
 import { clearTournamentAll, isTournamentPath, cleanupTournamentOnRouteChange } from "./tournamentCleanup.js";
 
@@ -83,10 +83,10 @@ async function runHandlers(pathURL: string): Promise<void> {
 function runChosenGame(pathURL: string): void {
     switch (pathURL) {
         case '/game/local?ai=1':
-            initGameIfHome(true);
+            initLocalGame(true);
             break;
         case '/game/local':
-            initGameIfHome(false);
+            initLocalGame(false);
             break;
         case '/game/online':
             // add initialization for online game mode
@@ -138,7 +138,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
                 'X-Request-Navigation-Bar': `${requestNavBar}`
             }
         });
-        if (pathURL === '/2fa') app.innerHTML = spinner;
+        if (pathURL === '/2fa' || pathURL.startsWith('/game')) app.innerHTML = spinner;
         const response: Response = await responsePromise;
         switch (response.status) {
             case 400: // bad request

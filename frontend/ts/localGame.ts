@@ -1,7 +1,6 @@
-import { initCanvas, resizeCanvas, setGameDimensions } from "./gameUtils/drawBoard.js";
-import { GameWebSocket } from "./gameUtils/websocketManager.js";
+import { GameState, GameWebSocket } from "./gameUtils/websocketManager.js";
 import { InputHandler } from "./gameUtils/inputHandler.js";
-import { GameRenderer } from "./gameUtils/gameRenderer.js";
+import { GameRenderer } from "./gameUtils/GameRenderer.js";
 // ^^^^^ TRDM ^^^^^
 // Singleton guard: prevent duplicate bridge setup & duplicate listeners across SPA inits
 let tournamentBridgeSetup = false;
@@ -46,7 +45,7 @@ function setupTournamentBridgeIfNeeded() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ matchId: ctx.matchId, winnerAlias })
             });
-            await sleep(150);
+            await sleep(1000);
             await resultPromise;
         } catch (err) {
             console.error('Failed to store tournament result', err);
@@ -137,10 +136,25 @@ let gameInstance: {
     renderer: GameRenderer;
 } | null = null;
 
-export function initGameIfHome(aiEnabled: boolean) {
-    if (!['/game/local', '/game/local-tournament'].includes(window.location.pathname)) {
-        return;
+export function copyGameState(from: GameState, to: GameState) {
+    to.ball.radius = from.ball.radius;
+    to.ball.x = from.ball.x;
+    to.ball.y = from.ball.y;
+    to.gameEnded = from.gameEnded;
+    to.gameInitialized = from.gameInitialized;
+    to.gameStarted = from.gameStarted;
+    to.winner = from.winner;
+    for(const player in from.players) {
+        to.players[player].height = from.players[player].height;
+        to.players[player].width = from.players[player].width;
+        to.players[player].x = from.players[player].x;
+        to.players[player].y = from.players[player].y;
+        to.players[player].score = from.players[player].score;
     }
+}
+
+export function initLocalGame(aiEnabled: boolean) {
+    if (!window.location.pathname.startsWith('/game/local')) return;
     
     // If we already have an active game instance, don't recreate it
     // This prevents random resets in regular local mode when page re-renders
@@ -152,21 +166,15 @@ export function initGameIfHome(aiEnabled: boolean) {
     setupTournamentBridgeIfNeeded();
     
     function waitForCanvas() {
-        const canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement; //   // Try to grab the <canvas id="local-game-canvas"> from the DOM.
-        if (!canvas) {
+        const canvas = document.getElementById("local-game-canvas");
+        if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
             setTimeout(waitForCanvas, 100);
             return;
         }
-        const ctx = canvas.getContext("2d"); //Get a 2D drawing context from the canvas.
-        if (!ctx) {
-            console.error("Failed to get canvas context!");
-            return;
-        }
+        const renderer = new GameRenderer(canvas);
 
-        initCanvas();
-
-        let gameState: any = null; // // Will hold the latest game state sent by the server (type kept loose as 'any').
-        const renderer = new GameRenderer(canvas, ctx); //    // Create the renderer that knows how to draw a single frame to this canvas.
+        let gameState: GameState | null = null;
+        let previousGameState: GameState | null = null;
 
         // Setup WebSocket
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -178,13 +186,19 @@ export function initGameIfHome(aiEnabled: boolean) {
         const gameWs = new GameWebSocket(
             wsUrl,
             (config) => {
-                setGameDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
-                renderer.setFieldDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
-                //console.log("Game dimensions set:", config.FIELD_WIDTH, config.FIELD_HEIGHT);
+                renderer.configure(config);
             },
             (state) => {
-                gameState = state;
-            }
+                if (!gameState || !previousGameState) {
+                    gameState = state;
+                    previousGameState = JSON.parse(JSON.stringify(state));
+                    renderer.startRenderLoop(gameState);
+                    return;
+                }
+                copyGameState(gameState, previousGameState);
+                copyGameState(state, gameState);
+            },
+            renderer.end.bind(renderer)
         );
 
         // UPDATED WITH AI PLAYER
@@ -195,19 +209,12 @@ export function initGameIfHome(aiEnabled: boolean) {
         //Hook up keyboard/mouse/touch and send inputs through the WebSocket.
         const inputHandler = new InputHandler(gameWs);
 
+
         // Store instance
         gameInstance = { ws: gameWs, input: inputHandler, renderer };
 
-        // Game loop
-        function gameLoop() {
-            renderer.render(gameState);
-            requestAnimationFrame(gameLoop);
-        }
-
-        gameLoop();
-
         // Handle resize
-        const handleResize = () => resizeCanvas();
+        const handleResize = () => renderer.resizeGame();
         window.addEventListener("resize", handleResize);
         document.addEventListener("fullscreenchange", handleResize);
     }
@@ -223,6 +230,19 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
+// Cleanup when page changes
+document.addEventListener('click', (e) => {
+    const target: EventTarget | null = e.target;
+
+    if (!target || !(target instanceof HTMLElement) || !gameInstance) return;
+    if (target.tagName === 'A') {
+        const href: string | null = target.getAttribute('href');
+        if (href) {
+            gameInstance.ws.disconnect();
+            gameInstance = null;
+        }
+    }
+});
 
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));

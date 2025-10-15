@@ -1,16 +1,54 @@
+export interface GameConfig { 
+    FIELD_WIDTH: number,
+    FIELD_HEIGHT: number,
+    PADDLE_HEIGHT: number,
+    PADDLE_WIDTH: number,
+    BALL_RADIUS: number
+}
+
+export interface GameState {
+    players: { [key: number]: PlayerState };
+    ball: BallState;
+    gameStarted: boolean;
+    gameInitialized: boolean;
+    gameEnded: boolean;
+    winner: number | null;
+}
+
+export interface PlayerState {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    score: number;
+}
+
+export interface BallState {
+    x: number;
+    y: number;
+    radius: number;
+}
+
+export interface FieldState {
+    width: number;
+    height: number;
+}
+
 export class GameWebSocket {
   private ws: WebSocket;
   private onGameConfig: (config: any) => void;
   private onGameState: (state: any) => void;
+  private onGameDisconnect: undefined | (() => void);
   private gameEndedDispatched: boolean = false;
   private lastGameEndedState: boolean = false;
 
-  constructor(url: string, onGameConfig: (config: any) => void, onGameState: (state: any) => void) {
-    this.onGameConfig = onGameConfig;
-    this.onGameState = onGameState;
-    this.ws = new WebSocket(url);
-    this.setupEventListeners();
-  }
+  constructor(url: string, onGameConfig: (config: GameConfig) => void, onGameState: (state: GameState) => void, onGameDisconnect?: (() => void) | undefined) {
+        this.onGameConfig = onGameConfig;
+        this.onGameState = onGameState;
+        this.onGameDisconnect = onGameDisconnect;
+        this.ws = new WebSocket(url);
+        this.setupEventListeners();
+    }
 
   private setupEventListeners() {
     this.ws.onopen = () => {
@@ -51,14 +89,14 @@ export class GameWebSocket {
 
     // Cleanup on unload
     window.addEventListener('beforeunload', () => {
-      this.disconnect();
+        if (this.onGameDisconnect) this.onGameDisconnect();
     });
 
     // Disconnect if navigating away from game
     window.addEventListener('popstate', () => {
-      if (window.location.pathname !== '/game/local') {
-        this.disconnect();
-      }
+        if (window.location.pathname !== '/game/local') {
+            if (this.onGameDisconnect) this.onGameDisconnect();
+        }
     });
   }
 
@@ -93,6 +131,7 @@ export class GameWebSocket {
   }
 
   disconnect() {
+    if (this.onGameDisconnect) this.onGameDisconnect();
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       console.log("Disconnecting WebSocket...");
       this.ws.close();

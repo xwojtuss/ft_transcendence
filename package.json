@@ -6,13 +6,14 @@
   "type": "module",
   "scripts": {
     "test": "NODE_ENV=test node --test --env-file-if-exists=secrets/.env --trace-exit",
+    "babylon": "./import_babylon_d.sh",
     "build:ts": "npx tsc",
     "build:css": "npx tailwindcss -i frontend/css_styles.css -o frontend/css/output.css",
     "dirs": "mkdir -p backend/avatars secrets",
     "certs": "./generate_certs.sh",
     "start": "node --env-file-if-exists=secrets/.env --watch backend/server.js",
-    "build": "npm run dirs && npm run build:ts && npm run build:css && npm run certs",
-    "dev": "npm run dirs && npm run build:ts && npm run build:css && npm run certs && npm run start"
+    "build": "npm run dirs && npm run babylon && npm run build:ts && npm run build:css && npm run certs",
+    "dev": "npm run dirs && npm run babylon && npm run build:ts && npm run build:css && npm run certs && npm run start"
   },
   "repository": {
     "type": "git",
