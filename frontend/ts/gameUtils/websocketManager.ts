@@ -2,6 +2,8 @@ export class GameWebSocket {
   private ws: WebSocket;
   private onGameConfig: (config: any) => void;
   private onGameState: (state: any) => void;
+  private gameEndedDispatched: boolean = false;
+  private lastGameEndedState: boolean = false;
 
   constructor(url: string, onGameConfig: (config: any) => void, onGameState: (state: any) => void) {
     this.onGameConfig = onGameConfig;
@@ -22,8 +24,19 @@ export class GameWebSocket {
       } else if (data.type === "state" && data.state) {
         this.onGameState(data.state);
 
+        // Track gameEnded state transitions to reset flag when a new game starts
+        const currentGameEnded = data.state.gameEnded || false;
+        // Detect transition from 'ended' -> 'not ended' which indicates a new game started
+        if (this.lastGameEndedState && !currentGameEnded) {
+          // Game was ended, now it's not (new game started) - reset the flag
+          this.gameEndedDispatched = false;
+        }
+        this.lastGameEndedState = currentGameEnded;
+
         // ^^^^^ TRDM ^^^^^ if the game ended, dispatch a custom event with the winner index
-        if (data.state.gameEnded && data.state.winner) {
+        // Only dispatch once per game to prevent duplicate tournament results
+        if (data.state.gameEnded && data.state.winner && !this.gameEndedDispatched) {
+          this.gameEndedDispatched = true;
           window.dispatchEvent(new CustomEvent("gameEndedLocal", {
               detail: data.state.winner
           }));
@@ -84,5 +97,8 @@ export class GameWebSocket {
       console.log("Disconnecting WebSocket...");
       this.ws.close();
     }
+    // Reset flags so if this instance is somehow reused, it starts with clean state
+    this.gameEndedDispatched = false;
+    this.lastGameEndedState = false;
   }
 }
