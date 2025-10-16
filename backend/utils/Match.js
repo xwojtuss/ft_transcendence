@@ -105,13 +105,6 @@ export default class Match {
             );
             const matchID = result.lastID;
             for (const [player, outcome] of this.#participants.entries()) {
-                console.log("INSERT INTO participants (match_id, user_account, alias, is_originator, is_logged_in, outcome) VALUES (?, ?, ?, ?, ?, ?)",
-                    matchID,
-                    player instanceof User ? player.id : null,
-                    typeof player === "string" ? player : null,
-                    (this.#originator === player),
-                    player instanceof User ? true : false,
-                    outcome);
                 await db.run(
                     "INSERT INTO participants (match_id, user_account, alias, is_originator, is_logged_in, outcome) VALUES (?, ?, ?, ?, ?, ?)",
                     matchID,
@@ -124,7 +117,6 @@ export default class Match {
             }
             await db.exec("COMMIT");
         } catch (error) {
-            console.log(error);
             await db.exec("ROLLBACK");
             throw new Error("Insert failed");
         }

@@ -53,7 +53,6 @@ function getDesktopMatchHTML(match, profileOwner) {
             <td class="overflow-x-auto max-w-[150px] whitespace-nowrap"></td>
             <td></td>
         </tr>`, null, false);
-    console.log(match.maxNumOfPlayers);
     match.participants.forEach((key, participant) => {
         delim = ', ';
         if (count === match.maxNumOfPlayers) delim = '';
@@ -76,17 +75,18 @@ function getDesktopMatchHTML(match, profileOwner) {
 function getMobileMatchHTML(match, profileOwner) {
     const row = cheerio.load(`
         <li class="mobile-match-list"><b>at ${match.endedAt}:</b><ul>
-            <li>Player Count: ${match.numOfPlayers}</li>
+            <li>Game: ${match.game}</li>
+            <li>Mode: ${match.mode}</li>
             <li>Players:<ul>
             </ul></li>
-            <li>Initiator: <a href="/profile/${match.originator.nickname || match.originator}">${match.originator.nickname || match.originator}</a></li>
-            <li>Rank: 1st</li>
+            <li>Outcome: </li>
         </ul></li>`, null, false)
     match.participants.forEach((key, participant) => {
-        if ((participant === profileOwner || participant === profileOwner.nickname)) {
-            row('li.mobile-match-list > ul > li:last-child').text(`Rank: ${key + getOrdinalIndicator(key)}`);
+        if ((participant === profileOwner || participant.nickname === profileOwner)) {
+            row('li.mobile-match-list > ul > li:last-child').text(`Outcome: ${key}`);
         }
-        row('li.mobile-match-list ul li ul').append(`<li><a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant)}</a></li>`);
+        if (participant instanceof User) row('li.mobile-match-list ul li ul').append(`<li><a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant)}</a></li>`);
+        else if (typeof participant === "string") row('li.mobile-match-list ul li ul').append(`<li>${participant.nickname || participant}</li>`);
     })
     return row.html();
 }
