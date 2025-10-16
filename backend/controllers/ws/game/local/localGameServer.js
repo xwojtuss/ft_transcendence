@@ -12,6 +12,7 @@ import {
 import { resetGameState } from './gameState.js';
 import { updateGame, startGame } from './gameLogic.js';
 import { createSession, getSession, removeSession, getAllSessions } from './sessionManager.js';
+import { getUserSession } from '../../../view/viewUtils.js';
 
 /* -------------------------
    Networking
@@ -136,7 +137,6 @@ export async function handleConnection(connection, request) {
     // Get user session from cookies to know if player 1 is logged in
     // This is secure because it comes from the backend and cannot be tampered with
     try {
-        const { getUserSession } = await import('../../../view/viewUtils.js');
         const user = await getUserSession(request.server, request.cookies?.refreshToken, request.headers);
         if (user && user.id && user.nickname) {
             session.loggedInUserId = user.id;
@@ -165,7 +165,7 @@ export async function handleConnection(connection, request) {
                 // If user is logged in, validate that player1Alias matches their nickname
                 if (currentSession.loggedInUserId) {
                     if (data.player1Alias !== currentSession.loggedInUserNickname) {
-                        console.error(`Tampering detected: Player 1 alias "${data.player1Alias}" does not match logged-in user nickname "${currentSession.loggedInUserNickname}"`);
+                        console.error('Tampering detected: Player 1 alias does not match logged-in user');
                         // Use the server-side nickname instead
                         currentSession.player1Alias = currentSession.loggedInUserNickname;
                     } else {
