@@ -122,7 +122,7 @@ function predictImpactY(ball, fieldH, paddleX) {
 /* -------------------------
    Connection handling
 -------------------------- */
-export function handleConnection(connection) {
+export async function handleConnection(connection, request) {
     const socket = connection.socket || connection;
     const sessionId = createSession(socket);
     const session = getSession(sessionId);
@@ -132,6 +132,20 @@ export function handleConnection(connection) {
     }
     // default mode is "local" unless client says otherwise
     session.mode = "local"; // "local" | "ai"
+    
+    // Get user session from cookies to know if player 1 is logged in
+    // This is secure because it comes from the backend and cannot be tampered with
+    try {
+        const { getUserSession } = await import('../../../view/viewUtils.js');
+        const user = await getUserSession(request.server, request.cookies?.refreshToken, request.headers);
+        if (user && user.id && user.nickname) {
+            session.loggedInUserId = user.id;
+            session.loggedInUserNickname = user.nickname;
+        }
+    } catch (error) {
+        // No user logged in, which is fine for local games
+    }
+    
     // Send config to client
     socket.send(JSON.stringify({
         type: "gameConfig",
@@ -146,10 +160,24 @@ export function handleConnection(connection) {
             // client greets with desired mode ("local" or "ai")
             if (data.type === "hello" && (data.mode === "local" || data.mode === "ai")) {
                 currentSession.mode = data.mode;
+                
                 // Store player aliases for match history
-                if (data.player1Alias) {
-                    currentSession.player1Alias = data.player1Alias;
+                // If user is logged in, validate that player1Alias matches their nickname
+                if (currentSession.loggedInUserId) {
+                    if (data.player1Alias !== currentSession.loggedInUserNickname) {
+                        console.error(`Tampering detected: Player 1 alias "${data.player1Alias}" does not match logged-in user nickname "${currentSession.loggedInUserNickname}"`);
+                        // Use the server-side nickname instead
+                        currentSession.player1Alias = currentSession.loggedInUserNickname;
+                    } else {
+                        currentSession.player1Alias = data.player1Alias;
+                    }
+                } else {
+                    // No user logged in, accept the provided alias
+                    if (data.player1Alias) {
+                        currentSession.player1Alias = data.player1Alias;
+                    }
                 }
+                
                 if (data.player2Alias) {
                     currentSession.player2Alias = data.player2Alias;
                 }

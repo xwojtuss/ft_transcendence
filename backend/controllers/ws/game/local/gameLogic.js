@@ -18,12 +18,29 @@ export function checkGameEnd(gameState, scoringPlayer, session) {
             const losingPlayer = scoringPlayer === 1 ? 2 : 1;
             const gameType = session?.mode === 'ai' ? 'GAME:AI' : 'GAME:LOCAL';
             
+            // Determine if players are logged in
+            // Player 1 is the logged-in user if their alias matches the logged-in user's nickname
+            const player1IsLoggedIn = session?.loggedInUserId && 
+                                      session?.player1Alias === session?.loggedInUserNickname;
+            const player2IsLoggedIn = false; // Player 2 is never logged in for local/AI games
+            
+            // Format player information
+            const player1Info = player1IsLoggedIn 
+                ? `${session.player1Alias} (User ID: ${session.loggedInUserId}, Logged In)`
+                : `${session?.player1Alias || 'Unknown'} (Guest)`;
+            
+            const player2Info = `${session?.player2Alias || 'Unknown'} (Guest)`;
+            
             console.log('\n=== GAME COMPLETED ===');
             console.log(`Game Type: ${gameType}`);
-            console.log(`Player 1: ${session?.player1Alias || 'Unknown'} - Score: ${gameState.players[1].score}`);
-            console.log(`Player 2: ${session?.player2Alias || 'Unknown'} - Score: ${gameState.players[2].score}`);
-            console.log(`Winner: ${scoringPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'} (Player ${scoringPlayer})`);
-            console.log(`Loser: ${losingPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'} (Player ${losingPlayer})`);
+            console.log(`Player 1: ${player1Info} - Score: ${gameState.players[1].score}`);
+            console.log(`Player 2: ${player2Info} - Score: ${gameState.players[2].score}`);
+            
+            const winnerInfo = scoringPlayer === 1 ? player1Info : player2Info;
+            const loserInfo = losingPlayer === 1 ? player1Info : player2Info;
+            
+            console.log(`Winner: ${winnerInfo} (Player ${scoringPlayer})`);
+            console.log(`Loser: ${loserInfo} (Player ${losingPlayer})`);
             console.log('======================\n');
         }
         
