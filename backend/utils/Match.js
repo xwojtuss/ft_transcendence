@@ -213,16 +213,16 @@ export default class Match {
                 )
                 ORDER BY p.is_originator DESC;
             `, [identifier, identifier]);
-
+            const originator = matches[0].is_logged_in ? new User(matches[0].nickname) : matches[0].alias;
+            const matchInstance = new Match(originator, matches[0].game, matches[0].mode, matches[0].num_of_players);
+            matchInstance.mode = matches[0].mode;
+            matchInstance.game = matches[0].game;
+            matchInstance.endedAt = matches[0].ended_at;
+            matchInstance.addRank(originator, (matches[0].outcome));
+            matchesMap.set(matches[0].match_id, matchInstance);
             for (const match of matches) {
-                let matchInstance = matchesMap.get(match.match_id);
-                if (!matchInstance) {
-                    matchInstance = new Match(match.match_id, match.num_of_players);
-                    matchInstance.game = match.game;
-                    matchInstance.mode = match.mode;
-                    matchInstance.endedAt = match.ended_at;
-                    matchesMap.set(match.match_id, matchInstance);
-                }
+                if ((match.is_logged_in && match.nickname === originator.nickname)
+                    || (!match.is_logged_in && match.alias === originator)) continue;
 
                 if (match.is_logged_in) {
                     const participant = new User(match.nickname);
@@ -234,7 +234,6 @@ export default class Match {
                     matchInstance.addRank(match.alias, match.outcome)
                 }
             }
-
             return matchesMap;
         } catch (error) {
             console.error(error);

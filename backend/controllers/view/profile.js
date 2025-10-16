@@ -5,6 +5,7 @@ import { areFriends } from "../../db/friendQueries.js";
 import { cheerio } from '../../buildApp.js';
 import HTTPError from "../../utils/error.js";
 import Match from "../../utils/Match.js";
+import User from "../../utils/User.js";
 
 let cachedProfileHtmlPromise = fs.readFile('./backend/views/profile.html', 'utf8');
 
@@ -38,7 +39,7 @@ function getOrdinalIndicator(number) {
 /**
  * Get the HTML of the row of a table for one match
  * @param {Match} match the match to convert to HTML
- * @param {User | string} profileOwner the user or user nickname who's profile is currently being viewed
+ * @param {string} profileOwner the user nickname who's profile is currently being viewed
  * @returns {string} the HTML for a row that corresponds to one match
  */
 function getDesktopMatchHTML(match, profileOwner) {
@@ -47,18 +48,20 @@ function getDesktopMatchHTML(match, profileOwner) {
     const row = cheerio.load(`
         <tr>
             <td>${match.endedAt}</td>
-            <td>${match.numOfPlayers}</td>
+            <td>${match.game}</td>
+            <td>${match.mode}</td>
             <td class="overflow-x-auto max-w-[150px] whitespace-nowrap"></td>
-            <td><a href="/profile/${match.originator.nickname || match.originator}">${match.originator.nickname || match.originator}</a></td>
-            <td>1st</td>
-        </tr>`, null, false)
+            <td></td>
+        </tr>`, null, false);
+    console.log(match.maxNumOfPlayers);
     match.participants.forEach((key, participant) => {
         delim = ', ';
         if (count === match.maxNumOfPlayers) delim = '';
-        if (participant === profileOwner || participant === profileOwner.nickname) {
-            row('tr td:nth-child(5)').text(`${key + getOrdinalIndicator(key)}`);
+        if (participant === profileOwner || participant.nickname === profileOwner) {
+            row('tr td:nth-child(5)').text(key);
         }
-        row('tr td:nth-child(3)').append(`<a href="/profile/${participant.nickname || participant}">${(participant.nickname || participant) + delim}</a>`);
+        if (participant instanceof User) row('tr td:nth-child(4)').append(`<a href="/profile/${participant.nickname}">${(participant.nickname) + delim}</a>`);
+        else if (typeof participant === "string") row('tr td:nth-child(4)').append(`${participant + delim}</a>`);
         count++;
     })
     return row.html();

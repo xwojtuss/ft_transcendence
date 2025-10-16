@@ -2,6 +2,7 @@ import testDatabase, { runSecretsTest } from "./tests/utilTest.js";
 import buildApp from "./buildApp.js";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import { finishTournament } from "./controllers/tournaments/tournaments.js";
 
 runSecretsTest();
 
