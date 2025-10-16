@@ -203,30 +203,40 @@ export default class Match {
                     LEFT JOIN users u2 ON u2.user_id = p2.user_account
                     WHERE (u2.nickname = ? OR p2.alias = ?)
                 )
-                ORDER BY p.is_originator DESC;
+                ORDER BY mh.match_id DESC, p.is_originator DESC;
             `, [identifier, identifier]);
-            if (matches.length === 0) return new Map();
-            const originator = matches[0].is_logged_in ? new User(matches[0].nickname) : matches[0].alias;
-            const matchInstance = new Match(originator, matches[0].game, matches[0].mode, matches[0].num_of_players);
-            matchInstance.mode = matches[0].mode;
-            matchInstance.game = matches[0].game;
-            matchInstance.endedAt = matches[0].ended_at;
-            matchInstance.addRank(originator, (matches[0].outcome));
-            matchesMap.set(matches[0].match_id, matchInstance);
-            for (const match of matches) {
-                if ((match.is_logged_in && match.nickname === originator.nickname)
-                    || (!match.is_logged_in && match.alias === originator)) continue;
 
-                if (match.is_logged_in) {
-                    const participant = new User(match.nickname);
-                    participant.id = match.user_account;
-                    matchInstance.addParticipant(participant);
-                    matchInstance.addRank(participant, match.outcome);
-                } else {
-                    matchInstance.addParticipant(match.alias);
-                    matchInstance.addRank(match.alias, match.outcome)
+            if (matches.length === 0) return new Map();
+
+            for (const row of matches) {
+                const matchId = row.match_id;
+
+                let matchInstance = matchesMap.get(matchId);
+
+                if (!matchInstance) {
+                    const originator = row.is_logged_in ? new User(row.nickname) : row.alias;
+                    if (originator instanceof User) originator.id = row.user_account;
+
+                    matchInstance = new Match(originator, row.game, row.mode, row.num_of_players);
+                    matchInstance.addRank(originator, row.outcome);
+                    matchInstance.endedAt = row.ended_at;
+
+                    matchesMap.set(matchId, matchInstance);
                 }
+
+                let participant;
+                if (row.is_logged_in && (matchInstance.originator.id !== row.user_account)) {
+                    participant = new User(row.nickname);
+                    participant.id = row.user_account; 
+                } else if (!row.is_logged_in && matchInstance.originator !== row.alias) {
+                    participant = row.alias;
+                } else {
+                    continue;
+                }
+                matchInstance.addParticipant(participant); 
+                matchInstance.addRank(participant, row.outcome);
             }
+
             return matchesMap;
         } catch (error) {
             console.error(error);

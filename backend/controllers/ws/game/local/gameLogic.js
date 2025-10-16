@@ -1,6 +1,8 @@
 import { FIELD_WIDTH, FIELD_HEIGHT, WINNING_SCORE, RESET_DELAY, BALL_RADIUS, PADDLE_WIDTH, PADDLE_HEIGHT } from './gameConfig.js';
 import { resetGameState } from './gameState.js';
 import { handlePaddleCollision, updatePlayerPositions, generateBallDirection } from './gamePhysics.js';
+import User from '../../../../utils/User.js';
+import Match from '../../../../utils/Match.js';
 
 export function checkGameEnd(gameState, scoringPlayer, session) {
     if (gameState.players[scoringPlayer].score >= WINNING_SCORE) {
@@ -13,18 +15,24 @@ export function checkGameEnd(gameState, scoringPlayer, session) {
         
         // Only log match results if this is NOT a tournament match
         // Tournament matches are logged by the tournament controller when the tournament finishes
-        if (!session?.isTournamentMatch) {
+        if (session && session.player1Alias && session.player2Alias && !session.isTournamentMatch) {
             // Print match result with player aliases/nicknames
             const losingPlayer = scoringPlayer === 1 ? 2 : 1;
-            const gameType = session?.mode === 'ai' ? 'GAME:AI' : 'GAME:LOCAL';
+            const gameType = session.mode === 'ai' ? "AI" : "Local";
             
-            console.log('\n=== GAME COMPLETED ===');
-            console.log(`Game Type: ${gameType}`);
-            console.log(`Player 1: ${session?.player1Alias || 'Unknown'} - Score: ${gameState.players[1].score}`);
-            console.log(`Player 2: ${session?.player2Alias || 'Unknown'} - Score: ${gameState.players[2].score}`);
-            console.log(`Winner: ${scoringPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'} (Player ${scoringPlayer})`);
-            console.log(`Loser: ${losingPlayer === 1 ? session?.player1Alias : session?.player2Alias || 'Unknown'} (Player ${losingPlayer})`);
-            console.log('======================\n');
+            let originator;
+            if (session.loggedInUserId) {
+                originator = new User(session.loggedInUserNickname);
+                originator.id = session.loggedInUserId;
+            } else {
+                originator = session.player1Alias;
+            }
+            const matchToCommit = new Match(originator, "Pong", gameType);
+            matchToCommit.addRank(originator, gameState.players[1].score > gameState.players[2].score ? "Won" : "Lost");
+            matchToCommit.addParticipant(session.player2Alias);
+            matchToCommit.addRank(session.player2Alias, gameState.players[1].score > gameState.players[2].score ? "Lost" : "Won");
+            matchToCommit.endMatch();
+            matchToCommit.commitMatch();
         }
         
         // Store the winner at the time of game end for the timeout check

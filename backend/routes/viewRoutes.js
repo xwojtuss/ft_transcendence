@@ -31,17 +31,17 @@ async function loggedOutPreHandler(req, reply) {
     }
 }
 
-async function loggedInOrOutPreHandler(req, reply) {
+export async function loggedInOrOutPreHandler(req, reply) {
     const user = await getUserSession(this, req.cookies.refreshToken, req.headers);
     req.currentUser = user ? user : null;
 }
 
-async function forcedLoggedInOrOutPreHandler(req, reply) {
+export async function forcedLoggedInOrOutPreHandler(req, reply) {
     const user = await getForcedUserSession(this, req.cookies.refreshToken);
     req.currentUser = user ? user : null;
 }
 
-async function viewsErrorHandler(error, req, reply) {
+export async function viewsErrorHandler(error, req, reply) {
     if (!(error instanceof HTTPError)) {
         console.error(error);
     }

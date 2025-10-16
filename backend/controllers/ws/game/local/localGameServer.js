@@ -122,7 +122,7 @@ function predictImpactY(ball, fieldH, paddleX) {
 /* -------------------------
    Connection handling
 -------------------------- */
-export function handleConnection(connection) {
+export function handleConnection(connection, request) {
     const socket = connection.socket || connection;
     const sessionId = createSession(socket);
     const session = getSession(sessionId);
@@ -152,6 +152,14 @@ export function handleConnection(connection) {
                 }
                 if (data.player2Alias) {
                     currentSession.player2Alias = data.player2Alias;
+                }
+                if (request.currentUser) {
+                    currentSession.loggedInUserNickname = request.currentUser.nickname;
+                    currentSession.loggedInUserId = request.currentUser.id;
+                    if (currentSession.loggedInUserNickname !== currentSession.player1Alias) {
+                        // someone might have tampered with the nickname, so we take the known nickname by the server
+                        currentSession.player1Alias = currentSession.loggedInUserNickname;
+                    }
                 }
                 // Store if this is a tournament match
                 if (data.isTournamentMatch) {
