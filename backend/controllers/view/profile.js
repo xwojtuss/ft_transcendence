@@ -59,7 +59,7 @@ function getDesktopMatchHTML(match, profileOwner) {
         if (participant === profileOwner || participant.nickname === profileOwner) {
             row('tr td:nth-child(5)').text(key);
         }
-        if (participant instanceof User) row('tr td:nth-child(4)').append(`<a href="/profile/${participant.nickname}">${(participant.nickname) + delim}</a>`);
+        if (participant instanceof User) row('tr td:nth-child(4)').append(`<a href="/profile/${participant.nickname}">${(participant.nickname)}</a>${delim}`);
         else if (typeof participant === "string") row('tr td:nth-child(4)').append(`${participant + delim}</a>`);
         count++;
     })

@@ -90,6 +90,10 @@
     @apply border-gray-300 border-1 px-2 py-1;
 }
 
+.match-history-desktop table a, .match-history-mobile a {
+    @apply font-semibold;
+}
+
 .match-history-desktop caption, .match-history-mobile p, .match-history-desktop p {
     @apply text-lg mb-4 font-normal;
 }
