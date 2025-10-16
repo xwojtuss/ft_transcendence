@@ -15,7 +15,7 @@ export default class User {
     /**
      * Create the user 
      * @param {string} nickname User nickname
-     * @param {string} password Optional, you should only pass the hashed password here!
+     * @param {string | undefined} password Optional, you should only pass the hashed password here!
      */
     constructor(nickname, password) {
         this.#nickname = nickname;

@@ -22,7 +22,8 @@ import { cleanupInactiveSessions } from "./controllers/ws/game/local/sessionMana
 
 export const cheerio = Cheerio;
 
-export let db = process.env.NODE_ENV === 'test' ? await initDb(":memory:") : await initDb("database.sqlite");
+// await deleteDatabase("database.sqlite");
+export let db = await initDb(process.env.NODE_ENV === 'test' ? ":memory:" : "database.sqlite");
 
 export default function buildApp(logger) {
     const keySSL = fs.readFileSync("./secrets/ft_transcendence.key");

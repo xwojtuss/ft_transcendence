@@ -1,6 +1,8 @@
 import { StatusCodes } from "http-status-codes";
 import { db } from "../../buildApp.js";  // SQLite database instance
 import HTTPError from "../../utils/error.js";
+import Match from "../../utils/Match.js";
+import User from "../../utils/User.js";
 
 // POST /api/tournaments
 export async function createTournament(req, reply) {
@@ -188,7 +190,7 @@ export async function recordMatchResult(req, reply) {
 
     if (pending.cnt === 0) {
         // Tournament is complete - log comprehensive results
-        await logTournamentResults(tourId);
+        await finishTournament("Pong", tourId);
         
         // Find champion from highest non-3rd-place round
         const lastFinal = await db.get(
@@ -206,14 +208,14 @@ export async function recordMatchResult(req, reply) {
 }
 
 /**
- * Log comprehensive tournament results when tournament finishes
- * @param {number} tourId Tournament ID
+ * Commits the tournament to the match history
+ * @param {"Pong" | "TicTacToe"} game the name of the game
  */
-async function logTournamentResults(tourId) {
+export async function finishTournament(game, tournamentId) {
     // Get tournament info
     const tournament = await db.get(
         "SELECT num_players, user_id FROM tournaments WHERE tournament_id = ?",
-        [tourId]
+        [tournamentId]
     );
     
     // Get all players with their info
@@ -223,7 +225,7 @@ async function logTournamentResults(tourId) {
          LEFT JOIN users u ON p.is_logged_user = 1 AND u.user_id = ?
          WHERE p.tournament_id = ?
          ORDER BY p.player_id`,
-        [tournament.user_id, tourId]
+        [tournament.user_id, tournamentId]
     );
     
     // Get all match results
@@ -238,48 +240,27 @@ async function logTournamentResults(tourId) {
          LEFT JOIN tournament_players pw ON pw.player_id = m.winner_id
          WHERE m.tournament_id = ?
          ORDER BY m.round, m.match_id`,
-        [tourId]
+        [tournamentId]
     );
-    
     // Find champion (winner of final)
     const champion = matches.find(m => !m.is_third && m.round === Math.max(...matches.map(m => m.round)));
-    
-    // Find 3rd place winner
-    const thirdPlace = matches.find(m => m.is_third);
-    
-    // Log comprehensive results
-    console.log('\n=== GAME:TOURNAMENT COMPLETED ===');
-    console.log(`Tournament ID: ${tourId}`);
-    console.log(`Game Type: TOURNAMENT`);
-    console.log(`Player Count: ${tournament.num_players}`);
-    console.log(`Logged-in User ID: ${tournament.user_id || 'None'}`);
-    
-    console.log('\n--- Players ---');
-    players.forEach((p, idx) => {
-        const userInfo = p.is_logged_user ? ` (USER: ${p.user_nickname || 'Unknown'}, ID: ${tournament.user_id})` : ' (GUEST)';
-        console.log(`${idx + 1}. ${p.alias}${userInfo}`);
-    });
-    
-    console.log('\n--- Final Results ---');
-    if (champion) {
-        const champInfo = champion.winner_logged ? ' (LOGGED-IN USER)' : ' (GUEST)';
-        console.log(`🏆 Champion: ${champion.winner_alias}${champInfo}`);
+
+    let originator;
+    if (players[0].is_logged_user) {
+        originator = new User(players[0].user_nickname);
+        originator.id = tournament.user_id;
+    } else {
+        originator = players[0].alias;
     }
-    if (thirdPlace && thirdPlace.winner_alias) {
-        const thirdInfo = thirdPlace.winner_logged ? ' (LOGGED-IN USER)' : ' (GUEST)';
-        console.log(`🥉 3rd Place: ${thirdPlace.winner_alias}${thirdInfo}`);
-    }
-    
-    console.log('\n--- All Match Results ---');
-    matches.forEach((m, idx) => {
-        const roundName = m.is_third ? `Round ${m.round} (3rd Place)` : `Round ${m.round}`;
-        const p1Info = m.p1_logged ? ' (USER)' : '';
-        const p2Info = m.p2_logged ? ' (USER)' : '';
-        const winnerInfo = m.winner_logged ? ' (USER)' : '';
-        console.log(`${roundName}: ${m.player1_alias}${p1Info} vs ${m.player2_alias}${p2Info} → Winner: ${m.winner_alias}${winnerInfo}`);
+    const match = new Match(originator, game, "Tournament", tournament.num_players);
+    match.addRank(originator, (champion.winner_alias === originator || champion.winner_alias === originator.user_nickname) ? "Won" : "Lost");
+    players.forEach((player, index) => {
+        if (index === 0) return;
+        match.addParticipant(player.alias);
+        match.addRank(player.alias, champion.winner_alias === player.alias ? "Won" : "Lost");
     });
-    
-    console.log('=================================\n');
+    match.endMatch();
+    await match.commitMatch();
 }
 
 // GET /api/tournaments/:id
