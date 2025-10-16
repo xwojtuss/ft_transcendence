@@ -205,6 +205,7 @@ export default class Match {
                 )
                 ORDER BY p.is_originator DESC;
             `, [identifier, identifier]);
+            if (matches.length === 0) return new Map();
             const originator = matches[0].is_logged_in ? new User(matches[0].nickname) : matches[0].alias;
             const matchInstance = new Match(originator, matches[0].game, matches[0].mode, matches[0].num_of_players);
             matchInstance.mode = matches[0].mode;
