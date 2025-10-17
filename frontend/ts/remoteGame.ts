@@ -48,11 +48,9 @@ export function initRemoteGame() {
             playerId = crypto.randomUUID();
             localStorage.setItem("playerId", playerId);
         }
-        console.debug(`[FRONT DEBUG] playerId: ${playerId}`);
 
         // Pobierz sessionId z localStorage (jeśli istnieje)
         let sessionId = localStorage.getItem("sessionId");
-        console.debug(`[FRONT DEBUG] sessionId (from storage): ${sessionId}`);
 
         // Buduj URL WebSocket z parametrami
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -63,13 +61,11 @@ export function initRemoteGame() {
 
         // dołącz nickname jeśli jest dostępny
         const currentUser = (window as any).currentUser ?? null;
-        console.debug("[FRONT DEBUG] currentUser:", currentUser);
         if (currentUser?.nickname) {
             params.push(`nickname=${encodeURIComponent(currentUser.nickname)}`);
         }
 
         wsUrl += `?${params.join("&")}`;
-        console.debug(`[FRONT DEBUG] Connecting to WebSocket URL: ${wsUrl}`);
 
         // Obsługa komunikatów z backendu
         const gameWs = new GameWebSocket(
@@ -81,7 +77,6 @@ export function initRemoteGame() {
                     // inform drawBoard and renderer about real field dimensions
                     setGameDimensions(width, height);
                     renderer.setFieldDimensions(width, height);
-                    console.debug(`[FRONT DEBUG] Applied game dimensions: ${width}x${height}`);
                 }
             },
             // onGameState — may receive either the game state (players/ball) or meta messages (waiting/ready/reconnected)
@@ -94,11 +89,9 @@ export function initRemoteGame() {
 
                 // Otherwise, treat it as a meta message
                 const data = state;
-                console.debug("[FRONT DEBUG] Otrzymano wiadomość z backendu:", data);
                 if (data?.sessionId && data.sessionId !== sessionId) {
                     localStorage.setItem("sessionId", data.sessionId);
                     sessionId = data.sessionId;
-                    console.debug(`[FRONT DEBUG] Zapisano nowy sessionId: ${sessionId}`);
                 }
                 if (data?.type === "waiting") {
                     // show waiting UI if needed
@@ -127,7 +120,6 @@ export function initRemoteGame() {
         document.addEventListener("fullscreenchange", handleResize);
 
         (window as any).activeGameWs = gameWs;
-        console.debug("[FRONT DEBUG] WebSocket initialized:", gameWs);
 
         window.addEventListener("beforeunload", () => {
             if (gameWs) gameWs.close();

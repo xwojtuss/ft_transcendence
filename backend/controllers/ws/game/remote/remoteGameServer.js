@@ -80,7 +80,6 @@ function setupSocketHandlers(socket, session, playerId) {
         const idx = session.players.findIndex(p => p.id === playerId);
 
         if (data.type === "clientDisconnecting") {
-            console.log(`[DEBUG] Player ${playerId} is leaving/refreshing`);
             if (idx !== -1) {
                 session.players[idx].connected = false;
                 session.players[idx].lastDisconnect = now();
@@ -98,7 +97,6 @@ function setupSocketHandlers(socket, session, playerId) {
         if (idx !== -1) {
             session.players[idx].connected = false;
             session.players[idx].lastDisconnect = now();
-            console.log(`[DEBUG] Player ${playerId} disconnected from session ${session.id}`);
         }
     });
 }
@@ -241,8 +239,6 @@ function markTimedOutPlayers(session) {
     session.players.forEach(p => {
         if (!p.connected && p.lastDisconnect && (now() - p.lastDisconnect > SEND_TIMEOUT_MS) && !p.removed) {
             p.removed = true;
-            console.log(`[DEBUG] Marked removed: ${p.id} (session ${session.id})`);
-
             // jeśli ktoś został wyrzucony -> zakończ grę i powiadom klientów
             try {
                 if (session.gameState && !session.gameState.gameEnded) {
@@ -262,7 +258,6 @@ function markTimedOutPlayers(session) {
 function pruneEmptySession(sessionId, session) {
     if (session.players.every(p => p.removed)) {
         sessions.delete(sessionId);
-        console.log(`[DEBUG] Removed empty session: ${sessionId}`);
         return true;
     }
     return false;
@@ -362,7 +357,6 @@ function migrateEndedGame(sessionId, session) {
         }
 
         sessions.delete(sessionId);
-        console.log(`[DEBUG] Session ${sessionId} ended; moved players to ${newSessionId}`);
         return true;
     } catch (err) {
         return false;
@@ -396,7 +390,6 @@ export function handleRemoteConnection(connection, req, fastify) {
 export function startRemoteGameLoop() {
     setInterval(() => {
         for (const [sessionId, session] of sessions.entries()) {
-            console.log('[DEBUG] Session info: ', session);
             markTimedOutPlayers(session);
 
             if (pruneEmptySession(sessionId, session)) continue;

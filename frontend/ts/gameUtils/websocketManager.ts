@@ -48,7 +48,6 @@ export class GameWebSocket {
         window.location.pathname !== "/game/online" &&
         window.location.pathname !== "/game/local"
       ) {
-        console.debug("[FRONT DEBUG] Route changed away from game, disconnecting WebSocket...");
         this.disconnect();
       }
     };

@@ -109,7 +109,6 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         (window as any).activeGameWs
     ) {
         (window as any).activeGameWs.close();
-        console.debug("[FRONT DEBUG] Zamknięto WebSocket przy zmianie route przez custom router (renderPage)");
     }
 
     if (!app)
