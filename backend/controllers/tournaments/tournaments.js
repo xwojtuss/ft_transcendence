@@ -1,24 +1,31 @@
+import { StatusCodes } from "http-status-codes";
 import { db } from "../../buildApp.js";  // SQLite database instance
+import HTTPError from "../../utils/error.js";
+import Match from "../../utils/Match.js";
+import User from "../../utils/User.js";
 
 // POST /api/tournaments
 export async function createTournament(req, reply) {
     const aliases = req.body.players;
+    const loggedInUser = req.currentUser;
     const numPlayers = aliases.length;
     if (![4, 8].includes(numPlayers)) {
         throw new HTTPError(StatusCodes.BAD_REQUEST, "Only 4 or 8 players allowed");
     }
 
-    // Insert tournament and get its ID
-    await db.run("INSERT INTO tournaments (num_players) VALUES (?)", [numPlayers]);
+    // Insert tournament and get its ID, including user_id if logged in
+    await db.run("INSERT INTO tournaments (num_players, user_id) VALUES (?, ?)", [numPlayers, loggedInUser ? loggedInUser.id : null]);
     const tour = await db.get("SELECT last_insert_rowid() AS id");
     const tourId = tour.id;
 
     // Insert each alias into tournament_players
     const playerIds = [];
-    for (const alias of aliases) {
+    for (let i = 0; i < aliases.length; i++) {
+        const alias = aliases[i];
+        const isLoggedUser = loggedInUser && i === 0; // First player is logged-in user if present
         await db.run(
-            "INSERT INTO tournament_players (tournament_id, alias) VALUES (?, ?)",
-            [tourId, alias]
+            "INSERT INTO tournament_players (tournament_id, alias, is_logged_user) VALUES (?, ?, ?)",
+            [tourId, alias, isLoggedUser ? 1 : 0]
         );
         const res = await db.get("SELECT last_insert_rowid() AS id");
         playerIds.push(res.id);
@@ -182,6 +189,9 @@ export async function recordMatchResult(req, reply) {
     );
 
     if (pending.cnt === 0) {
+        // Tournament is complete - log comprehensive results
+        await finishTournament("Pong", tourId);
+        
         // Find champion from highest non-3rd-place round
         const lastFinal = await db.get(
             `SELECT pw.alias AS winner
@@ -195,6 +205,62 @@ export async function recordMatchResult(req, reply) {
     }
 
     return reply.send({ nextMatches: created });
+}
+
+/**
+ * Commits the tournament to the match history
+ * @param {"Pong" | "TicTacToe"} game the name of the game
+ */
+export async function finishTournament(game, tournamentId) {
+    // Get tournament info
+    const tournament = await db.get(
+        "SELECT num_players, user_id FROM tournaments WHERE tournament_id = ?",
+        [tournamentId]
+    );
+    
+    // Get all players with their info
+    const players = await db.all(
+        `SELECT p.player_id, p.alias, p.is_logged_user, u.nickname AS user_nickname
+         FROM tournament_players p
+         LEFT JOIN users u ON p.is_logged_user = 1 AND u.user_id = ?
+         WHERE p.tournament_id = ?
+         ORDER BY p.player_id`,
+        [tournament.user_id, tournamentId]
+    );
+    
+    // Get all match results
+    const matches = await db.all(
+        `SELECT m.round, m.is_third,
+                p1.alias AS player1_alias, p1.is_logged_user AS p1_logged,
+                p2.alias AS player2_alias, p2.is_logged_user AS p2_logged,
+                pw.alias AS winner_alias, pw.is_logged_user AS winner_logged
+         FROM tournament_matches m
+         JOIN tournament_players p1 ON p1.player_id = m.player1_id
+         JOIN tournament_players p2 ON p2.player_id = m.player2_id
+         LEFT JOIN tournament_players pw ON pw.player_id = m.winner_id
+         WHERE m.tournament_id = ?
+         ORDER BY m.round, m.match_id`,
+        [tournamentId]
+    );
+    // Find champion (winner of final)
+    const champion = matches.find(m => !m.is_third && m.round === Math.max(...matches.map(m => m.round)));
+
+    let originator;
+    if (players[0].is_logged_user) {
+        originator = new User(players[0].user_nickname);
+        originator.id = tournament.user_id;
+    } else {
+        originator = players[0].alias;
+    }
+    const match = new Match(originator, game, "Tournament", tournament.num_players);
+    match.addRank(originator, (champion.winner_alias === originator || champion.winner_alias === originator.user_nickname) ? "Won" : "Lost");
+    players.forEach((player, index) => {
+        if (index === 0) return;
+        match.addParticipant(player.alias);
+        match.addRank(player.alias, champion.winner_alias === player.alias ? "Won" : "Lost");
+    });
+    match.endMatch();
+    await match.commitMatch();
 }
 
 // GET /api/tournaments/:id

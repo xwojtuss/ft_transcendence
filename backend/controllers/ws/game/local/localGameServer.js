@@ -6,7 +6,8 @@
 
 import {
     FPS, FIELD_WIDTH, FIELD_HEIGHT,
-    PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE
+    PADDLE_HEIGHT, PADDLE_WIDTH, BALL_RADIUS,
+    AI_NOISE
 } from './gameConfig.js';
 import { resetGameState } from './gameState.js';
 import { updateGame, startGame } from './gameLogic.js';
@@ -67,7 +68,7 @@ function maybeUpdateAI(session, now) {
         y: ball.y,
         vx: ball.dx,            // already velocities (px/s)
         vy: ball.dy,
-        r: BALL_SIZE / 2
+        r: BALL_RADIUS
     };
 
   // If ball moving away, re-center; else predict impact Y (with wall bounces)
@@ -84,7 +85,7 @@ function maybeUpdateAI(session, now) {
 // [AI]
 function steerTowardTarget(paddle, targetY) {
     if (targetY == null) { paddle.dy = 0; return; }
-    const center = paddle.y + PADDLE_HEIGHT / 2;
+    const center = paddle.y;
     const DEADZONE = 2; // ±2 units
     if (center < targetY - DEADZONE)      paddle.dy = 1;
     else if (center > targetY + DEADZONE) paddle.dy = -1;
@@ -114,13 +115,14 @@ function predictImpactY(ball, fieldH, paddleX) {
             vy = -Math.abs(vy);
         }
     }
+    y = y + (Math.random() * 2 - 1) * AI_NOISE * PADDLE_HEIGHT;
     return y;
 }
 
 /* -------------------------
    Connection handling
 -------------------------- */
-export function handleConnection(connection) {
+export function handleConnection(connection, request) {
     const socket = connection.socket || connection;
     const sessionId = createSession(socket);
     const session = getSession(sessionId);
@@ -133,7 +135,7 @@ export function handleConnection(connection) {
     // Send config to client
     socket.send(JSON.stringify({
         type: "gameConfig",
-        config: { FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE }
+        config: { FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_RADIUS }
     }));
     socket.on('message', (message) => {
         try {
@@ -144,6 +146,25 @@ export function handleConnection(connection) {
             // client greets with desired mode ("local" or "ai")
             if (data.type === "hello" && (data.mode === "local" || data.mode === "ai")) {
                 currentSession.mode = data.mode;
+                // Store player aliases for match history
+                if (data.player1Alias) {
+                    currentSession.player1Alias = data.player1Alias;
+                }
+                if (data.player2Alias) {
+                    currentSession.player2Alias = data.player2Alias;
+                }
+                if (request.currentUser) {
+                    currentSession.loggedInUserNickname = request.currentUser.nickname;
+                    currentSession.loggedInUserId = request.currentUser.id;
+                    if (currentSession.loggedInUserNickname !== currentSession.player1Alias) {
+                        // someone might have tampered with the nickname, so we take the known nickname by the server
+                        currentSession.player1Alias = currentSession.loggedInUserNickname;
+                    }
+                }
+                // Store if this is a tournament match
+                if (data.isTournamentMatch) {
+                    currentSession.isTournamentMatch = true;
+                }
                 return; // nothing else to do for hello
             }
             // Input handling
@@ -183,7 +204,7 @@ export function handleConnection(connection) {
                     if (["w", "s"].includes(data.key)) gameState.players[1].dy = 0;
                     // right paddle only in LOCAL mode
                     if (currentSession.mode === "local" && ["ArrowUp", "ArrowDown"].includes(data.key)) {
-                                gameState.players[2].dy = 0;
+                        gameState.players[2].dy = 0;
                     }
                 }
             }
@@ -220,7 +241,8 @@ export function startLocalGameLoop() {
             updateGame(
                 session.gameState,
                 deltaTime,
-                () => broadcastToSession(sessionId, session.gameState)
+                () => broadcastToSession(sessionId, session.gameState),
+                session
             );
         }
     }, 1000 / FPS);

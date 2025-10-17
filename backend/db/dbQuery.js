@@ -67,6 +67,10 @@ export async function getUserByEmail(email) {
     }
 }
 
+/**
+ * For testing purposes only
+ * @returns 
+ */
 export async function getAllMatchHistory() {
     try {
         const matches = await db.all("SELECT * FROM match_history");
@@ -77,54 +81,12 @@ export async function getAllMatchHistory() {
 }
 
 /**
- * Get the match history of a user
- * @param {string | User} user The user nickname or User
- * @returns {Promise<Map<number, Match>>} A map of [match.match_id, Match]
- * @throws {Error} if query failed
+ * For testing purposes only
+ * @returns 
  */
-export async function getUserMatchHistory(user) {
-    const matchesMap = new Map();
-    try {
-        const matches = await db.all(`
-            SELECT 
-                match_history.match_id, 
-                match_history.ended_at, 
-                match_history.num_of_players, 
-                users.nickname AS participant, 
-                matches.is_originator, 
-                matches.rank
-            FROM match_history
-            JOIN matches ON matches.match_id = match_history.match_id
-            JOIN users ON users.user_id = matches.participant
-            WHERE EXISTS (
-                SELECT 1
-                FROM matches m2
-                JOIN users u2 ON u2.user_id = m2.participant
-                WHERE m2.match_id = match_history.match_id
-                AND u2.nickname = ?
-            )
-            ORDER BY matches.is_originator DESC;`, user.nickname || user);
-        matches.forEach(match => {
-            let matchInstance;
-            if (matchesMap.has(match.match_id) === false) {
-                matchInstance = new Match(match.participant, match.num_of_players);
-                matchesMap.set(match.match_id, matchInstance);
-                matchInstance.endedAt = match.ended_at;
-            } else {
-                matchInstance = matchesMap.get(match.match_id);
-                matchInstance.addParticipant(match.participant);
-            }
-            matchInstance.addRank(match.participant, match.rank);
-        });
-        return matchesMap;
-    } catch (error) {
-        throw new Error("Database query failed");
-    }
-}
-
 export async function getAllMatches() {
     try {
-        const matches = await db.all("SELECT * FROM matches");
+        const matches = await db.all("SELECT * FROM participants");
         return matches;
     } catch (error) {
         throw new Error("Database query failed");
@@ -147,39 +109,6 @@ export async function addUser(user) {
         );
         return result.lastID;
     } catch (error) {
-        throw new Error("Insert failed");
-    }
-}
-
-/**
- * Add a match to the db, the match has to be valid and has to have ended
- * @param {Match} match the match to add
- * @throws {Error} if insert has failed, rollbacks the changes
- */
-export async function addMatch(match) {
-    await db.exec("BEGIN TRANSACTION");
-    try {
-        const result = await db.run(
-            "INSERT INTO match_history (ended_at, num_of_players) VALUES (?, ?)",
-            match.endedAt,
-            match.numOfPlayers
-        );
-        const matchID = result.lastID;
-        for (const [player, rank] of match.participants.entries()) {
-            const participant = await db.get("SELECT user_id FROM users WHERE nickname = ?", player.nickname);
-            if (!participant)
-                throw new Error("User not found");
-            await db.run(
-                "INSERT INTO matches (match_id, participant, is_originator, rank) VALUES (?, ?, ?, ?)",
-                matchID,
-                participant.user_id,
-                (match.originator === player),
-                rank
-            );
-        }
-        await db.exec("COMMIT");
-    } catch (error) {
-        await db.exec("ROLLBACK");
         throw new Error("Insert failed");
     }
 }
