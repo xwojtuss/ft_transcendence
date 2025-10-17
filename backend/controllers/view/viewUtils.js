@@ -43,10 +43,23 @@ async function prepareHTML(viewHTML, XPartialLoadHeader, isLoggedIn, appendNavBa
  * @returns 
  */
 export async function sendView(view, isLoggedIn, request, reply) {
-    if (request.headers['x-request-navigation-bar'] === 'true') {
-        return reply.send(await prepareHTML(view, request.headers['x-partial-load'], isLoggedIn ? true : false, true));
+    const appendNav = request.headers['x-request-navigation-bar'] === 'true';
+    const prepared = await prepareHTML(view, request.headers['x-partial-load'], isLoggedIn ? true : false, appendNav);
+
+    if (appendNav) {
+        // prepared is { nav, app }
+        const currentUser = request.currentUser ? {
+            id: request.currentUser.id,
+            nickname: request.currentUser.nickname,
+            avatar: request.currentUser.avatar ?? null
+        } : null;
+
+        return reply.send({
+            ...prepared,
+            currentUser
+        });
     } else {
-        return reply.type('text/html').send(await prepareHTML(view, request.headers['x-partial-load'], isLoggedIn ? true : false, false));
+        return reply.type('text/html').send(prepared);
     }
 }
 

@@ -39,6 +39,10 @@ export function initRemoteGame() {
 
         initCanvas();
 
+        // Odczytaj zalogowanego użytkownika zapisany wcześniej (z app.ts)
+        const currentUser = (window as any).currentUser ?? null;
+        console.debug("[FRONT DEBUG] currentUser:", currentUser);
+
         let gameState: any = null;
         const renderer = new GameRenderer(canvas, ctx);
 

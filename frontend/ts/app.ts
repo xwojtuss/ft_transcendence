@@ -144,9 +144,10 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         }
         let view: string;
         if (requestNavBar && navigation) {
-            const jsonHTML: { nav: string, app: string } = await response.json();
+            const jsonHTML = await response.json();
             view = jsonHTML.app;
             navigation.innerHTML = DOMPurify.sanitize(jsonHTML.nav);
+            (window as any).currentUser = jsonHTML.currentUser ?? null;
         } else {
             view = await response.text();
         }
