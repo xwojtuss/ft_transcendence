@@ -365,7 +365,6 @@ function migrateEndedGame(sessionId, session) {
         console.log(`[DEBUG] Session ${sessionId} ended; moved players to ${newSessionId}`);
         return true;
     } catch (err) {
-        // swallow migration errors and continue
         return false;
     }
 }
@@ -397,7 +396,7 @@ export function handleRemoteConnection(connection, req, fastify) {
 export function startRemoteGameLoop() {
     setInterval(() => {
         for (const [sessionId, session] of sessions.entries()) {
-            // console.log('[DEBUG] Session info: ', session);
+            console.log('[DEBUG] Session info: ', session);
             markTimedOutPlayers(session);
 
             if (pruneEmptySession(sessionId, session)) continue;
@@ -431,11 +430,14 @@ export function startRemoteGameLoop() {
 
                 const nowTs = now();
                 if (!session.lastUpdate) session.lastUpdate = nowTs;
-                const dt = (nowTs - session.lastUpdate) / 1000;
+                const deltaTime = (nowTs - session.lastUpdate) / 1000;
                 session.lastUpdate = nowTs;
 
                 try {
-                    updateGame(session.gameState, dt, () => {});
+                    updateGame(
+                        session.gameState,
+                        deltaTime,
+                        () => broadcastRemoteGameState(session.gameState, session), null);
                 } catch (err) {
                     // keep loop running despite update errors
                 }
@@ -453,9 +455,30 @@ export function startRemoteGameLoop() {
                 }
 
                 if (session.gameState.gameEnded) {
-                    const migrated = migrateEndedGame(sessionId, session);
-                    if (migrated) continue;
+                    session.gameState.winnerNick = session.players.find(p => p.playerNumber === session.gameState.winner)?.nick || null;
+                    // Broadcast final state so frontend can render winner/winnerNick
+                    try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
+
+                    // Schedule migration once with a short delay to give clients time to render final frame
+                    if (!session._migrateScheduled) {
+                        session._migrateScheduled = true;
+                        setTimeout(() => {
+                            try {
+                                const migrated = migrateEndedGame(sessionId, session);
+                                if (!migrated) {
+                                    // allow retry next loop if migration failed
+                                    session._migrateScheduled = false;
+                                }
+                            } catch (e) {
+                                // reset flag so we can retry migration next tick
+                                session._migrateScheduled = false;
+                            }
+                        }, 1000); // give clients ~1s to render final frame
+                    }
+                    // skip further processing of this session in this tick
+                    continue;
                 }
+
             } catch (err) {
                 // swallow per-session loop errors
             }
