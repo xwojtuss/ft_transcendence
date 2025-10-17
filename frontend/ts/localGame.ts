@@ -69,7 +69,7 @@ export function initLocalGame(aiEnabled: boolean) {
 
         // Game loop
         function gameLoop() {
-            renderer.render(gameState);
+            renderer.render(gameState, "local");
             requestAnimationFrame(gameLoop);
         }
 

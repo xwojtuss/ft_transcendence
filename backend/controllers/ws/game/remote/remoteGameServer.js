@@ -242,6 +242,19 @@ function markTimedOutPlayers(session) {
         if (!p.connected && p.lastDisconnect && (now() - p.lastDisconnect > SEND_TIMEOUT_MS) && !p.removed) {
             p.removed = true;
             console.log(`[DEBUG] Marked removed: ${p.id} (session ${session.id})`);
+
+            // jeśli ktoś został wyrzucony -> zakończ grę i powiadom klientów
+            try {
+                if (session.gameState && !session.gameState.gameEnded) {
+                    session.gameState.gameEnded = true;
+                    const other = session.players.find(x => x !== p && !x.removed);
+                    session.gameState.winner = other ? other.playerNumber || null : null;
+                    session.gameState.winnerNick = other ? other.nick || null : null;
+                    try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
+                }
+            } catch (e) {
+                // swallow any errors
+            }
         }
     });
 }
@@ -384,7 +397,7 @@ export function handleRemoteConnection(connection, req, fastify) {
 export function startRemoteGameLoop() {
     setInterval(() => {
         for (const [sessionId, session] of sessions.entries()) {
-            console.log('[DEBUG] Session info: ', session);
+            // console.log('[DEBUG] Session info: ', session);
             markTimedOutPlayers(session);
 
             if (pruneEmptySession(sessionId, session)) continue;

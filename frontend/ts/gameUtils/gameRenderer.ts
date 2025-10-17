@@ -21,6 +21,7 @@ interface GameState {
     gameInitialized: boolean;
     gameEnded: boolean;
     winner: number | null;
+    winnerNick?: string;
 }
 
 export class GameRenderer {
@@ -83,7 +84,31 @@ export class GameRenderer {
         }
     }
 
-    render(gameState: GameState | null) {
+    private drawRemoteGameMessages(gameState: GameState) {
+        if (gameState.gameEnded && gameState.winner) {
+            this.ctx.fillStyle = "white";
+            this.ctx.font = "30px Arial";
+            this.ctx.textAlign = "center";
+            if (!gameState.winnerNick) {
+                if (gameState.winner === 1) {
+                    gameState.winnerNick = "Left Player";
+                }
+                else if (gameState.winner === 2) {
+                    gameState.winnerNick = "Right Player";
+                }
+            }
+            this.ctx.fillText(`${gameState.winnerNick} Won!`, this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.font = "16px Arial";
+            this.ctx.fillText("Waiting for new game...", this.canvas.width / 2, this.canvas.height / 2 + 40);
+        } else if (!gameState.gameStarted && !gameState.gameInitialized) {
+            this.ctx.fillStyle = "white";
+            this.ctx.font = "20px Arial";
+            this.ctx.textAlign = "center";
+            this.ctx.fillText("Game is starting...", this.canvas.width / 2, this.canvas.height / 2 + 50);
+        }
+    }
+
+    render(gameState: GameState | null, mode: "local" | "remote") {
         // Draw background and static elements
         drawBackground();
         drawOutline();
@@ -106,6 +131,10 @@ export class GameRenderer {
         }
 
         // Draw game messages
-        this.drawGameMessages(gameState);
+        if (mode === "local") {
+            this.drawGameMessages(gameState);
+        } else if (mode === "remote") {
+            this.drawRemoteGameMessages(gameState);
+        }
     }
 }

@@ -115,7 +115,7 @@ export function initRemoteGame() {
         gameInstance = { ws: gameWs, input: inputHandler, renderer };
 
         function gameLoop() {
-            renderer.render(gameState);
+            renderer.render(gameState, "remote");
             requestAnimationFrame(gameLoop);
         }
         
