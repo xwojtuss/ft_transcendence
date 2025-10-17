@@ -316,7 +316,6 @@ function migrateEndedGame(sessionId, session) {
 
                 newSession.players.push(newPlayer);
 
-                // update socket bookkeeping (keep original semantics)
                 socket.playerId = playerId;
                 socket.playerNumber = playerNumber;
 
@@ -425,9 +424,7 @@ export function startRemoteGameLoop() {
                         session.gameState,
                         deltaTime,
                         () => broadcastRemoteGameState(session.gameState, session), null);
-                } catch (err) {
-                    // keep loop running despite update errors
-                }
+                } catch (err) { /* ignore */ }
 
                 if (session._tick % BROADCAST_INTERVAL === 0) {
                     try {
@@ -466,9 +463,7 @@ export function startRemoteGameLoop() {
                     continue;
                 }
 
-            } catch (err) {
-                // swallow per-session loop errors
-            }
+            } catch (err) { /* ignore */ }
         }
     }, 1000 / FPS);
 }
