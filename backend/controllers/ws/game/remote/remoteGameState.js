@@ -1,4 +1,4 @@
-// Tworzy początkowy stan gry dla remote play
+// Creates the initial game state for remote play
 import { FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE } from '../local/gameConfig.js';
 
 export function createRemoteGameState() {

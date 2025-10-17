@@ -3,19 +3,6 @@ import { GameWebSocket } from "./gameUtils/websocketManager.js";
 import { InputHandler } from "./gameUtils/inputHandler.js";
 import { GameRenderer } from "./gameUtils/gameRenderer.js";
 
-        // const canvas = document.getElementById("remote-game-canvas") as HTMLCanvasElement;
-        // if (!canvas) {
-        //     setTimeout(waitForCanvas, 100);
-        //     return;
-        // }
-        // const ctx = canvas.getContext("2d");
-        // if (!ctx) {
-        //     console.error("Failed to get canvas context!");
-        //     return;
-        // }
-
-        // initCanvas();
-
 let gameInstance: {
     ws: GameWebSocket;
     input: InputHandler;
@@ -42,24 +29,24 @@ export function initRemoteGame() {
         let gameState: any = null;
         const renderer = new GameRenderer(canvas, ctx);
 
-        // Stały playerId w localStorage
+        // Consistent playerId in localStorage
         let playerId = localStorage.getItem("playerId");
         if (!playerId) {
             playerId = crypto.randomUUID();
             localStorage.setItem("playerId", playerId);
         }
 
-        // Pobierz sessionId z localStorage (jeśli istnieje)
+        // Retrieve sessionId from localStorage (if exists)
         let sessionId = localStorage.getItem("sessionId");
 
-        // Buduj URL WebSocket z parametrami
+        // Construct WebSocket URL with parameters
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         let wsUrl = `${protocol}//${window.location.host}/ws/remoteGame`;
         const params = [];
         if (sessionId) params.push(`sessionId=${sessionId}`);
         params.push(`playerId=${playerId}`);
 
-        // dołącz nickname jeśli jest dostępny
+        // Add nickname if available
         const currentUser = (window as any).currentUser ?? null;
         if (currentUser?.nickname) {
             params.push(`nickname=${encodeURIComponent(currentUser.nickname)}`);
@@ -67,7 +54,7 @@ export function initRemoteGame() {
 
         wsUrl += `?${params.join("&")}`;
 
-        // Obsługa komunikatów z backendu
+        // Handle messages from the backend
         const gameWs = new GameWebSocket(
             wsUrl,
             (config) => {

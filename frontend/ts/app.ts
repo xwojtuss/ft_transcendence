@@ -102,7 +102,7 @@ function runChosenGame(pathURL: string): void {
  * @returns
  */
 export async function renderPage(pathURL: string, requestNavBar: boolean): Promise<void> {
-    // Zamknij WebSocket jeśli opuszczasz /game/online
+    // Close WebSocket if leaving /game/online
     if (
         window.location.pathname === "/game/online" &&
         pathURL !== "/game/online" &&

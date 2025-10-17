@@ -239,7 +239,7 @@ function markTimedOutPlayers(session) {
     session.players.forEach(p => {
         if (!p.connected && p.lastDisconnect && (now() - p.lastDisconnect > SEND_TIMEOUT_MS) && !p.removed) {
             p.removed = true;
-            // jeśli ktoś został wyrzucony -> zakończ grę i powiadom klientów
+            // If a player is removed -> end the game and notify clients
             try {
                 if (session.gameState && !session.gameState.gameEnded) {
                     session.gameState.gameEnded = true;
@@ -248,9 +248,7 @@ function markTimedOutPlayers(session) {
                     session.gameState.winnerNick = other ? other.nick || null : null;
                     try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
                 }
-            } catch (e) {
-                // swallow any errors
-            }
+            } catch (e) { /* ignore */ }
         }
     });
 }
@@ -466,7 +464,7 @@ export function startRemoteGameLoop() {
                                 // reset flag so we can retry migration next tick
                                 session._migrateScheduled = false;
                             }
-                        }, 1000); // give clients ~1s to render final frame
+                        }, 3000); // give clients ~3s to render final frame
                     }
                     // skip further processing of this session in this tick
                     continue;
