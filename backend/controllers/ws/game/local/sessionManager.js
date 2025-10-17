@@ -3,7 +3,7 @@ import { createGameSession } from './gameState.js';
 const sessions = new Map();
 let sessionIdCounter = 0;
 
-// Dla lokalnej gry (AI/single)
+// Creates a new session for local games (AI/single)
 export function createSession(socket) {
     const sessionId = ++sessionIdCounter;
     const gameState = createGameSession();

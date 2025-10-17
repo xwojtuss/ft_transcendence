@@ -22,9 +22,7 @@ function generateId() {
 function sendSafe(socket, payload) {
     try {
         socket.send(JSON.stringify(payload));
-    } catch (err) {
-        // ignore send errors
-    }
+    } catch (err) { /* ignore */ }
 }
 
 function sendConfig(socket) {
@@ -204,9 +202,7 @@ function addNewPlayer(session, socket, playerId, fastify, providedNick) {
             startGame(session.gameState);
             broadcastRemoteGameState(session.gameState, session);
         }, 3000);
-    } catch (err) {
-        // swallow initialization errors
-    }
+    } catch (err) { /* ignore */ }
 }
 
 function handleSessionFull(socket) {
@@ -441,7 +437,7 @@ export function startRemoteGameLoop() {
                             broadcastRemoteGameState(session.gameState, session);
                         }
                     } catch (err) {
-                        try { broadcastRemoteGameState(session.gameState, session); } catch (_) {  }
+                        try { broadcastRemoteGameState(session.gameState, session); } catch (_) { /* ignore */ }
                     }
                 }
 
