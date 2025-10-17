@@ -97,11 +97,6 @@ export default async function viewsRoutes(fastify) {
         return await sendView(view, request.currentUser, request, reply);
     });
 
-    fastify.get("/game/multiplayer", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        const view = await getStaticView('multiplayer-game');
-        return await sendView(view, request.currentUser, request, reply);
-    });
-
     fastify.get("/game/online", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
         const view = await getStaticView('online-game');
         return await sendView(view, request.currentUser, request, reply);
@@ -110,11 +105,6 @@ export default async function viewsRoutes(fastify) {
     fastify.get("/game/local-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
         // const view = await getStaticView('local-tournament-game');
         const view = await getStaticView('local-tournament'); // ^^^^^ TRDM ^^^^^ 
-        return await sendView(view, request.currentUser, request, reply);
-    });
-
-    fastify.get("/game/online-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        const view = await getStaticView('online-tournament-game');
         return await sendView(view, request.currentUser, request, reply);
     });
 
