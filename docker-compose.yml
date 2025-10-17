@@ -1,5 +1,5 @@
 # ^^^^^ dckr ^^^^^
-name: ft_transcendence  # project name required by the subject
+name: ft_transcendence  
 
 volumes:
   # ELK volumes (managed by Compose, not host bind-mounts)
@@ -27,7 +27,7 @@ services:
       HOST: "0.0.0.0"
       # Ensure the path where Fastify/Pino writes logs (inside the named volume)
       LOG_FILE: "/logs/ft_transcendence.jsonl"
-      # (PORT=3000 comes from ./ft/secrets/.env; keeping it explicit is fine too)
+      # (PORT=3000 comes from ./ft/secrets/.env; )
       NODE_ENV: "production"
     volumes:
       # Named volume mounted at /logs (no host bind-mount)
@@ -159,8 +159,7 @@ services:
     restart: unless-stopped
 
   # -----------------------------
-  # Optional: synthetic JSON log generator (for testing dashboards)
-  # Disable by commenting out if you only want real app logs.
+  # synthetic JSON log generator (for testing dashboards) - used for testing before merge
   # -----------------------------
   # loggen-json:
   #   build:
