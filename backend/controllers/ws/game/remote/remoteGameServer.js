@@ -152,9 +152,9 @@ function reconnectPlayer(session, socket, playerId, existingIdx) {
     }
 }
 
-function addNewPlayer(session, socket, playerId, fastify) {
+function addNewPlayer(session, socket, playerId, fastify, providedNick) {
     const playerNumber = session.players.length + 1;
-    const playerNick = getUserSession(fastify).nickname;
+    const playerNick = providedNick ?? getUserSession(fastify).nickname;
 
     const player = {
         id: playerId,
@@ -371,8 +371,11 @@ export function handleRemoteConnection(connection, req, fastify) {
         return;
     }
 
+    // pass optional nickname from query to addNewPlayer
+    const providedNick = req.query && req.query.nickname ? req.query.nickname : null;
+
     if (session.players.filter(p => !p.removed).length < 2) {
-        addNewPlayer(session, socket, playerId, fastify);
+        addNewPlayer(session, socket, playerId, fastify, providedNick);
     } else {
         handleSessionFull(socket);
     }
@@ -381,6 +384,7 @@ export function handleRemoteConnection(connection, req, fastify) {
 export function startRemoteGameLoop() {
     setInterval(() => {
         for (const [sessionId, session] of sessions.entries()) {
+            console.log('[DEBUG] Session info: ', session);
             markTimedOutPlayers(session);
 
             if (pruneEmptySession(sessionId, session)) continue;

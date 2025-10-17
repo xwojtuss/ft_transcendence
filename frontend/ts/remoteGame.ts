@@ -39,10 +39,6 @@ export function initRemoteGame() {
 
         initCanvas();
 
-        // Odczytaj zalogowanego użytkownika zapisany wcześniej (z app.ts)
-        const currentUser = (window as any).currentUser ?? null;
-        console.debug("[FRONT DEBUG] currentUser:", currentUser);
-
         let gameState: any = null;
         const renderer = new GameRenderer(canvas, ctx);
 
@@ -64,6 +60,14 @@ export function initRemoteGame() {
         const params = [];
         if (sessionId) params.push(`sessionId=${sessionId}`);
         params.push(`playerId=${playerId}`);
+
+        // dołącz nickname jeśli jest dostępny
+        const currentUser = (window as any).currentUser ?? null;
+        console.debug("[FRONT DEBUG] currentUser:", currentUser);
+        if (currentUser?.nickname) {
+            params.push(`nickname=${encodeURIComponent(currentUser.nickname)}`);
+        }
+
         wsUrl += `?${params.join("&")}`;
         console.debug(`[FRONT DEBUG] Connecting to WebSocket URL: ${wsUrl}`);
 
@@ -81,15 +85,15 @@ export function initRemoteGame() {
                 }
             },
             // onGameState — may receive either the game state (players/ball) or meta messages (waiting/ready/reconnected)
-            (msgOrState) => {
+            (state) => {
                 // If this looks like a game state, use it for rendering
-                if (msgOrState && msgOrState.players && msgOrState.ball) {
-                    gameState = msgOrState;
+                if (state && state.players && state.ball) {
+                    gameState = state;
                     return;
                 }
 
                 // Otherwise, treat it as a meta message
-                const data = msgOrState;
+                const data = state;
                 console.debug("[FRONT DEBUG] Otrzymano wiadomość z backendu:", data);
                 if (data?.sessionId && data.sessionId !== sessionId) {
                     localStorage.setItem("sessionId", data.sessionId);
@@ -135,6 +139,4 @@ export function initRemoteGame() {
     }
     
     waitForCanvas();
-
-
 }
