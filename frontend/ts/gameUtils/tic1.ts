@@ -19,6 +19,32 @@ let board: Board;
 let isProcessingMove = false;
 let gameOver = false;
 
+async function reportTicResultAI(winner: 'X' | 'O' | 'nowinner') {
+    try {
+        const saved = sessionStorage.getItem('ticGameAliases');
+        const aliases = saved ? JSON.parse(saved) : { player1: 'Player 1', player2: 'AI' };
+        let winnerAlias: string | null = null;
+        if (winner === 'X') winnerAlias = aliases.player1;         // human
+        else if (winner === 'O') winnerAlias = aliases.player2;     // AI
+        else winnerAlias = null;                                    // draw
+         
+        await fetch('/api/game/tic/result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mode: 'ai',
+                player1: aliases.player1,
+                player2: aliases.player2 || 'AI',
+                winnerAlias
+            }),
+            keepalive: true,
+            credentials: 'same-origin'
+        });
+    } catch (e) {
+        console.error('Failed to record TTT AI result', e);
+    }
+}
+
 function makeEmptyBoard(): Board {
     return [
         [null, null, null],
@@ -280,6 +306,7 @@ export function showTic1(canvasId = 'canvasTic1', controlsId = 'tic-controls', o
         if (w) {
             gameOver = true;
             drawGameOverOverlay(canvas, w);
+            await reportTicResultAI(w as 'X' | 'O' | 'nowinner'); // log result to backend
             setControls('', true, canvas, controlsId);
             isProcessingMove = false;
             return;
@@ -297,6 +324,8 @@ export function showTic1(canvasId = 'canvasTic1', controlsId = 'tic-controls', o
         if (w) {
             gameOver = true;
             drawGameOverOverlay(canvas, w);
+            await reportTicResultAI(w as 'X' | 'O' | 'nowinner'); // log result to backend
+
             setControls('', true, canvas, controlsId);
             isProcessingMove = false;
             return;
