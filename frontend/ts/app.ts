@@ -8,6 +8,7 @@ import { initLocalGame } from "./localGame.js";
 import { initLocalTournament } from "./tournament.js";
 import { clearTournamentAll, isTournamentPath, cleanupTournamentOnRouteChange } from "./tournamentCleanup.js";
 import { initAliasRegistration } from "./aliasRegistration.js";
+import { initTicTacToe } from "./ticTacToe.js";
 
 
   
@@ -16,10 +17,11 @@ import { initAliasRegistration } from "./aliasRegistration.js";
 // We skip the network fetch for these to avoid 404 noise.
 const CLIENT_ONLY_ROUTES = new Set<string>([
     "/game/local-tournament",
-    "/tic",
-    "/tic/match",
+    "tic-tac-toe",
+    "tic-tac-toe/match",
   ]);
   
+
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
@@ -92,7 +94,8 @@ async function runHandlers(pathURL: string): Promise<void> {
     }
 }
 
-function runChosenGame(pathURL: string): void {
+
+async function runChosenGame(pathURL: string): Promise<void> {
     const url = new URL(pathURL, window.location.origin);
     const pathname = url.pathname;
     const params = url.searchParams;
@@ -121,13 +124,34 @@ function runChosenGame(pathURL: string): void {
         }
         return;
     }
-    
+    if (pathname === '/game/tic-tac-toe') {
+        const isMatching = params.get('matching') === '1';
+        const isRegistered = params.get('registered') === 'true';
+
+    if (isMatching) {
+        if (!isRegistered) {
+        // show Matching alias form (4–8)
+        initAliasRegistration();
+        } 
+        else {
+            const { initTicTournament } = await import("./ticTournament.js");
+            initTicTournament();
+        }
+        return;
+    }
+    if (isRegistered) {
+        initTicTacToe();
+    } 
+    else {
+        initAliasRegistration();
+    }
+    return;
+    }
     switch (pathname) {
         case '/game/online':
-            // add initialization for online game mode
-            break;
+        break;
         default:
-            return;
+        return;
     }
 }
 
@@ -140,8 +164,10 @@ function runChosenGame(pathURL: string): void {
 export async function renderPage(pathURL: string, requestNavBar: boolean): Promise<void> {
     if (!app)
         return;
+    const url = new URL(pathURL, window.location.origin);
+    const reqPath = url.pathname + url.search;
 
-        // ^^^^^ TRDM ^^^^^  frontend/ts/app.ts  (at the very beginning of renderPage)
+    // ^^^^^ TRDM ^^^^^  frontend/ts/app.ts  (at the very beginning of renderPage)
     const prev = window.location.pathname;
     const next = new URL(pathURL, window.location.origin).pathname;
 
@@ -152,84 +178,14 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         sessionStorage.removeItem('localGameAliases');
     }
 
-        // Clean tournament crumbs if we’re leaving that flow (e.g., user clicked title or PLAY).
+    // Clean tournament crumbs if we’re leaving that flow (e.g., user clicked title or PLAY).
     // We do this BEFORE fetching the next view, so the next page starts clean.
     try {
         cleanupTournamentOnRouteChange(window.location.pathname, pathURL);
     } catch {}
-    addToHistory(pathURL);
-    if (CLIENT_ONLY_ROUTES.has(pathURL)) {
-        if (pathURL === "/tic") {
-            app.innerHTML = DOMPurify.sanitize(`
-                <div class="mx-auto max-w-[560px] px-4 py-6">
-                <h1 class="text-white text-2xl font-bold mb-3 text-center">Tic-Tac-Toe</h1>
-                
-                <!-- Buttons under title -->
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-5">
-                <button id="btn-ai"
-                class="px-5 py-3 rounded-lg bg-yellow-300 text-black font-bold text-xl hover:bg-yellow-400 transition focus:outline-none focus:ring-2 focus:ring-yellow-300">
-                Play with AI
-                </button>
-                <button id="btn-2p"
-                class="px-5 py-3 rounded-lg bg-yellow-300 text-black font-bold text-xl hover:bg-yellow-400 transition focus:outline-none focus:ring-2 focus:ring-yellow-300">
-                2 Players
-                </button>
-                <button id="btn-match"
-                class="px-5 py-3 rounded-lg bg-yellow-300 text-black font-bold text-xl hover:bg-yellow-400 transition focus:outline-none focus:ring-2 focus:ring-yellow-300">
-                Create Match
-                </button>
-                </div>
-                
-                <!-- Board -->
-                <div class="rounded-2xl ring-1 ring-white/10 p-3 bg-black/20">
-                <canvas id="canvasTic1" class="block w-full max-w-[500px] aspect-square mx-auto"></canvas>
-                <canvas id="canvasTic2" class="hidden w-full max-w-[500px] aspect-square mx-auto"></canvas>
-                </div>
-                
-                <!-- Status / actions -->
-                <div id="tic-controls" class="mt-4"></div>
-                </div>
-            `);
-            // lazy-load modules
-            const { showTic1 } = (await import("./gameUtils/tic1.js")) as typeof import("./gameUtils/tic1");
-            const { showTic2 } = (await import("./gameUtils/tic2.js")) as typeof import("./gameUtils/tic2");
-            const c1 = document.getElementById("canvasTic1") as HTMLCanvasElement;
-            const c2 = document.getElementById("canvasTic2") as HTMLCanvasElement;
-                
-            // Default: AI mode visible
-            c1.classList.remove("hidden");
-            c2.classList.add("hidden");
-            showTic1();
-                
-            // Handlers
-            document.getElementById("btn-ai")?.addEventListener("click", () => {
-                c1.classList.remove("hidden");
-                c2.classList.add("hidden");
-                showTic1();
-            });
-            document.getElementById("btn-2p")?.addEventListener("click", () => {
-                c1.classList.add("hidden");
-                c2.classList.remove("hidden");
-                showTic2();
-            });
-            document.getElementById("btn-match")?.addEventListener("click", () => {
-                renderPage("/tic/match", false);
-            });
-            changeActiveStyle(pathURL);
-            await runHandlers(pathURL);
-            return;
-        }
-        if (pathURL === "/tic/match") {
-            const { initTicTournament } =
-            (await import("./gameUtils/ticTournament.js")) as typeof import("./gameUtils/ticTournament");
-            initTicTournament();
-            changeActiveStyle(pathURL);
-            await runHandlers(pathURL);
-            return;
-        }
-    }
+    //addToHistory(pathURL);
     try {
-        const responsePromise: Promise<Response> = fetch(`${pathURL}`, {
+        const responsePromise: Promise<Response> = fetch(`${reqPath}`, {
             headers: {
                 Authorization: `Bearer ${tfaTempToken || accessToken}`,
                 'X-Partial-Load': 'true',
@@ -268,33 +224,25 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         if (pathURL === '/' || pathURL === '/home') {
             initGameModesRouter();
         }
-
-        const newUrl: string = new URL(pathURL, window.location.origin).pathname;
-        if (window.location.pathname !== newUrl) {
-            window.history.pushState({}, '', newUrl);
+        const fullPath = url.pathname + url.search;
+        if (window.location.pathname + window.location.search !== fullPath) {
+            window.history.pushState({}, '', fullPath);
         }
-        
-        runChosenGame(pathURL);
+        await runChosenGame(url.toString());
     } catch (error) {
         if (error instanceof Error) alert(error.message);
         console.error(error);
     }
-    changeActiveStyle(pathURL);
-    await runHandlers(pathURL);
+    changeActiveStyle(url.pathname);
+    await runHandlers(url.pathname);
 }
 
 /**
  * Render the view of window.location.pathname
  */
 async function handleRouteChange(): Promise<void> {
-    await renderPage(window.location.pathname, true);
-}
-
-function addToHistory(url: string) {
-    const newUrl: string = new URL(url, window.location.origin).pathname;
-    if (window.location.pathname !== newUrl) {
-        window.history.pushState({}, '', newUrl);
-    }
+    await renderPage(window.location.pathname + window.location.search, true);
+    
 }
 
 /**
