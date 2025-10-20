@@ -24,12 +24,10 @@ export class GameWebSocket {
         // state messages contain the actual game state
         this.onGameState(data.state);
       } else if (data.type === "waiting" || data.type === "ready") {
-        // waiting/ready are meta messages that may include sessionId/player info — forward the whole message
         this.onGameState(data);
       } else if (data.type === "error") {
         console.error("Error from server:", data.message);
       } else if (data.type === "reconnected") {
-        // reconnected may include state or just a message/session info — forward the whole message
         this.onGameState(data);
       }
     };

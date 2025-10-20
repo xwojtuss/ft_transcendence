@@ -215,12 +215,17 @@ function handleSessionFull(socket) {
 function notifyAllReady(session) {
     session.players.forEach((p, idx) => {
         if (!p.socket) return;
+        const playersNick = p.nick || '';
+        const opponent = session.players.find(x => x !== p);
+        const opponentNick = opponent ? (opponent.nick || '') : null;
         sendSafe(p.socket, {
             type: "ready",
             message: "Enemy found! Starting game...",
             players: 2,
             playerId: idx + 1,
-            sessionId: session.id
+            sessionId: session.id,
+            you: playersNick,
+            opponent: opponentNick
         });
     });
 }
@@ -273,20 +278,6 @@ function sendWaitingOrReadyInfo(sessionId, session) {
                 sessionId
             });
         }
-    }
-
-    if (activePlayers.length === 2 && presentPlayersCount === 2) {
-        session.players.forEach(p => {
-            if (p.socket && p.connected && !p.removed) {
-                sendSafe(p.socket, {
-                    type: "ready",
-                    message: "Opponent reconnected! Game starting...",
-                    players: 2,
-                    playerId: p.playerNumber,
-                    sessionId
-                });
-            }
-        });
     }
 }
 

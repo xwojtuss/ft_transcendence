@@ -73,30 +73,42 @@ export function initRemoteGame() {
                     renderer.setFieldDimensions(width, height);
                 }
             },
-            // onGameState — may receive either the game state (players/ball) or meta messages (waiting/ready/reconnected)
+            // onGameState — may receive either the game state (players/ball) or meta messages (waiting/ready/reconnected/players)
             (state) => {
+                // tolerate raw string messages from WS wrapper
+                let data: any = state;
+                if (typeof data === 'string') {
+                    try { data = JSON.parse(data); } catch (e) { console.error('Invalid WS message (not JSON)', e); return; }
+                }
+
                 // If this looks like a game state, use it for rendering
-                if (state && state.players && state.ball) {
-                    gameState = state;
+                if (data && data.players && data.ball) {
+                    gameState = data;
                     return;
                 }
 
                 // Otherwise, treat it as a meta message
-                const data = state;
                 if (data?.sessionId && data.sessionId !== sessionId) {
                     localStorage.setItem("sessionId", data.sessionId);
                     sessionId = data.sessionId;
                 }
+
                 if (data?.type === "waiting") {
                     // show waiting UI if needed
+                    console.log(data.message);
                 } else if (data?.type === "ready") {
                     console.log(data.message);
+                    console.log(`You are player ${data.playerId} in session ${data.sessionId}`);
+                    const youNick = typeof data.you === 'string' ? data.you : (data.you?.nick ?? '');
+                    const opponentNick = typeof data.opponent === 'string' ? data.opponent : (data.opponent?.nick ?? '');
+                    console.log(`You: ${youNick}`);
+                    console.log(`Opponent: ${opponentNick}`);
                 } else if (data?.type === "reconnected") {
                     console.log(data.message);
                 }
             }
         );
-    
+
         const inputHandler = new InputHandler(gameWs);
 
         gameInstance = { ws: gameWs, input: inputHandler, renderer };

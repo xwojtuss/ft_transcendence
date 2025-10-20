@@ -10,6 +10,7 @@ export function createRemoteGameState() {
                 height: PADDLE_HEIGHT,
                 score: 0,
                 dy: 0,
+                nick: '',
                 connected: false,
                 removed: false
             },
@@ -20,6 +21,7 @@ export function createRemoteGameState() {
                 height: PADDLE_HEIGHT,
                 score: 0,
                 dy: 0,
+                nick: '',
                 connected: false,
                 removed: false
             },
