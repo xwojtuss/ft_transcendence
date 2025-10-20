@@ -12,6 +12,14 @@ let gameInstance: {
 export function initRemoteGame() {
     if (window.location.pathname !== '/game/online') return;
 
+    const currentUser = (window as any).currentUser ?? null;
+    if (!currentUser) {
+        localStorage.setItem('postAuthRedirect', window.location.pathname);
+        alert('You must be logged in to play online. You will be redirected to the login page.');
+        window.location.href = '/login?from=' + encodeURIComponent(window.location.pathname) + '&info=login_required';
+        return;
+    }
+
     function waitForCanvas() {
         const canvas = document.getElementById("remote-game-canvas") as HTMLCanvasElement;
         if (!canvas) {
@@ -47,7 +55,6 @@ export function initRemoteGame() {
         params.push(`playerId=${playerId}`);
 
         // Add nickname if available
-        const currentUser = (window as any).currentUser ?? null;
         if (currentUser?.nickname) {
             params.push(`nickname=${encodeURIComponent(currentUser.nickname)}`);
         }

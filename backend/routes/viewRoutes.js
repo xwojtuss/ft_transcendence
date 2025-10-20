@@ -103,13 +103,13 @@ export default async function viewsRoutes(fastify) {
     });
 
     fastify.get("/game/online", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
-        if (request.currentUser) {
-            const view = await getStaticView('remote-game');
-            return await sendView(view, request.currentUser, request, reply);
-        } else {
-            const view = await getStaticView('remote-game');
-            return await sendView(view, null, request, reply);
+        if (!request.currentUser) {
+            // przekieruj do logowania z informacją i opcjonalnym powrotem
+            const from = encodeURIComponent(request.raw?.url || '/game/online');
+            return reply.redirect(`/login?from=${from}&info=login_required`);
         }
+        const view = await getStaticView('remote-game');
+        return await sendView(view, request.currentUser, request, reply);
     });
 
     fastify.get("/game/local-tournament", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
