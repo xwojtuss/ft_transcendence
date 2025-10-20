@@ -72,10 +72,10 @@ export default class Match {
     /**
      * Set the rank of a user
      * @param {string | User} user The user which rank to set
-     * @param {"Won" | "Lost"} outcome The outcome for the user
+     * @param {"Won" | "Lost" | "Draw"} outcome The outcome for the user
      */
     addRank(user, outcome) {
-        const possibleOutcomes = ["Won", "Lost"]
+        const possibleOutcomes = ["Won", "Lost", "Draw"]
         if (!possibleOutcomes.includes(outcome))
             throw new Error("Rank is invalid");
         this.#participants.set(user, outcome);
