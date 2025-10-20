@@ -140,7 +140,28 @@ export default async function viewsRoutes(fastify) {
         const view = await getFriendsView(request.currentUser.id);
         return await sendView(view, request.currentUser, request, reply);
     });
-
+    
+    fastify.get("/game/tic-tac-toe", { preHandler: forcedLoggedInOrOutPreHandler }, async (request, reply) => {
+        const registered  = request.query.registered === 'true';
+        const isAI        = request.query.ai === '1';
+        const isMatching  = request.query.matching === '1';
+        
+        // For Matching: show alias form first (3–8 names).
+        if (!registered) {
+            if (isMatching) {
+                const view = getAliasRegistrationHTML(8, 'matching', request.currentUser);
+                return await sendView(view, request.currentUser, request, reply);
+            }
+            // normal TTT (AI or 2P)
+            const view = getAliasRegistrationHTML(isAI ? 1 : 2, isAI ? 'ai' : 'local', request.currentUser);
+            return await sendView(view, request.currentUser, request, reply);
+        }
+        
+        // Once registered=true → render the TTT canvas page (Matching UI will be started client-side)
+        const view = await getStaticView('tic-tac-toe');
+        return await sendView(view, request.currentUser, request, reply);
+    });
+    
     fastify.setNotFoundHandler(async (request, reply) => {
         return await sendErrorPage(new HTTPError(StatusCodes.NOT_FOUND, ReasonPhrases.NOT_FOUND), request.cookies.refreshToken, request, reply);
     });

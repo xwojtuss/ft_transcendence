@@ -89,25 +89,43 @@ BEGIN
     WHERE user_id = OLD.user_account;
 END;
 
+-- CREATE TRIGGER IF NOT EXISTS increment_lost_games
+-- AFTER INSERT ON participants
+-- FOR EACH ROW
+-- WHEN NEW.outcome != "Won"
+-- BEGIN
+--     UPDATE users
+--     SET lost_games = lost_games + 1
+--     WHERE user_id = NEW.user_account;
+-- END;
+
+-- CREATE TRIGGER IF NOT EXISTS decrement_lost_games
+-- AFTER DELETE ON participants
+-- FOR EACH ROW
+-- WHEN OLD.outcome != "Won"
+-- BEGIN
+--     UPDATE users
+--     SET lost_games = lost_games - 1
+--     WHERE user_id = OLD.user_account;
+-- END;
+
 CREATE TRIGGER IF NOT EXISTS increment_lost_games
 AFTER INSERT ON participants
 FOR EACH ROW
-WHEN NEW.outcome != "Won"
+WHEN NEW.outcome = "Lost"
 BEGIN
-    UPDATE users
-    SET lost_games = lost_games + 1
-    WHERE user_id = NEW.user_account;
+  UPDATE users SET lost_games = lost_games + 1 WHERE user_id = NEW.user_account;
 END;
 
 CREATE TRIGGER IF NOT EXISTS decrement_lost_games
 AFTER DELETE ON participants
 FOR EACH ROW
-WHEN OLD.outcome != "Won"
+WHEN OLD.outcome = "Lost"
 BEGIN
-    UPDATE users
-    SET lost_games = lost_games - 1
-    WHERE user_id = OLD.user_account;
+  UPDATE users SET lost_games = lost_games - 1 WHERE user_id = OLD.user_account;
 END;
+
+
 
 -- ^^^^^ TRDM ^^^^^
 -- Tournament tables for local-tournament feature

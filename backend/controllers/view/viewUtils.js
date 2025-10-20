@@ -5,7 +5,13 @@ import { checkAuthHeader, checkRefreshToken } from "../auth/authUtils.js";
 import { cheerio } from "../../buildApp.js";
 import { getUserById } from "../../db/dbQuery.js";
 
-const allowedNames = new Set(["login", "register", "home", "local-game", "local-tournament"]);// TEMP delete home, add a separate function for '/'
+
+const allowedNames = new Set([
+    "login", "register", "home",
+    "local-game", "local-tournament",
+    "tic-tac-toe"
+]);
+
 
 const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
 const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html', "utf-8");

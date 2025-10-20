@@ -1,4 +1,4 @@
-import { renderPage } from "../app.js";
+import { renderPage } from "./app.js";
 import {
     Bracket, Match, createBracket, getCurrentRound,
     reportMatch, isFinished, getChampion,
@@ -26,182 +26,76 @@ function setBtnDisabled(btn: HTMLElement | null, disabled: boolean) {
 }
 
 export function initTicTournament(): void {
-    const app = document.getElementById("app"); if (!app) return;
-    bracket = loadBracket(BRACKET_KEY);
+    const app = document.getElementById("app");
+    if (!app) return;
     app.innerHTML = `
     <div class="mx-auto max-w-[1500px] px-4 py-6">
-    <!-- ===== SETUP VIEW ===== -->
-    <div id="setup" class="${bracket ? "hidden" : ""}">
-    <!-- Trophy on top -->
-    <div class="flex items-center justify-center mb-3">
-    <div class="text-6xl text-yellow-400">🏆</div>
-    </div>
-    <!-- Title centered above the inputs -->
-    <h1 class="text-white text-2xl font-bold text-center mb-4">Tic-Tac-Toe Match</h1>
-    <p class="text-white/80 mb-2">Enter 3–8 player names:</p>
-    <div id="name-list" class="space-y-3 mb-3"></div>
-    <!-- Warning banner (hidden by default) -->
-    <div id="warn"
-    class="hidden mb-3 text-center font-semibold text-red-300 bg-red-900/30 border border-red-500/40 rounded-lg px-4 py-2"
-    role="alert"></div>
-    <!-- Row 1: Add / Remove / Reset -->
-    <div class="flex flex-wrap items-center justify-center gap-3 mb-3">
-    <button id="add-name"
-    class="px-5 py-3 rounded-lg bg-yellow-300 text-black font-bold text-xl hover:bg-yellow-400 transition focus:outline-none focus:ring-2 focus:ring-yellow-300">
-    Add
-    </button>
-    <button id="remove-name"
-    class="px-5 py-3 rounded-lg bg-yellow-300 text-black font-bold text-xl hover:bg-yellow-400 transition focus:outline-none focus:ring-2 focus:ring-yellow-300">
-    Remove
-    </button>
-    <button id="btn-reset"
-    class="px-5 py-3 rounded-lg bg-yellow-300 text-black font-bold text-xl hover:bg-yellow-400 transition focus:outline-none focus:ring-2 focus:ring-yellow-300">
-    Reset
-    </button>
-    </div>
-    <!-- Row 2: wide Start -->
-    <div class="flex items-center justify-center">
-    <button id="btn-seed"
-    class="px-6 py-3 rounded-lg bg-yellow-300 text-black font-bold text-xl hover:bg-yellow-400 transition focus:outline-none focus:ring-2 focus:ring-yellow-300 w-full sm:w-auto min-w-[240px]">
-    Start
-    </button>
-    </div>
-    </div>
-    <!-- ===== BRACKET VIEW (unchanged functionality) ===== -->
-    <div id="bracket" class="${bracket ? "" : "hidden"}">
-    <div class="flex items-center justify-between mb-4">
-    <h1 class="text-white text-2xl font-bold">Tic-Tac-Toe Match</h1>
-    <button id="btn-reset-top"
-    class="px-3 py-2 rounded-xl bg-white/10 text-white hover:bg-white/15">
-    Reset
-    </button>
-    </div>
-    <div id="round-host" class="mb-4"></div>
-    <div class="rounded-2xl ring-1 ring-white/10 p-3 bg-black/20">
-    <canvas id="canvasTic2" class="w-full max-w-[520px] aspect-square mx-auto hidden"></canvas>
-    </div>
-    <div id="controls" class="mt-4 text-white/80"></div>
-    </div>
-    </div>
-    `;
-    
-    // ----- Elements -----
-    const nameList = document.getElementById("name-list")!;
-    const addBtn   = document.getElementById("add-name") as HTMLButtonElement | null;
-    const removeBtn= document.getElementById("remove-name") as HTMLButtonElement | null;
-    const seedBtn  = document.getElementById("btn-seed") as HTMLButtonElement | null;
-    const resetBtn = document.getElementById("btn-reset") as HTMLButtonElement | null;
-    const resetTop = document.getElementById("btn-reset-top") as HTMLButtonElement | null;
-    const warnEl   = document.getElementById("warn") as HTMLDivElement | null;
-    
-    // ----- UI helpers (no gameplay impact) -----
-    const MIN_PLAYERS = 3;
-    const MAX_PLAYERS = 8;
-    
-    function countInputs(host: Element): number {
-        return host.querySelectorAll("input").length;
-    }
-    
-    function setBtnDisabled(btn: HTMLButtonElement | null, disabled: boolean) {
-        if (!btn) return;
-        btn.disabled = disabled;
-        btn.classList.toggle("opacity-60", disabled);
-        btn.classList.toggle("cursor-not-allowed", disabled);
-    }
-    
-    function refreshControls() {
-        const n = countInputs(nameList);
-        setBtnDisabled(addBtn, n >= MAX_PLAYERS);
-        setBtnDisabled(removeBtn, n <= 1);
-    }
-    
-    function showWarn(msg: string) {
-        if (!warnEl) return;
-        warnEl.textContent = msg;
-        warnEl.classList.remove("hidden");
-        warnEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-    
-    function hideWarn() {
-        if (!warnEl) return;
-        warnEl.classList.add("hidden");
-        warnEl.textContent = "";
-    }
-    
-    // Default 4 fields on fresh entry
-    if (!bracket) {
-        for (let i = 0; i < 4; i++) appendNameRow(nameList);
-        refreshControls();
-    }
-    
-    // Add / Remove / Reset
-    addBtn?.addEventListener("click", () => {
-        hideWarn();
-        const n = countInputs(nameList);
-        if (n >= MAX_PLAYERS) {
-            showWarn(`You can add up to ${MAX_PLAYERS} players.`);
-            refreshControls();
-            return;
-        }
-        appendNameRow(nameList);
-        refreshControls();
-    });
-    removeBtn?.addEventListener("click", () => {
-        hideWarn();
-        nameList.lastElementChild?.remove();
-        refreshControls();
-    });
-    
-    const doReset = () => { hideWarn(); clearAll(); initTicTournament(); };
-    resetBtn?.addEventListener("click", doReset);
-    resetTop?.addEventListener("click", doReset);
-    
-    // Start
-    seedBtn?.addEventListener("click", () => {
-        hideWarn();
-        
-        const inputs = Array.from(nameList.querySelectorAll("input")) as HTMLInputElement[];
-        const totalVisible = inputs.length;
+    <div id="bracket">
+        <div class="flex items-center justify-between mb-4">
+        <h1 class="text-white text-2xl font-bold">Tic-Tac-Toe Match</h1>
+        <button id="btn-reset-top"
+        class="px-3 py-2 rounded-xl bg-white/10 text-white hover:bg-white/15">
+        Reset
+        </button>
+        </div>
+        <div id="round-host" class="mb-4"></div>
+        <div class="rounded-2xl ring-1 ring-white/10 p-3 bg-black/20">
+        <canvas id="canvasTic2"
+        class="w-full max-w-[520px] aspect-square mx-auto hidden"></canvas>
+        </div>
+        <div id="controls" class="mt-4 text-white/80"></div>
+        </div>
+        </div>
+        `;
+        document.getElementById("btn-reset-top")?.addEventListener("click", () => {
+            clearAll();
+            initTicTournament();
+        });
 
-        // Validate 3–8 visible fields first
-        if (totalVisible < MIN_PLAYERS) {
-            showWarn(`Add at least ${MIN_PLAYERS} players to start.`);
-            return;
-        }
-        if (totalVisible > MAX_PLAYERS) {
-            showWarn(`You can only have up to ${MAX_PLAYERS} players.`);
-            return;
-        }
+  // 1) Try to auto-seed from the Matching alias form (3–8 aliases)
+  const raw = sessionStorage.getItem("ticMatchingAliases");
+  if (raw) {
+    let aliases: string[] = [];
+    try { aliases = JSON.parse(raw); } catch { aliases = []; }
+    // sanitize + validate
+    const names = Array.isArray(aliases)
+      ? aliases.map(s => String(s).trim()).filter(Boolean)
+      : [];
+    if (names.length >= MIN_PLAYERS && names.length <= MAX_PLAYERS) {
+      sessionStorage.removeItem("ticMatchingAliases"); // one-shot
+      bracket = createBracket(names);
+      saveBracket(BRACKET_KEY, bracket);
+      renderCurrentRound(); // go straight to the bracket
+      return;
+    }
+    // invalid payload: drop it and continue
+    sessionStorage.removeItem("ticMatchingAliases");
+  }
 
-        // Validate no empty names
-        const empty = inputs.filter(i => !i.value.trim());
-        if (empty.length > 0) {
-            showWarn(`Please fill in all name fields or remove the empty ones.`);
-            return;
-        }
-    
-        // Prepare names and check duplicates (case-insensitive)
-        const names = inputs.map(i => i.value.trim());
-        const lowered = names.map(n => n.toLowerCase());
-        const unique = new Set(lowered);
-        if (unique.size !== lowered.length) {
-            showWarn(`Names must be unique (case-insensitive).`);
-            return;
-        }
+  // 2) If a bracket was previously saved, just render it
+  bracket = loadBracket(BRACKET_KEY);
+  if (bracket) {
+    renderCurrentRound();
+    return;
+  }
 
-        // Create bracket
-        bracket = createBracket(names);
-        saveBracket(BRACKET_KEY, bracket);
-        (document.getElementById("setup")!).classList.add("hidden");
-        (document.getElementById("bracket")!).classList.remove("hidden");
-        renderCurrentRound();
-    });
-    
-    // If bracket exists, render immediately
-    if (bracket) renderCurrentRound();
-    // Clean when leaving
-    window.addEventListener("beforeunload", clearAll);
+  // 3) Nothing to render → show a minimal empty state (no setup inputs)
+  const host = document.getElementById("round-host")!;
+  host.innerHTML = `
+    <div class="text-center text-white/80">
+      <div class="text-6xl text-yellow-400 mb-3">🏆</div>
+      <h2 class="text-2xl font-bold mb-2">No players loaded</h2>
+      <p class="mb-4">Start “Matching” from the Home page to provide 3–8 names.</p>
+      <div class="flex gap-3 justify-center">
+        <a href="/" class="px-5 py-3 rounded-lg bg-yellow-300 text-black font-bold text-xl hover:bg-yellow-400">Go Home</a>
+      </div>
+    </div>
+  `;
+  // Hide reset when there’s nothing to reset
+  document.getElementById("btn-reset-top")?.classList.add("hidden");
 }
+
+
 
 function appendNameRow(host: Element): boolean {
     if (countInputs(host) >= MAX_PLAYERS) return false;
@@ -356,8 +250,8 @@ async function playMatch(m: Match) {
     const roundHost = document.getElementById("round-host")!;
     const canvas = document.getElementById("canvasTic2") as HTMLCanvasElement;
     const controls = document.getElementById("controls")!;
-    const p1 = m.a.player.name; // X
-    const p2 = m.b.player.name; // O
+    const p1 = m.a.player!.name; // X
+    const p2 = m.b.player!.name; // O
     roundHost.innerHTML = `
     <div class="flex items-center justify-center mb-3">
     <div class="text-6xl text-yellow-400">🏆</div>
@@ -375,10 +269,13 @@ async function playMatch(m: Match) {
     controls.classList.add("hidden");
     (window as any).player1Name = p1;
     (window as any).player2Name = p2;
-    
+        try {
+        sessionStorage.setItem('ticGameAliases', JSON.stringify({ player1: p1, player2: p2 }));
+    } catch {}
     // Start 2-player Tic-Tac-Toe on the canvas
-    const { showTic2 } = await import("../gameUtils/tic2.js") as typeof import("../gameUtils/tic2");
+    const { showTic2 } = await import("./gameUtils/tic2.js") as typeof import("./gameUtils/tic2");
     showTic2("canvasTic2", "controls");
+
     // Track the match
     currentMatchId = (m as any).id ?? (m as any).matchId ?? null;
     const onOver = (ev: Event) => {
@@ -421,7 +318,7 @@ async function playMatch(m: Match) {
 }
 
 async function startTic2(canvas: HTMLCanvasElement) {
-    const { showTic2 } = (await import("./tic2.js")) as typeof import("./tic2");
+    const { showTic2 } = (await import("./gameUtils/tic2.js")) as typeof import("./gameUtils/tic2");
     canvas.id = "canvasTic2";
     showTic2("canvasTic2", "controls");
 }

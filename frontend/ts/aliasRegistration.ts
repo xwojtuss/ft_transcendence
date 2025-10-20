@@ -1,26 +1,45 @@
 import { renderPage } from "./app.js";
 import { checkNickname } from "./validateInput.js";
 
-/**
- * Initialize alias registration form handlers for local games
- */
 export function initAliasRegistration(): void {
-    const localForm = document.getElementById('local-form');
-    const aiForm = document.getElementById('ai-form');
-    const tournamentForm = document.getElementById('tournament-form');
+    // 1) Primary signal from URL
+    const params = new URLSearchParams(window.location.search);
+    let isMatching = params.get('matching') === '1';
+    if (!isMatching && window.location.pathname.includes('tic-tac-toe') && document.querySelectorAll('input[id^="player"]').length >= 4) isMatching = true;
+    const isAI = params.get('ai') === '1'; // unchanged for local/AI
     
-    if (localForm) {
-        handleLocalAliasForm(localForm as HTMLFormElement, false);
+    // 2) Candidate forms (typed as forms)
+    const localForm      = document.getElementById('local-form') as HTMLFormElement | null;
+    const aiForm         = document.getElementById('ai-form') as HTMLFormElement | null;
+    const tournamentForm = document.getElementById('tournament-form') as HTMLFormElement | null;
+    if (!isMatching && window.location.pathname.includes('tic-tac-toe')) {
+        const probe: HTMLFormElement | null =
+        (document.getElementById('alias-form') as HTMLFormElement | null) ||
+        tournamentForm || localForm || aiForm;
+        
+        if (probe) {
+            const count = probe.querySelectorAll<HTMLInputElement>('input[id^="player"]').length;
+            if (count >= 4) {
+                isMatching = true;
+            }
+        }
     }
-    
-    if (aiForm) {
-        handleLocalAliasForm(aiForm as HTMLFormElement, true);
+    // 4) Matching mode
+    if (isMatching) {
+        const matchingForm: HTMLFormElement | null =
+        (document.getElementById('alias-form') as HTMLFormElement | null) ||
+        (document.querySelector('form#matching-form') as HTMLFormElement | null) ||
+        tournamentForm || localForm || aiForm;
+        if (matchingForm) {
+            handleMatchingAliasForm(matchingForm);
+        }
+        return;
     }
-    
-    if (tournamentForm) {
-        handleTournamentAliasForm(tournamentForm as HTMLFormElement);
-    }
+    if (localForm)      handleLocalAliasForm(localForm, false);
+    if (aiForm)         handleLocalAliasForm(aiForm, true);
+    if (tournamentForm) handleTournamentAliasForm(tournamentForm);
 }
+
 
 /**
  * Handle alias registration form submission for tournament
@@ -136,6 +155,107 @@ function handleTournamentAliasForm(form: HTMLFormElement): void {
     });
 }
 
+
+function handleMatchingAliasForm(form: HTMLFormElement): void {
+    const cancelBtn = document.getElementById('cancel-form');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            renderPage('/', false);
+        });
+    }
+    
+    //let JS handle min/max; don’t let HTML block on empty 5–8
+    form.noValidate = true;
+    for (let i = 5; i <= 8; i++) {
+        const el = document.getElementById(`player${i}`) as HTMLInputElement | null;
+        if (el) {
+            el.required = false;
+            el.removeAttribute('pattern');
+            el.removeAttribute('minlength');
+        }
+    }
+    
+    // --- Title -> "Enter Player Names (4 - 8 players)" 
+    (function updateTTTTitle() {
+        const appRoot = document.getElementById('app');
+        if (!appRoot) return;
+        const TO = 'Enter Player Names (4 - 8 players)';
+        const tryReplace = () => {
+            const nodes = appRoot.querySelectorAll<HTMLElement>('#alias-form *, .alias-title, h1, h2, p, div, span');
+            for (const el of nodes) {
+                if (el.childElementCount === 0) {
+                    const txt = (el.textContent ?? '').trim();
+                    if (txt === 'Enter Player Names' || /enter player names/i.test(txt)) {
+                        el.textContent = TO;
+                        return true;
+                    }
+                }
+            }
+            const walker = document.createTreeWalker(appRoot, NodeFilter.SHOW_TEXT);
+            let n: Node | null;
+            while ((n = walker.nextNode())) {
+                const t = (n.nodeValue ?? '').trim();
+                if (t === 'Enter Player Names' || /enter player names/i.test(t)) {
+                    n.nodeValue = TO;
+                    return true;
+                }
+            }
+            return false;
+        };
+        if (!tryReplace()) requestAnimationFrame(tryReplace);
+    })();
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const aliases: string[] = [];
+        const namesSet = new Set<string>();
+        
+        for (let i = 1; i <= 8; i++) {
+            const input = document.getElementById(`player${i}`) as HTMLInputElement | null;
+            if (!input) continue;
+            const val = input.value.trim();
+            if (!val) continue;
+            const key = val.toLowerCase();
+            if (namesSet.has(key)) { alert("Names must be unique."); return; }
+            try { checkNickname(val, "Alias"); } catch (err) {
+                alert(err instanceof Error ? err.message : "Invalid alias");
+                return;
+            }
+            namesSet.add(key);
+            aliases.push(val);
+        }
+        
+        if (aliases.length < 4) { alert("Please enter at least 4 names."); return; }
+        if (aliases.length > 8) { alert("Maximum 8 players."); return; }
+        
+        try {
+            const res = await fetch('/api/game/tournament/aliases', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aliases, game: 'tictactoe' })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(err.message || 'Validation failed');
+                return;
+            }
+            const data = await res.json();
+            if (!data.success) { alert('Validation failed'); return; }
+        } 
+        catch (err) {
+            console.error('Failed to validate aliases:', err);
+            alert('Failed to validate aliases. Please try again.');
+            return;
+        }
+        try {
+            sessionStorage.setItem('ticMatchingAliases', JSON.stringify(aliases));
+        } 
+        catch (err) {
+            console.error('Failed to store aliases:', err);
+        }
+        await renderPage('/game/tic-tac-toe?matching=1&registered=true', false);
+    });
+}
+
 /**
  * Handle alias registration form submission for local games
  * @param form The form element
@@ -221,19 +341,31 @@ function handleLocalAliasForm(form: HTMLFormElement, isAI: boolean): void {
             alert('Failed to validate aliases. Please try again.');
             return;
         }
+        const basePath = window.location.pathname.includes('tic-tac-toe')
+        ? '/game/tic-tac-toe'
+        : '/game/local';
         
-        // Store aliases in sessionStorage for the game to use
+        // Choose the correct sessionStorage key
+        const storageKey = basePath.includes('tic-tac-toe')
+        ? 'ticGameAliases'
+        : 'localGameAliases';
+        
+        // Save aliases for the game to use
         try {
-            sessionStorage.setItem('localGameAliases', JSON.stringify({
+            sessionStorage.setItem(storageKey, JSON.stringify({
                 player1: aliases[0],
-                player2: isAI ? 'AI' : aliases[1]
+                player2: isAI ? 'AI' : aliases[1],
             }));
-        } catch (err) {
+        } 
+        catch (err) {
             console.error('Failed to store aliases:', err);
         }
         
-        // Navigate to the game with registered flag
-        const gameUrl = isAI ? '/game/local?ai=1&registered=true' : '/game/local?registered=true';
+        // Build target URL with the registered flag
+        const gameUrl = isAI
+        ? `${basePath}?ai=1&registered=true`
+        : `${basePath}?registered=true`;
+        
         await renderPage(gameUrl, false);
     });
 }

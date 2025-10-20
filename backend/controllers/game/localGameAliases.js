@@ -68,17 +68,25 @@ export async function registerLocalGameAliases(req, reply) {
     });
 }
 
-/**
- * Validate and register aliases for tournament
- * POST /api/game/tournament/aliases
- */
+
 export async function registerTournamentAliases(req, reply) {
-    const { aliases } = req.body;
+    const { aliases, game } = req.body || {};
     const loggedInUser = req.currentUser;
     
-    // Validate player count
-    if (!Array.isArray(aliases) || ![4, 8].includes(aliases.length)) {
-        throw new HTTPError(StatusCodes.BAD_REQUEST, "Tournament must have 4 or 8 players");
+    if (!Array.isArray(aliases)) {
+        throw new HTTPError(StatusCodes.BAD_REQUEST, "Body must include 'aliases' array");
+    }
+    
+    // Only change: count rule depends on game
+    const isTTT = String(game || "").toLowerCase() === "tictactoe";
+    const validCount = isTTT ? (aliases.length >= 4 && aliases.length <= 8)
+        : (aliases.length === 8 || aliases.length === 4);
+    if (!validCount) {
+        throw new HTTPError(
+            StatusCodes.BAD_REQUEST,
+            isTTT ? "Tournament must have between 4 and 8 players"
+            : "Tournament must have 4 or 8 players"
+        );
     }
     
     // If user is logged in, first alias MUST be their nickname
@@ -88,35 +96,28 @@ export async function registerTournamentAliases(req, reply) {
         }
     }
     
-    // Validate each alias
+    // Validate each alias (skip index 0 if it's the logged-in user)
     for (let i = 0; i < aliases.length; i++) {
-        const alias = aliases[i];
-        
-        // Skip validation for logged-in user's nickname (already validated)
-        if (loggedInUser && i === 0) {
-            continue;
-        }
-        
+        if (loggedInUser && i === 0) continue;
         try {
-            aliasSchema.parse(alias);
+            aliasSchema.parse(aliases[i]);
         } catch (error) {
             if (error instanceof z.ZodError) {
-                throw new HTTPError(StatusCodes.BAD_REQUEST, `Alias ${i + 1}: ${error.errors[0].message}`);
+                throw new HTTPError(
+                    StatusCodes.BAD_REQUEST,
+                    `Alias ${i + 1}: ${error.errors[0].message}`
+                );
             }
             throw error;
         }
     }
-    
+
     // Check for duplicate aliases
     const uniqueAliases = new Set(aliases.map(a => a.toLowerCase()));
     if (uniqueAliases.size !== aliases.length) {
         throw new HTTPError(StatusCodes.BAD_REQUEST, "Aliases must be unique");
     }
     
-    // Return success with validated aliases
-    return reply.send({ 
-        success: true, 
-        aliases: aliases,
-        userId: loggedInUser ? loggedInUser.id : null
-    });
+    // This endpoint is a validator; match frontend expectation
+    return reply.send({ success: true });
 }

@@ -1,4 +1,4 @@
-// Tic-Tac-Toe — local 2 players, Canvas-based
+// Tic-Tac-Toe — local 2 players
 
 type Mark = 'X' | 'O' | null;
 type Winner = 'X' | 'O' | 'nowinner' | null;
@@ -12,6 +12,49 @@ const XO_COLOR = '#ffffff';
 let board: Board;
 let current: Player;
 let gameOver = false;
+
+
+let __tttPosted = false;
+function postOnce(winner: 'X' | 'O' | 'nowinner') {
+  if (__tttPosted) return;
+  __tttPosted = true;
+  reportTicResult2P(winner);
+}
+
+async function reportTicResult2P(winner: 'X' | 'O' | 'nowinner') {
+  try {
+        const params = new URLSearchParams(window.location.search);
+        const isMatching = params.get('matching') === '1';
+        const mode: 'local' | 'matching' = isMatching ? 'matching' : 'local';
+        const saved = sessionStorage.getItem('ticGameAliases');
+        const aliases = saved
+        ? JSON.parse(saved)
+        : { player1: 'Player 1', player2: 'Player 2' };
+    
+        let winnerAlias: string | null = null;
+        if (winner === 'X')      winnerAlias = aliases.player1;
+        else if (winner === 'O') winnerAlias = aliases.player2;
+        else                     winnerAlias = null; // draw
+
+        await fetch('/api/game/tic/result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mode,
+                player1: aliases.player1,
+                player2: aliases.player2,
+                winnerAlias
+            }),
+            keepalive: true,
+            credentials: 'same-origin'
+        });
+    } 
+    catch (e) {
+    console.error('Failed to record TTT 2P result', e);
+    }
+}
+
+
 
 function makeEmptyBoard(): Board {
     return [
@@ -189,7 +232,7 @@ export function showTic2(canvasId = 'canvasTic2', controlsId = 'tic-controls'): 
     redrawAll(canvas);
     setControls('Player 1: X — Player 2: O. Player 1 to move.', false, canvas, controlsId);
     canvas.onpointerdown = null;
-    canvas.onpointerup = (ev: PointerEvent) => {
+    canvas.onpointerup = async (ev: PointerEvent) => {
         if (gameOver) return;
         const cell = cellFromPointer(ev, canvas);
         if (!cell) return;
@@ -201,6 +244,7 @@ export function showTic2(canvasId = 'canvasTic2', controlsId = 'tic-controls'): 
         if (w) {
             gameOver = true;
             drawGameOverOverlay(canvas, w);
+            await reportTicResult2P(w as 'X' | 'O' | 'nowinner'); // NEW: log result to backend
             setControls('', true, canvas, controlsId);
             document.dispatchEvent(new CustomEvent('tic:over', { detail: { winner: w } }));
             return;
