@@ -125,8 +125,7 @@ export async function recordTicResult(req, reply) {
   // Originator row:
   // - matching: log under the real user account (official alias)
   // - local/ai: originator is the p1 alias (no account link)
-  const originator =
-    isMatching && isLoggedIn
+  const originator = isLoggedIn
       ? Object.assign(new User(selfNick), { id: req.currentUser.id })
       : player1;
 

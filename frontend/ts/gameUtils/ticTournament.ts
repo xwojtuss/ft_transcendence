@@ -1,3 +1,4 @@
+import { renderPage } from "../app.js";
 import {
     Bracket, Match, createBracket, getCurrentRound,
     reportMatch, isFinished, getChampion,
@@ -251,12 +252,13 @@ function renderTicFinalScreen(): void {
     
     // Finish -> clear and go home (SPA + hard fallback)
     document.getElementById("tic-finish")?.addEventListener("click", () => {
-        clearAll();
-        try {
-            window.history.pushState({}, "", "/");
-            window.dispatchEvent(new PopStateEvent("popstate"));
-        } catch {}
-        window.location.href = "/";
+        // clearAll();
+        // try {
+        //     window.history.pushState({}, "", "/");
+        //     window.dispatchEvent(new PopStateEvent("popstate"));
+        // } catch {}
+        // window.location.href = "/";
+        renderPage("/", false);
     });
 }
 

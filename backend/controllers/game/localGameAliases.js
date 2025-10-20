@@ -80,12 +80,12 @@ export async function registerTournamentAliases(req, reply) {
     // Only change: count rule depends on game
     const isTTT = String(game || "").toLowerCase() === "tictactoe";
     const validCount = isTTT ? (aliases.length >= 4 && aliases.length <= 8)
-        : (aliases.length === 8);
+        : (aliases.length === 8 || aliases.length === 4);
     if (!validCount) {
         throw new HTTPError(
             StatusCodes.BAD_REQUEST,
             isTTT ? "Tournament must have between 4 and 8 players"
-            : "Tournament must have 8 players"
+            : "Tournament must have 4 or 8 players"
         );
     }
     
@@ -110,6 +110,12 @@ export async function registerTournamentAliases(req, reply) {
             }
             throw error;
         }
+    }
+
+    // Check for duplicate aliases
+    const uniqueAliases = new Set(aliases.map(a => a.toLowerCase()));
+    if (uniqueAliases.size !== aliases.length) {
+        throw new HTTPError(StatusCodes.BAD_REQUEST, "Aliases must be unique");
     }
     
     // This endpoint is a validator; match frontend expectation
