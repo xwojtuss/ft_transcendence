@@ -67,6 +67,18 @@ function findOrCreateSessionForPlayer(playerId) {
 // --- Socket handlers -------------------------------------------------------
 
 function setupSocketHandlers(socket, session, playerId) {
+    // remove previously attached listeners (prevents duplicate handlers / MaxListenersExceededWarning)
+    try {
+        if (typeof socket.removeAllListeners === 'function') {
+            socket.removeAllListeners('message');
+            socket.removeAllListeners('close');
+        }
+        // allow unlimited listeners on this socket (optional)
+        if (typeof socket.setMaxListeners === 'function') {
+            socket.setMaxListeners(0);
+        }
+    } catch (e) { /* ignore */ }
+
     socket.on('message', (msg) => {
         let data;
         try {
@@ -196,6 +208,10 @@ function addNewPlayer(session, socket, playerId, fastify, providedNick) {
         });
 
         broadcastRemoteGameState(session.gameState, session);
+
+        setTimeout(() => {
+            try { notifyAllReady(session); } catch (e) { /* ignore */ }
+        }, 50);
 
         setTimeout(() => {
             if (!session.gameState) return;
@@ -332,6 +348,11 @@ function migrateEndedGame(sessionId, session) {
                 }
             });
             broadcastRemoteGameState(newSession.gameState, newSession);
+
+            // resend ready info after broadcasting state to avoid client-side race conditions
+            setTimeout(() => {
+                try { notifyAllReady(newSession); } catch (e) { /* ignore */ }
+            }, 50);
 
             setTimeout(() => {
                 if (!newSession.gameState) return;
