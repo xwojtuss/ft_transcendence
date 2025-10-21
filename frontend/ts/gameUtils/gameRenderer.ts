@@ -120,35 +120,35 @@ export class GameRenderer {
     }
 
     render(gameState: GameState | null, mode: "local" | "remote") {
-        // Draw background and static elements
+        // always draw background/static elements so overlay can be shown even without a gameState
         drawBackground();
         drawOutline();
         drawDottedLine();
         drawPongText();
 
-        // console.log("gameState in render:", gameState);
-        if (!gameState?.players || !gameState?.ball) return;
+        // If we have a valid gameState, draw it
+        if (gameState?.players && gameState?.ball) {
+            // Draw players
+            if (gameState.players[1]) this.drawPlayer(gameState.players[1]);
+            if (gameState.players[2]) this.drawPlayer(gameState.players[2]);
 
-        // Draw players
-        if (gameState.players[1]) this.drawPlayer(gameState.players[1]);
-        if (gameState.players[2]) this.drawPlayer(gameState.players[2]);
+            // Draw ball
+            this.drawBall(gameState.ball);
 
-        // Draw ball
-        this.drawBall(gameState.ball);
+            // Draw score
+            if (gameState.players[1] && gameState.players[2]) {
+                drawScore(this.ctx, gameState.players[1].score, gameState.players[2].score);
+            }
 
-        // Draw score
-        if (gameState.players[1] && gameState.players[2]) {
-            drawScore(this.ctx, gameState.players[1].score, gameState.players[2].score);
+            // Draw game messages
+            if (mode === "local") {
+                this.drawGameMessages(gameState);
+            } else if (mode === "remote") {
+                this.drawRemoteGameMessages(gameState);
+            }
         }
 
-        // Draw game messages
-        if (mode === "local") {
-            this.drawGameMessages(gameState);
-        } else if (mode === "remote") {
-            this.drawRemoteGameMessages(gameState);
-        }
-
-        // rysuj overlay jeśli ustawiony
+        // always draw overlay if it's set
         if (this.overlayMessage) {
             try {
                 const ctx = this.ctx;
@@ -169,7 +169,7 @@ export class GameRenderer {
                 });
 
                 ctx.restore();
-            } catch (e) { /* ignore overlay draw errors */ }
+            } catch (e) { /* ignore */ }
         }
     }
 }

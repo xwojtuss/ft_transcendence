@@ -197,14 +197,18 @@ function addNewPlayer(session, socket, playerId, fastify, providedNick) {
     setupSocketHandlers(socket, session, playerId);
 
     if (session.players.length === 1) {
-        sendSafe(socket, {
-            type: "waiting",
-            message: "Waiting for opponent...",
-            players: 1,
-            playerId: 1,
-            sessionId: session.id
-        });
-        sendConfig(socket);
+        // inform the sole player that they are waiting for an opponent
+        try {
+            // send config early so frontend can initialize canvas/dimensions
+            sendConfig(socket);
+            sendSafe(socket, {
+                type: "waiting",
+                message: "Waiting for opponent to join...",
+                players: 1,
+                playerId: playerNumber,
+                sessionId: session.id
+            });
+        } catch (e) { /* ignore */ }
         return;
     }
 

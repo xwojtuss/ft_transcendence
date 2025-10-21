@@ -86,33 +86,38 @@ export function initRemoteGame() {
                     return;
                 }
 
-                // Otherwise, treat it as a meta message
+                // Otherwise, treat it as a meta message (waiting/ready/waitForRec/reconnected/etc.)
                 if (data?.sessionId && data.sessionId !== sessionId) {
                     localStorage.setItem("sessionId", data.sessionId);
                     sessionId = data.sessionId;
                 }
 
+                // show waiting overlay when the server explicitly tells us to wait for opponent
                 if (data?.type === "waiting") {
-                    // show waiting UI if needed (initial lobby)
-                    console.log(data.message);
+                    console.log("Server:", data.message);
                     renderer.setOverlayMessage(data.message || "Waiting for opponent...");
-                } else if (data?.type === "ready") {
-                    console.log(data.message);
-                    console.log(`You are player ${data.playerId} in session ${data.sessionId}`);
-                    const youNick = typeof data.you === 'string' ? data.you : (data.you?.nick ?? '');
-                    const opponentNick = typeof data.opponent === 'string' ? data.opponent : (data.opponent?.nick ?? '');
-                    console.log(`You: ${youNick}`);
-                    console.log(`Opponent: ${opponentNick}`);
-                    // clear overlay when match starts
-                    renderer.setOverlayMessage(null);
-                } else if (data?.type === "waitForRec") {
-                    // opponent disconnected -> show persistent overlay
-                    console.log(data.message);
+                    return;
+                }
+
+                // opponent disconnected -> show persistent overlay until reconnected or game end
+                if (data?.type === "waitForRec") {
+                    console.log("Server:", data.message);
                     renderer.setOverlayMessage(data.message || "Opponent disconnected. Waiting for reconnection...");
-                } else if (data?.type === "reconnected") {
-                    console.log(data.message);
-                    // clear overlay when reconnected
+                    return;
+                }
+
+                // ready/reconnected -> clear overlay so gameplay or post-game info is visible
+                if (data?.type === "ready" || data?.type === "reconnected") {
+                    console.log("Server:", data.message);
                     renderer.setOverlayMessage(null);
+                    return;
+                }
+
+                // fallback: log other meta messages
+                if (data?.type === "error") {
+                    console.error("WS error:", data.message);
+                } else {
+                    console.log("WS meta:", data);
                 }
             }
         );
