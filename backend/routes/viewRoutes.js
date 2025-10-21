@@ -104,9 +104,8 @@ export default async function viewsRoutes(fastify) {
 
     fastify.get("/game/online", { preHandler: loggedInOrOutPreHandler }, async (request, reply) => {
         if (!request.currentUser) {
-            // przekieruj do logowania z informacją i opcjonalnym powrotem
             const from = encodeURIComponent(request.raw?.url || '/game/online');
-            return reply.redirect(`/login?from=${from}&info=login_required`);
+            return reply.redirect(`/login`);
         }
         const view = await getStaticView('remote-game');
         return await sendView(view, request.currentUser, request, reply);
@@ -121,7 +120,6 @@ export default async function viewsRoutes(fastify) {
         const view = await getStaticView('online-tournament-game');
         return await sendView(view, request.currentUser, request, reply);
     });
-
     fastify.get("/friends", { preHandler: loggedInPreHandler }, async (request, reply) => {
         const view = await getFriendsView(request.currentUser.id);
         return await sendView(view, request.currentUser, request, reply);
