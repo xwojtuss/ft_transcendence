@@ -29,12 +29,12 @@ export class GameRenderer {
     private ctx: CanvasRenderingContext2D;
     private FIELD_WIDTH: number = 150;
     private FIELD_HEIGHT: number = 70;
-    private overlayMessage: string | null = null; // <-- dodane pole
+    private overlayMessage: string | null = null;
 
     constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
         this.canvas = canvas;
         this.ctx = ctx;
-        this.overlayMessage = null; // <-- dodane pole
+        this.overlayMessage = null;
     }
 
     setFieldDimensions(width: number, height: number) {
@@ -110,7 +110,6 @@ export class GameRenderer {
         }
     }
 
-    // dodaj metodę ustawiającą komunikat nakładki
     setOverlayMessage(message: string | null) {
         this.overlayMessage = message;
     }

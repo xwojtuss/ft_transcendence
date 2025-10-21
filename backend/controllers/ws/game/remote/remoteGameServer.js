@@ -159,6 +159,20 @@ function reconnectPlayer(session, socket, playerId, existingIdx) {
         sendConfig(socket);
     }
 
+    // If after reconnect the player is alone in the session, inform them to wait for opponent
+    try {
+        const presentPlayers = session.players.filter(p => !p.removed).length;
+        if (presentPlayers === 1) {
+            sendSafe(socket, {
+                type: "waiting",
+                message: "Waiting for opponent to join...",
+                players: presentPlayers,
+                playerId: socket.playerNumber,
+                sessionId: session.id
+            });
+        }
+    } catch (e) { /* ignore */ }
+
     // Notify all other connected players that this player reconnected
     try {
         for (const other of session.players) {
@@ -352,7 +366,7 @@ function migrateEndedGame(sessionId, session) {
 
         if (newSession.players.length === 1) {
             const p = newSession.players[0];
-            sendSafe(p.socket, { type: "waiting", message: "Waiting for opponent...", players: 1, playerId: 1, sessionId: newSession.id });
+            sendSafe(p.socket, { type: "waiting", message: "Waiting for opponent to join...", players: 1, playerId: 1, sessionId: newSession.id });
             sendConfig(p.socket);
         } else if (newSession.players.length === 2) {
             notifyAllReady(newSession);
