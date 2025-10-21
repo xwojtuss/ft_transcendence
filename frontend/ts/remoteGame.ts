@@ -78,7 +78,11 @@ export function initRemoteGame() {
                 // If this looks like a game state, use it for rendering
                 if (data && data.players && data.ball) {
                     gameState = data;
-                    // don't clear overlay here — keep overlay visible until explicit "ready" or "reconnected"
+                    // if the game ended (someone won) remove waiting overlay so win info can be shown
+                    if (data.gameEnded) {
+                        renderer.setOverlayMessage(null);
+                    }
+                    // don't clear overlay for normal state updates (keeps waitForRec visible)
                     return;
                 }
 
