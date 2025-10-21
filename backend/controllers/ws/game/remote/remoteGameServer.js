@@ -158,6 +158,22 @@ function reconnectPlayer(session, socket, playerId, existingIdx) {
         sendState(socket, session.gameState);
         sendConfig(socket);
     }
+
+    // Notify all other connected players that this player reconnected
+    try {
+        for (const other of session.players) {
+            if (other === player) continue;
+            if (other.socket && other.connected && !other.removed) {
+                sendSafe(other.socket, {
+                    type: "reconnected",
+                    message: "Opponent reconnected.",
+                    players: session.players.filter(p => !p.removed).length,
+                    playerId: other.playerNumber,
+                    sessionId: session.id
+                });
+            }
+        }
+    } catch (e) { /* ignore notification errors */ }
 }
 
 function addNewPlayer(session, socket, playerId, fastify, providedNick) {
@@ -287,8 +303,8 @@ function sendWaitingOrReadyInfo(sessionId, session) {
         const player = activePlayers[0];
         if (player.socket) {
             sendSafe(player.socket, {
-                type: "waiting",
-                message: "Waiting for opponent to reconnect...",
+                type: "waitForRec",
+                message: "Opponent disconnected. Waiting for reconnection...",
                 players: presentPlayersCount,
                 playerId: player.playerNumber,
                 sessionId

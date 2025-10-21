@@ -29,10 +29,12 @@ export class GameRenderer {
     private ctx: CanvasRenderingContext2D;
     private FIELD_WIDTH: number = 150;
     private FIELD_HEIGHT: number = 70;
+    private overlayMessage: string | null = null; // <-- dodane pole
 
     constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
         this.canvas = canvas;
         this.ctx = ctx;
+        this.overlayMessage = null; // <-- dodane pole
     }
 
     setFieldDimensions(width: number, height: number) {
@@ -108,6 +110,15 @@ export class GameRenderer {
         }
     }
 
+    // dodaj metodę ustawiającą komunikat nakładki
+    setOverlayMessage(message: string | null) {
+        this.overlayMessage = message;
+    }
+
+    clearOverlayMessage() {
+        this.overlayMessage = null;
+    }
+
     render(gameState: GameState | null, mode: "local" | "remote") {
         // Draw background and static elements
         drawBackground();
@@ -135,6 +146,30 @@ export class GameRenderer {
             this.drawGameMessages(gameState);
         } else if (mode === "remote") {
             this.drawRemoteGameMessages(gameState);
+        }
+
+        // rysuj overlay jeśli ustawiony
+        if (this.overlayMessage) {
+            try {
+                const ctx = this.ctx;
+                ctx.save();
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                ctx.fillStyle = '#fff';
+                const fontSize = Math.max(16, Math.floor(this.canvas.width / 30));
+                ctx.font = `${fontSize}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const lines = String(this.overlayMessage).split('\n');
+                const startY = this.canvas.height / 2 - ((lines.length - 1) * fontSize) / 2;
+                lines.forEach((line, i) => {
+                    ctx.fillText(line, this.canvas.width / 2, startY + i * fontSize);
+                });
+
+                ctx.restore();
+            } catch (e) { /* ignore overlay draw errors */ }
         }
     }
 }

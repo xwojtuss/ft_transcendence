@@ -78,6 +78,7 @@ export function initRemoteGame() {
                 // If this looks like a game state, use it for rendering
                 if (data && data.players && data.ball) {
                     gameState = data;
+                    // don't clear overlay here — keep overlay visible until explicit "ready" or "reconnected"
                     return;
                 }
 
@@ -88,8 +89,9 @@ export function initRemoteGame() {
                 }
 
                 if (data?.type === "waiting") {
-                    // show waiting UI if needed
+                    // show waiting UI if needed (initial lobby)
                     console.log(data.message);
+                    renderer.setOverlayMessage(data.message || "Waiting for opponent...");
                 } else if (data?.type === "ready") {
                     console.log(data.message);
                     console.log(`You are player ${data.playerId} in session ${data.sessionId}`);
@@ -97,8 +99,16 @@ export function initRemoteGame() {
                     const opponentNick = typeof data.opponent === 'string' ? data.opponent : (data.opponent?.nick ?? '');
                     console.log(`You: ${youNick}`);
                     console.log(`Opponent: ${opponentNick}`);
+                    // clear overlay when match starts
+                    renderer.setOverlayMessage(null);
+                } else if (data?.type === "waitForRec") {
+                    // opponent disconnected -> show persistent overlay
+                    console.log(data.message);
+                    renderer.setOverlayMessage(data.message || "Opponent disconnected. Waiting for reconnection...");
                 } else if (data?.type === "reconnected") {
                     console.log(data.message);
+                    // clear overlay when reconnected
+                    renderer.setOverlayMessage(null);
                 }
             }
         );
