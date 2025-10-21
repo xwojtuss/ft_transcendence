@@ -49,6 +49,12 @@ export class HomeRenderer {
         window.addEventListener("keydown", (e) => {
             if (e.key !== "c") return;
             this.environment.toggleCameraMovement(this.canvas);
-        })
+        });
+        window.addEventListener('beforeunload', () => {
+            this.end();
+        });
+        window.addEventListener('popstate', () => {
+            this.end();
+        });
     }
 }

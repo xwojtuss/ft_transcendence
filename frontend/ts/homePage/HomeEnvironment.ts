@@ -6,10 +6,13 @@ const environmentConfig = {
     TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
     GAME_MESSAGE: "CHOOSE THE GAME",
     MODE_MESSAGE: "CHOOSE THE MODE",
+    BACK_BUTTON_MESSAGE: "GO BACK",
     WALL_WIDTH: 192,
     WALL_HEIGHT: 108,
     PANEL_HEIGHT: 10,
     PANEL_HOVER_HEIGHT: 11,
+    BACK_BUTTON_HEIGHT: 3,
+    BACK_BUTTON_HOVER_HEIGHT: 3.3,
     REDIRECTIONS: {
         pong: {
             localPanelH: "/game/local",
@@ -37,7 +40,9 @@ export class HomeEnvironment {
     private modePanels!: Array<{ mesh: BABYLON.Mesh, requiresLogin: boolean }>;
     private modesActionManager!: BABYLON.ActionManager;
     private gamesActionManager!: BABYLON.ActionManager;
+    private backActionManager!: BABYLON.ActionManager;
     private game: string | undefined;
+    private backButton!: BABYLON.Mesh;
 
     constructor(scene: BABYLON.Scene, canvas?: HTMLCanvasElement) {
         this.camera = new BABYLON.FreeCamera(
@@ -59,7 +64,18 @@ export class HomeEnvironment {
         this.constructStartTexts(scene);
         this.initializeGamePanels(scene);
         this.initializeGameModes(scene);
+        this.constructBackButton(scene);
         this.constructWalls(scene);
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("game") !== null) this.game = String(params.get("game"));
+        if (this.game) {
+            this.hideGames();
+            this.showGameModes();
+            this.showBackButton();
+        } else {
+            this.hideBackButton();
+        }
 
         const postProcessing = new BABYLON.DefaultRenderingPipeline("default", true, scene, [this.camera]);
         postProcessing.chromaticAberrationEnabled = true;
@@ -93,24 +109,27 @@ export class HomeEnvironment {
 
     private constructActionManagers(scene: BABYLON.Scene) {
         this.gamesActionManager = new BABYLON.ActionManager(scene);
-        HomeEnvironment.registerHover(this.gamesActionManager);
+        HomeEnvironment.registerHover(this.gamesActionManager, environmentConfig.PANEL_HEIGHT, environmentConfig.PANEL_HOVER_HEIGHT);
         this.modesActionManager = new BABYLON.ActionManager(scene);
-        HomeEnvironment.registerHover(this.modesActionManager);
+        HomeEnvironment.registerHover(this.modesActionManager, environmentConfig.PANEL_HEIGHT, environmentConfig.PANEL_HOVER_HEIGHT);
+        this.backActionManager = new BABYLON.ActionManager(scene);
+        HomeEnvironment.registerHover(this.backActionManager, environmentConfig.BACK_BUTTON_HEIGHT, environmentConfig.BACK_BUTTON_HOVER_HEIGHT);
         this.gamesActionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, (evt) => {
             const mesh = evt.source;
-            console.log(mesh.name);
             if (mesh.name === "ping-pongPanelH") this.game = "ping-pong";
             else if (mesh.name === "tic-tac-toePanelH") this.game = "tic-tac-toe";
             else throw new Error("Unknown game");
             this.hideGames();
             this.showGameModes();
+            this.showBackButton();
+            window.history.pushState({}, '', window.location.pathname + "?game=" + this.game);
         }));
         this.modesActionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, (evt) => {
             const mesh = evt.source;
-            console.log(mesh.name);
             if (!this.game) {
                 this.hideGameModes();
                 this.showGames();
+                this.hideBackButton();
                 throw new Error("Unknown game");
             } else if (this.game === "ping-pong" && mesh.name in environmentConfig.REDIRECTIONS.pong) {
                 const key: keyof typeof environmentConfig.REDIRECTIONS.pong = mesh.name;
@@ -122,9 +141,15 @@ export class HomeEnvironment {
                 throw new Error("Unknown mode");
             }
         }));
+        this.backActionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, (evt) => {
+            this.showGames();
+            this.hideGameModes();
+            this.hideBackButton();
+            window.history.pushState({}, '', window.location.pathname);
+        }));
     }
 
-    private static registerHover(actionManager: BABYLON.ActionManager) {
+    private static registerHover(actionManager: BABYLON.ActionManager, from: number, to: number) {
         const actionFrames = 10;
         actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger, (evt) => {
             const mesh = evt.source;
@@ -138,7 +163,7 @@ export class HomeEnvironment {
                     60,
                     actionFrames,
                     mesh.parent.position.y,
-                    environmentConfig.PANEL_HOVER_HEIGHT,
+                    to,
                     BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
                     easing
                 );
@@ -156,12 +181,56 @@ export class HomeEnvironment {
                     60,
                     actionFrames,
                     mesh.parent.position.y,
-                    environmentConfig.PANEL_HEIGHT,
+                    from,
                     BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
                     easing
                 );
             }
         }));
+    }
+
+    private showBackButton() {
+        this.backButton.isVisible = true;
+        this.backButton.getChildMeshes().forEach((child) => {
+            child.isVisible = true;
+        });
+    }
+
+    private hideBackButton() {
+        this.backButton.isVisible = false;
+        this.backButton.getChildMeshes().forEach((child) => {
+            child.isVisible = false;
+        });
+    }
+
+    private constructBackButton(scene: BABYLON.Scene) {
+        let text = BABYLON.MeshBuilder.CreateText("backText", environmentConfig.BACK_BUTTON_MESSAGE, fontData, {
+            size: 0.7,
+            resolution: 8,
+            depth: 0.5
+        }, scene);
+        const mat = new BABYLON.StandardMaterial("backTextMat", scene);
+        mat.emissiveColor = environmentConfig.TEXT_COLOR;
+        if (!text) throw new Error('Could not create text');
+        text.material = mat;
+        this.glowLayer.addIncludedOnlyMesh(text);
+        const panel = BABYLON.MeshBuilder.CreatePlane("backPlane", {
+            width: 5,
+            height: 1.5
+        });
+        const panelMat = new BABYLON.StandardMaterial("transparentPanelMat", scene);
+        panelMat.alpha = 0;
+        panel.material = panelMat;
+        this.backButton = text;
+        panel.position.y = 0.3;
+        panel.position.z = -0.5;
+        panel.parent = this.backButton;
+        this.backButton.position = new BABYLON.Vector3(
+            0,
+            environmentConfig.BACK_BUTTON_HEIGHT,
+            environmentConfig.WALL_HEIGHT / 3
+        );
+        panel.actionManager = this.backActionManager;
     }
 
     private constructWalls(scene: BABYLON.Scene) {
@@ -195,6 +264,7 @@ export class HomeEnvironment {
                 reflectionProbe.renderList?.push(child);
             });
         });
+        reflectionProbe.renderList?.push(this.backButton);
 
         floorMat.reflectionTexture = reflectionProbe.cubeTexture;
 
@@ -417,7 +487,7 @@ export class HomeEnvironment {
         if (!text) return outline;
         text.material = outlineMat;
         text.parent = outline;
-        text.position = new BABYLON.Vector3(0, -width * svgScale / 2 - width / 12, 0);
+        text.position = new BABYLON.Vector3(0, -width * svgScale / 2 - width / 12, 0.1);
         this.glowLayer.addIncludedOnlyMesh(text);
 
         return outline;
