@@ -9,6 +9,7 @@ import { initLocalTournament } from "./tournament.js";
 import { clearTournamentAll, isTournamentPath, cleanupTournamentOnRouteChange } from "./tournamentCleanup.js";
 import { initAliasRegistration } from "./aliasRegistration.js";
 import { initTicTacToe } from "./ticTacToe.js";
+import { HomeRenderer } from "./homePage/HomeRenderer.js";
 
 
   
@@ -62,6 +63,13 @@ runHandlers(window.location.pathname);
 
 async function runHandlers(pathURL: string): Promise<void> {
     switch (pathURL) {
+        case '/home':
+        case '/':
+            const canvas = document.getElementById('home-canvas');
+            if (!canvas) return;
+            const renderer = new HomeRenderer(canvas as HTMLCanvasElement);
+            renderer.startRenderLoop();
+            break;
         case '/login':
             await loginHandler();
             formPasswordVisibility();
