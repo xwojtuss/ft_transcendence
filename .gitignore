@@ -11,6 +11,8 @@ npm-debug.log
 frontend/css/output.css
 frontend/ts/*.js
 frontend/ts/gameUtils/*.js
+frontend/ts/homePage/*.js
+frontend/ts/*/*.js
 backend/db/*.sqlite
 TODO
 backend/avatars/*
