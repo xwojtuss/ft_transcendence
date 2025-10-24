@@ -6,9 +6,32 @@ import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
 import { initRemoteGame } from "./remoteGame.js";
+import { initLocalTournament } from "./tournament.js";
+import { clearTournamentAll, isTournamentPath, cleanupTournamentOnRouteChange } from "./tournamentCleanup.js";
+import { initAliasRegistration } from "./aliasRegistration.js";
+import { initTicTacToe } from "./ticTacToe.js";
+import { HomeRenderer } from "./homePage/HomeRenderer.js";
+
+// ^^^^^ TRDM ^^^^^
+// frontend/ts/app.ts — routes that are rendered 100% client-side.
+// We skip the network fetch for these to avoid 404 noise.
+const CLIENT_ONLY_ROUTES = new Set<string>([
+    "/game/local-tournament",
+    "tic-tac-toe",
+    "tic-tac-toe/match",
+  ]);
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
+
+window.addEventListener("beforeunload", () => {
+    // If the user refreshes or closes the tab while not on a tournament page,
+    // make sure stale keys won’t linger into the next session.
+    const p = window.location.pathname;
+    if (p !== "/game/local" && p !== "/game/local-tournament") {
+        try { clearTournamentAll("beforeunload"); sessionStorage.removeItem('localGameAliases'); } catch {}
+    }
+  });
 
 // to make the <a> links render different views in <main>
 document.addEventListener('click', (e) => {
@@ -37,6 +60,13 @@ runHandlers(window.location.pathname);
 
 async function runHandlers(pathURL: string): Promise<void> {
     switch (pathURL) {
+        case '/home':
+        case '/':
+            const canvas = document.getElementById('home-canvas');
+            if (!canvas) return;
+            const renderer = new HomeRenderer(canvas as HTMLCanvasElement);
+            renderer.startRenderLoop();
+            break;
         case '/login':
             await loginHandler();
             formPasswordVisibility();
@@ -69,29 +99,65 @@ async function runHandlers(pathURL: string): Promise<void> {
     }
 }
 
-function runChosenGame(pathURL: string): void {
-    switch (pathURL) {
-        case '/game/local?ai=1':
-            initLocalGame(true);
-            break;
-        case '/game/local':
-            initLocalGame(false);
-            break;
+
+async function runChosenGame(pathURL: string): Promise<void> {
+    const url = new URL(pathURL, window.location.origin);
+    const pathname = url.pathname;
+    const params = url.searchParams;
+    
+    // Handle local game with parameters
+    if (pathname === '/game/local') {
+        const isAI = params.get('ai') === '1';
+        const isRegistered = params.get('registered') === 'true';
+        
+        if (isRegistered) {
+            initLocalGame(isAI);
+        } else {
+            initAliasRegistration();
+        }
+        return;
+    }
+    
+    // Handle tournament with parameters
+    if (pathname === '/game/local-tournament') {
+        const hasPlayers = params.has('players');
+        
+        if (hasPlayers) {
+            initAliasRegistration();
+        } else {
+            initLocalTournament();
+        }
+        return;
+    }
+    if (pathname === '/game/tic-tac-toe') {
+        const isMatching = params.get('matching') === '1';
+        const isRegistered = params.get('registered') === 'true';
+
+    if (isMatching) {
+        if (!isRegistered) {
+        // show Matching alias form (4–8)
+        initAliasRegistration();
+        } 
+        else {
+            const { initTicTournament } = await import("./ticTournament.js");
+            initTicTournament();
+        }
+        return;
+    }
+    if (isRegistered) {
+        initTicTacToe();
+    } 
+    else {
+        initAliasRegistration();
+    }
+    return;
+    }
+    switch (pathname) {
         case '/game/online':
             initRemoteGame();
-            // add initialization for online game mode
-            break;
-        case '/game/multiplayer':
-            // add initialization for multiplayer game mode
-            break;
-        case '/game/local-tournament':
-            // add initialization for local tournament game mode
-            break;
-        case '/game/online-tournament':
-            // add initialization for online tournament game mode
-            break;
+        break;
         default:
-            return;
+        return;
     }
 }
 
@@ -113,16 +179,35 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
 
     if (!app)
         return;
-    addToHistory(pathURL);
+    const url = new URL(pathURL, window.location.origin);
+    const reqPath = url.pathname + url.search;
+
+    // ^^^^^ TRDM ^^^^^  frontend/ts/app.ts  (at the very beginning of renderPage)
+    const prev = window.location.pathname;
+    const next = new URL(pathURL, window.location.origin).pathname;
+
+    // If we are leaving the tournament flow entirely, purge stale crumbs.
+    // Allowed in-flow transitions (/game/local <-> /game/local-tournament) are preserved.
+    if (isTournamentPath(prev) && !isTournamentPath(next)) {
+        clearTournamentAll("leaving-tournament-flow");
+        sessionStorage.removeItem('localGameAliases');
+    }
+
+    // Clean tournament crumbs if we’re leaving that flow (e.g., user clicked title or PLAY).
+    // We do this BEFORE fetching the next view, so the next page starts clean.
     try {
-        const responsePromise: Promise<Response> = fetch(`${pathURL}`, {
+        cleanupTournamentOnRouteChange(window.location.pathname, pathURL);
+    } catch {}
+    //addToHistory(pathURL);
+    try {
+        const responsePromise: Promise<Response> = fetch(`${reqPath}`, {
             headers: {
                 Authorization: `Bearer ${tfaTempToken || accessToken}`,
                 'X-Partial-Load': 'true',
                 'X-Request-Navigation-Bar': `${requestNavBar}`
             }
         });
-        if (pathURL === '/2fa') app.innerHTML = spinner;
+        if (pathURL === '/2fa' || pathURL.startsWith('/game')) app.innerHTML = spinner;
         const response: Response = await responsePromise;
         switch (response.status) {
             case 400:// bad request
@@ -155,33 +240,25 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         if (pathURL === '/' || pathURL === '/home') {
             initGameModesRouter();
         }
-
-        const newUrl: string = new URL(pathURL, window.location.origin).pathname;
-        if (window.location.pathname !== newUrl) {
-            window.history.pushState({}, '', newUrl);
+        const fullPath = url.pathname + url.search;
+        if (window.location.pathname + window.location.search !== fullPath) {
+            window.history.pushState({}, '', fullPath);
         }
-        
-        runChosenGame(pathURL);
+        await runChosenGame(url.toString());
     } catch (error) {
         if (error instanceof Error) alert(error.message);
         console.error(error);
     }
-    changeActiveStyle(pathURL);
-    await runHandlers(pathURL);
+    changeActiveStyle(url.pathname);
+    await runHandlers(url.pathname);
 }
 
 /**
  * Render the view of window.location.pathname
  */
 async function handleRouteChange(): Promise<void> {
-    await renderPage(window.location.pathname, true);
-}
-
-function addToHistory(url: string) {
-    const newUrl: string = new URL(url, window.location.origin).pathname;
-    if (window.location.pathname !== newUrl) {
-        window.history.pushState({}, '', newUrl);
-    }
+    await renderPage(window.location.pathname + window.location.search, true);
+    
 }
 
 /**
@@ -212,11 +289,16 @@ function initGameModesRouter() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (CLIENT_ONLY_ROUTES.has(window.location.pathname)) {
+        renderPage(window.location.pathname, false);
+        return;
+    }
     if (window.location.pathname === '/' || window.location.pathname === '/home') {
         initGameModesRouter();
     }
     runChosenGame(window.location.pathname);
 });
+
 
 const spinner: string = `
 <div class="grid min-h-[140px] w-full place-items-center overflow-x-scroll rounded-lg p-6 lg:overflow-visible">

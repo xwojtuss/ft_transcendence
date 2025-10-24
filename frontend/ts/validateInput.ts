@@ -16,13 +16,13 @@ export function checkEmail(email: string): void {
     }
 }
 
-export function checkNickname(nickname: string): void {
+export function checkNickname(nickname: string, referAs: string = "Username"): void {
     if (nickname.length < 4) {
-        throw new Error("Username must have at least 4 characters");
+        throw new Error(referAs + " must have at least 4 characters");
     } else if (nickname.length > 12) {
-        throw new Error("Username must have at most 12 characters");
+        throw new Error(referAs + " must have at most 12 characters");
     } else if (!/^[a-zA-Z0-9_]+$/.test(nickname)) {
-        throw new Error("Username can only contain letters, numbers, and underscores");
+        throw new Error(referAs + " can only contain letters, numbers, and underscores");
     }
 }
 

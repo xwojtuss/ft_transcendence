@@ -1,7 +1,7 @@
-import { initCanvas, resizeCanvas, setGameDimensions } from "./gameUtils/drawBoard.js";
-import { GameWebSocket } from "./gameUtils/websocketManager.js";
+import { GameState, GameWebSocket } from "./gameUtils/websocketManager.js";
 import { InputHandler } from "./gameUtils/inputHandler.js";
-import { GameRenderer } from "./gameUtils/gameRenderer.js";
+import { GameRenderer } from "./gameUtils/GameRenderer.js";
+import { copyGameState } from "./localGame.js";
 
 let gameInstance: {
     ws: GameWebSocket;
@@ -20,16 +20,10 @@ export function initRemoteGame() {
             setTimeout(waitForCanvas, 100);
             return;
         }
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-            console.error("Failed to get canvas context!");
-            return;
-        }
 
-        initCanvas();
-
-        let gameState: any = null;
-        const renderer = new GameRenderer(canvas, ctx);
+        const renderer = new GameRenderer(canvas);
+        let gameState: GameState | null = null;
+        let previousGameState: GameState | null = null;
 
         // Consistent playerId in localStorage
         let playerId = localStorage.getItem("playerId");
@@ -59,13 +53,7 @@ export function initRemoteGame() {
         const gameWs = new GameWebSocket(
             wsUrl,
             (config) => {
-                const width = config?.width ?? config?.FIELD_WIDTH ?? config?.fieldWidth;
-                const height = config?.height ?? config?.FIELD_HEIGHT ?? config?.fieldHeight;
-                if (width && height) {
-                    // inform drawBoard and renderer about real field dimensions
-                    setGameDimensions(width, height);
-                    renderer.setFieldDimensions(width, height);
-                }
+                renderer.configure(config);
             },
             // onGameState — may receive either the game state (players/ball) or meta messages (waiting/ready/reconnected/players)
             (state) => {
@@ -78,6 +66,14 @@ export function initRemoteGame() {
                 // If this looks like a game state, use it for rendering
                 if (data && data.players && data.ball) {
                     gameState = data;
+                    if (!gameState || !previousGameState) {
+                        gameState = state;
+                        previousGameState = JSON.parse(JSON.stringify(state));
+                        renderer.startRenderLoop(gameState);
+                        return;
+                    }
+                    copyGameState(gameState, previousGameState);
+                    copyGameState(state, gameState);
                     // if the game ended (someone won) remove waiting overlay so win info can be shown
                     if (data.gameEnded) {
                         renderer.setOverlayMessage(null);
@@ -119,22 +115,16 @@ export function initRemoteGame() {
                 } else {
                     console.log("WS meta:", data);
                 }
-            }
+            },
+            renderer.end.bind(renderer)
         );
 
         const inputHandler = new InputHandler(gameWs);
 
         gameInstance = { ws: gameWs, input: inputHandler, renderer };
 
-        function gameLoop() {
-            renderer.render(gameState, "remote");
-            requestAnimationFrame(gameLoop);
-        }
-        
-        gameLoop();
-
         // Handle resize
-        const handleResize = () => resizeCanvas();
+        const handleResize = () => renderer.resizeGame();
         window.addEventListener("resize", handleResize);
         document.addEventListener("fullscreenchange", handleResize);
 
@@ -142,9 +132,11 @@ export function initRemoteGame() {
 
         window.addEventListener("beforeunload", () => {
             if (gameWs) gameWs.close();
+            renderer.end();
         });
         window.addEventListener("popstate", () => {
             if (gameWs) gameWs.close();
+            renderer.end();
         });
 
     }

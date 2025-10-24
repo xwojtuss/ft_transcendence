@@ -15,13 +15,16 @@ import authRoutes from "./routes/authRoutes.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import fastifyWebsocket from "@fastify/websocket";
 import wsRoutes from "./routes/wsRoutes.js";
+import tournamentRoutes from "./routes/tournamentRoutes.js";  //^^^^^ TRDM ^^^^^
+import gameRoutes from "./routes/gameRoutes.js";
 import { startLocalGameLoop } from "./controllers/ws/game/local/localGameServer.js";
 import { startRemoteGameLoop } from "./controllers/ws/game/remote/remoteGameServer.js";
 import { cleanupInactiveSessions } from "./controllers/ws/game/local/sessionManager.js";
 
 export const cheerio = Cheerio;
 
-export let db = process.env.NODE_ENV === 'test' ? await initDb(":memory:") : await initDb("database.sqlite");
+// await deleteDatabase("database.sqlite");
+export let db = await initDb(process.env.NODE_ENV === 'test' ? ":memory:" : "database.sqlite");
 
 export default function buildApp(logger) {
     const keySSL = fs.readFileSync("./secrets/ft_transcendence.key");
@@ -69,6 +72,8 @@ export default function buildApp(logger) {
     fastify.register(viewsRoutes);
     fastify.register(friendsRoutes);
     fastify.register(wsRoutes);
+    fastify.register(tournamentRoutes);                           //^^^^^ TRDM ^^^^^
+    fastify.register(gameRoutes);
     
     fastify.setErrorHandler((error, request, reply) => {
         fastify.log.error(error);

@@ -5,7 +5,12 @@ import { checkAuthHeader, checkRefreshToken } from "../auth/authUtils.js";
 import { cheerio } from "../../buildApp.js";
 import { getUserById } from "../../db/dbQuery.js";
 
-const allowedNames = new Set(["login", "register", "home", "local-game", "remote-game"]);// TEMP delete home, add a separate function for '/'
+const allowedNames = new Set([
+    "login", "register", "home",
+    "local-game", "local-tournament",
+    "tic-tac-toe", "remote-game"
+]);
+
 
 const loggedInNavBarPromise = fs.readFile('./backend/navigation/loggedIn.html', "utf-8");
 const notLoggedInNavBarPromise = fs.readFile('./backend/navigation/notLoggedIn.html', "utf-8");
@@ -104,6 +109,26 @@ export async function getUserSession(fastify, refreshToken, headers) {
         const accessUser = await getUserById(accessPayload.id);
         if (!accessUser) return null;
         return accessUser;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Tries to get the 'forced' user session, meaning this function checks only the refresh token
+ * So this function is not safe to authorize the user in any way
+ * This is only good for places where we want to check if the user is logged in without refreshing the access token
+ * @param {*} fastify The fastify instance
+ * @param {string} refreshToken the refresh token
+ * @returns {Promise<User | null>} returns the user nickname if logged in
+ */
+export async function getForcedUserSession(fastify, refreshToken) {
+    try {
+        const refreshPayload = await checkRefreshToken(fastify, refreshToken);
+        if (!refreshPayload || !refreshPayload.id) return null;
+        const refreshUser = await getUserById(refreshPayload.id);
+        if (!refreshUser) return null;
+        return refreshUser;
     } catch (error) {
         return null;
     }

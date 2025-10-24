@@ -10,6 +10,10 @@
     @apply sm:max-h-7/9 pt-10 gap-5;
 }
 
+.game-floater {
+    @apply sm:gap-12;
+}
+
 .user-info {
     @apply flex items-center gap-5 sm:gap-10 w-full;
 }
@@ -84,6 +88,10 @@
 
 .match-history-desktop table, .match-history-desktop tr, .match-history-desktop th, .match-history-desktop td {
     @apply border-gray-300 border-1 px-2 py-1;
+}
+
+.match-history-desktop table a, .match-history-mobile a {
+    @apply font-semibold;
 }
 
 .match-history-desktop caption, .match-history-mobile p, .match-history-desktop p {

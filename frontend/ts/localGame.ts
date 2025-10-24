@@ -1,82 +1,265 @@
-import { GameRenderer } from "./gameUtils/gameRenderer.js";
-import { GameWebSocket } from "./gameUtils/websocketManager.js";
-import { initCanvas, resizeCanvas, setGameDimensions } from "./gameUtils/drawBoard.js";
+import { GameState, GameWebSocket } from "./gameUtils/websocketManager.js";
 import { InputHandler } from "./gameUtils/inputHandler.js";
+import { GameRenderer } from "./gameUtils/GameRenderer.js";
+// ^^^^^ TRDM ^^^^^
+// Singleton guard: prevent duplicate bridge setup & duplicate listeners across SPA inits
+let tournamentBridgeSetup = false;
+let lastOnEndedHandler: ((e: Event) => void) | null = null;
 
 /*handle to the running game, so other code (outside the init function) can reach the live objects and shut them down cleanly.
 It is either:
 - null → no game is running, or
 - an object holding references to the WebSocket, InputHandler, and Renderer that were created when the game started.
 */
+
+// ^^^^^ TRDM ^^^^^
+/**
+ * Bridge with the tournament flow:
+ * - If "tournamentMatch" exists in sessionStorage, use those player names.
+ * - If absent: make sure any leftover names are cleared so Local (2P) is clean.
+ * - When the game ends, send the real winner to backend, then navigate back to the tournament page.
+*/
+
+function setupTournamentBridgeIfNeeded() {
+    const raw = sessionStorage.getItem('tournamentMatch');
+
+    // No tournament context -> check for local game aliases
+    if (!raw) {
+        clearTournamentContext('no-context-on-local');
+        setupLocalGameAliases();
+        return;
+    }
+
+    // There IS a running tournament match -> set names for canvas
+    const ctx = JSON.parse(raw);
+    (window as any).player1Name = ctx.player1;
+    (window as any).player2Name = ctx.player2;
+
+    // When the real game ends, store result and go back to tournament page
+    const onEnded = async (e: Event) => {
+        const winnerIndex = (e as CustomEvent).detail as number;
+        const winnerAlias = (winnerIndex === 1) ? ctx.player1 : ctx.player2;
+
+        try {
+            const resultPromise = fetch(`/api/tournaments/${ctx.tournamentId}/match`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ matchId: ctx.matchId, winnerAlias })
+            });
+            await sleep(1000);
+            await resultPromise;
+        } catch (err) {
+            console.error('Failed to store tournament result', err);
+        }
+
+        // Keep the result (tournament.ts will read it), but clear the active match + names
+        try {
+            sessionStorage.setItem('tournamentResult', JSON.stringify({
+                tournamentId: ctx.tournamentId,
+                matchId: ctx.matchId,
+                winnerAlias
+            }));
+        } catch {}
+        clearTournamentContext('match-finished');
+
+        // Navigate back to tournament route in SPA
+        window.history.pushState({}, "", "/game/local-tournament");
+        window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+    // ^^^^^ TRDM ^^^^^
+    /* Ensure we never attach multiple onEnded listeners:
+      - remove previous one if it exists
+      - remember the new one
+      - set a guard flag so we don’t re-run this bridge setup */
+    if (lastOnEndedHandler) {
+        window.removeEventListener("gameEndedLocal", lastOnEndedHandler as EventListener);
+        lastOnEndedHandler = null;
+    }
+    lastOnEndedHandler = onEnded;
+
+    // Add the *single* listener for this game instance
+    window.addEventListener("gameEndedLocal", onEnded, { once: true });
+
+    // Mark the bridge as set up
+    tournamentBridgeSetup = true;
+
+    // --- Route watcher: if user leaves /game/local (Home/Play/etc), clear stale context ---
+    // This covers SPA navigations that don't reload the page.
+    const routeWatch = setInterval(() => {
+        if (window.location.pathname !== '/game/local') {
+            // User navigated away without finishing -> drop the context and names
+            clearTournamentContext('left-local-route');
+            clearInterval(routeWatch);
+            if (lastOnEndedHandler) {
+                window.removeEventListener("gameEndedLocal", lastOnEndedHandler as EventListener);
+                lastOnEndedHandler = null;
+            }
+            tournamentBridgeSetup = false;
+            
+            // Clean up the WebSocket connection and game instance
+            if (gameInstance) {
+                gameInstance.ws.disconnect();
+                gameInstance = null;
+            }
+        }
+    }, 200);
+
+    // Also clear on hard navigations / tab closes
+    const onBeforeUnload = () => {
+        clearTournamentContext('beforeunload');
+        clearInterval(routeWatch);
+        // ^^^^^ TRDM ^^^^^  (inside the routeWatch condition block, before/after clearInterval)
+        if (lastOnEndedHandler) {
+            window.removeEventListener("gameEndedLocal", lastOnEndedHandler as EventListener);
+            lastOnEndedHandler = null;
+        }
+        tournamentBridgeSetup = false;
+
+        window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+}
+
+// ^^^^^ TRDM ^^^^^ 
+/** Remove any tournament match context and ensure canvas labels are cleared. */
+function clearTournamentContext(reason?: string) {
+    try {
+        sessionStorage.removeItem('tournamentMatch'); // current match context
+    } catch {}
+    // Clear the global names so the canvas stops drawing them
+    delete (window as any).player1Name;
+    delete (window as any).player2Name;
+}
+
+/**
+ * Setup player names for local games (non-tournament)
+ * Uses aliases from sessionStorage if available
+ */
+function setupLocalGameAliases() {
+    try {
+        const aliasData = sessionStorage.getItem('localGameAliases');
+        if (aliasData) {
+            const aliases = JSON.parse(aliasData);
+            (window as any).player1Name = aliases.player1;
+            (window as any).player2Name = aliases.player2;
+        }
+    } catch (err) {
+        console.error('Failed to load local game aliases:', err);
+    }
+}
+
 let gameInstance: {
     ws: GameWebSocket;
     input: InputHandler;
     renderer: GameRenderer;
 } | null = null;
 
+export function copyGameState(from: GameState, to: GameState) {
+    to.ball.radius = from.ball.radius;
+    to.ball.x = from.ball.x;
+    to.ball.y = from.ball.y;
+    to.gameEnded = from.gameEnded;
+    to.gameInitialized = from.gameInitialized;
+    to.gameStarted = from.gameStarted;
+    to.winner = from.winner;
+    for(const player in from.players) {
+        to.players[player].height = from.players[player].height;
+        to.players[player].width = from.players[player].width;
+        to.players[player].x = from.players[player].x;
+        to.players[player].y = from.players[player].y;
+        to.players[player].score = from.players[player].score;
+    }
+}
+
 export function initLocalGame(aiEnabled: boolean) {
-    if (window.location.pathname !== '/game/local') {
+    if (!window.location.pathname.startsWith('/game/local')) return;
+    
+    // If we already have an active game instance, don't recreate it
+    // This prevents random resets in regular local mode when page re-renders
+    if (gameInstance) {
         return;
     }
-
+    
+    // ^^^^^ TRDM ^^^^^  
+    setupTournamentBridgeIfNeeded();
+    
     function waitForCanvas() {
-        const canvas = document.getElementById("local-game-canvas") as HTMLCanvasElement; //   // Try to grab the <canvas id="local-game-canvas"> from the DOM.
-        if (!canvas) {
+        const canvas = document.getElementById("local-game-canvas");
+        if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
             setTimeout(waitForCanvas, 100);
             return;
         }
-        const ctx = canvas.getContext("2d"); //Get a 2D drawing context from the canvas.
-        if (!ctx) {
-            console.error("Failed to get canvas context!");
-            return;
-        }
+        const renderer = new GameRenderer(canvas);
 
-        initCanvas();
-
-        let gameState: any = null; // // Will hold the latest game state sent by the server (type kept loose as 'any').
-        const renderer = new GameRenderer(canvas, ctx); //    // Create the renderer that knows how to draw a single frame to this canvas.
+        let gameState: GameState | null = null;
+        let previousGameState: GameState | null = null;
 
         // Setup WebSocket
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/localGame`;
-        
+
         /* Open the WebSocket and provide two callbacks:
             1) when a "config" message arrives, set field sizes
             2) when a "state" message arrives, update the gameState we will render */
         const gameWs = new GameWebSocket(
             wsUrl,
             (config) => {
-                setGameDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
-                renderer.setFieldDimensions(config.FIELD_WIDTH, config.FIELD_HEIGHT);
-                //console.log("Game dimensions set:", config.FIELD_WIDTH, config.FIELD_HEIGHT);
+                renderer.configure(config);
             },
             (state) => {
-                gameState = state;
-            }
+                if (!renderer.configured) return;
+                if (!gameState || !previousGameState) {
+                    gameState = state;
+                    previousGameState = JSON.parse(JSON.stringify(state));
+                    renderer.startRenderLoop(gameState);
+                    return;
+                }
+                copyGameState(gameState, previousGameState);
+                copyGameState(state, gameState);
+            },
+            renderer.end.bind(renderer)
         );
 
         // UPDATED WITH AI PLAYER
         // Tell the server which mode this session should run
-        gameWs.sendRaw({ type: "hello", mode: aiEnabled ? "ai" : "local" });
-
+        // Also send player aliases for match history
+        const aliasData = sessionStorage.getItem('localGameAliases');
+        const tournamentData = sessionStorage.getItem('tournamentMatch');
+        let player1Alias = null;
+        let player2Alias = null;
+        let isTournamentMatch = false;
+        
+        if (tournamentData) {
+            // Tournament match - get aliases from tournament context
+            const ctx = JSON.parse(tournamentData);
+            player1Alias = ctx.player1;
+            player2Alias = ctx.player2;
+            isTournamentMatch = true;
+        } else if (aliasData) {
+            // Regular local game - get aliases from local storage
+            const aliases = JSON.parse(aliasData);
+            player1Alias = aliases.player1;
+            player2Alias = aliases.player2;
+        }
+        
+        gameWs.sendRaw({ 
+            type: "hello", 
+            mode: aiEnabled ? "ai" : "local",
+            player1Alias: player1Alias,
+            player2Alias: player2Alias,
+            isTournamentMatch: isTournamentMatch
+        });
 
         // Setup input handling
         //Hook up keyboard/mouse/touch and send inputs through the WebSocket.
         const inputHandler = new InputHandler(gameWs);
 
+
         // Store instance
         gameInstance = { ws: gameWs, input: inputHandler, renderer };
 
-        // Game loop
-        function gameLoop() {
-            renderer.render(gameState, "local");
-            requestAnimationFrame(gameLoop);
-        }
-
-        gameLoop();
-
         // Handle resize
-        const handleResize = () => resizeCanvas();
+        const handleResize = () => renderer.resizeGame();
         window.addEventListener("resize", handleResize);
         document.addEventListener("fullscreenchange", handleResize);
     }
@@ -91,3 +274,21 @@ document.addEventListener('visibilitychange', () => {
         gameInstance = null;
     }
 });
+
+// Cleanup when page changes
+document.addEventListener('click', (e) => {
+    const target: EventTarget | null = e.target;
+
+    if (!target || !(target instanceof HTMLElement) || !gameInstance) return;
+    if (target.tagName === 'A') {
+        const href: string | null = target.getAttribute('href');
+        if (href) {
+            gameInstance.ws.disconnect();
+            gameInstance = null;
+        }
+    }
+});
+
+function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

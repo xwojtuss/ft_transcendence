@@ -1,15 +1,15 @@
-import { FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_SIZE } from './gameConfig.js';
+import { FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_RADIUS } from './gameConfig.js';
 
 function createInitialGameState() {
     return {
         players: {
-            1: { x: 1, y: FIELD_HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT, score: 0, dy: 0 },
-            2: { x: FIELD_WIDTH - 1 - PADDLE_WIDTH, y: FIELD_HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT, score: 0, dy: 0 },
+            1: { x: 1 + PADDLE_WIDTH / 2, y: FIELD_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT, score: 0, dy: 0 },
+            2: { x: FIELD_WIDTH - 1 - PADDLE_WIDTH / 2, y: FIELD_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT, score: 0, dy: 0 },
         },
         ball: {
-            x: FIELD_WIDTH / 2 - BALL_SIZE / 2,
-            y: FIELD_HEIGHT / 2 - BALL_SIZE / 2,
-            size: BALL_SIZE,
+            x: FIELD_WIDTH / 2,
+            y: FIELD_HEIGHT / 2,
+            radius: BALL_RADIUS,
             dx: 0,
             dy: 0
         },
@@ -30,14 +30,14 @@ export function resetGameState(gameState) {
     gameState.players[2].score = 0;
 
     // Reset positions
-    gameState.players[1].y = FIELD_HEIGHT / 2 - PADDLE_HEIGHT / 2;
-    gameState.players[2].y = FIELD_HEIGHT / 2 - PADDLE_HEIGHT / 2;
+    gameState.players[1].y = FIELD_HEIGHT / 2;
+    gameState.players[2].y = FIELD_HEIGHT / 2;
     gameState.players[1].dy = 0;
     gameState.players[2].dy = 0;
 
     // Reset ball
-    gameState.ball.x = FIELD_WIDTH / 2 - BALL_SIZE / 2;
-    gameState.ball.y = FIELD_HEIGHT / 2 - BALL_SIZE / 2;
+    gameState.ball.x = FIELD_WIDTH / 2;
+    gameState.ball.y = FIELD_HEIGHT / 2;
     gameState.ball.dx = 0;
     gameState.ball.dy = 0;
 

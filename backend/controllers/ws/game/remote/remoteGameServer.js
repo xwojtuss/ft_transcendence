@@ -26,7 +26,7 @@ function sendSafe(socket, payload) {
 }
 
 function sendConfig(socket) {
-    sendSafe(socket, { type: "config", width: FIELD_WIDTH, height: FIELD_HEIGHT });
+    sendSafe(socket, { type: "config", FIELD_WIDTH, FIELD_HEIGHT });
 }
 
 function sendState(socket, state) {
