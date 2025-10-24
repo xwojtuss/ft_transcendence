@@ -154,7 +154,8 @@ let gameInstance: {
     renderer: GameRenderer;
 } | null = null;
 
-export function copyGameState(from: GameState, to: GameState) {
+export function copyGameState(from: any, to: GameState) {
+    if (from.type !== "state")
     to.ball.radius = from.ball.radius;
     to.ball.x = from.ball.x;
     to.ball.y = from.ball.y;
@@ -162,12 +163,13 @@ export function copyGameState(from: GameState, to: GameState) {
     to.gameInitialized = from.gameInitialized;
     to.gameStarted = from.gameStarted;
     to.winner = from.winner;
-    for(const player in from.players) {
-        to.players[player].height = from.players[player].height;
-        to.players[player].width = from.players[player].width;
-        to.players[player].x = from.players[player].x;
-        to.players[player].y = from.players[player].y;
-        to.players[player].score = from.players[player].score;
+    const fromGameState: GameState = from;
+    for(const player in fromGameState.players) {
+        to.players[player].height = fromGameState.players[player].height;
+        to.players[player].width = fromGameState.players[player].width;
+        to.players[player].x = fromGameState.players[player].x;
+        to.players[player].y = fromGameState.players[player].y;
+        to.players[player].score = fromGameState.players[player].score;
     }
 }
 

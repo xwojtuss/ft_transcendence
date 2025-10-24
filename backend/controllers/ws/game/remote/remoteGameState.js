@@ -37,6 +37,7 @@ export function createRemoteGameState() {
         gameInitialized: false,
         gameEnded: false,
         winner: null,
-        winnerNick: null
+        winnerNick: null,
+        type: "state"
     };
 }

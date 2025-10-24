@@ -64,7 +64,7 @@ export function initRemoteGame() {
                 }
 
                 // If this looks like a game state, use it for rendering
-                if (data && data.players && data.ball) {
+                if (data?.type === "state") {
                     gameState = data;
                     if (!gameState || !previousGameState) {
                         gameState = state;

@@ -58,13 +58,15 @@ export class GameRenderer {
         }
     }
 
-    startRenderLoop(gameState: GameState) {
+    startRenderLoop(gameState: any) {
         let playedSound: boolean = false;
 
         if (this.initialized) return;
         this.engine.runRenderLoop(() => {
-            this.beforeRenderLoop(gameState);
+            const isGameState = gameState.type === "state";
+            if (isGameState) this.beforeRenderLoop(gameState);
             this.scene?.render();
+            if (!isGameState) return;
             if (!playedSound && gameState.gameEnded && gameState.winner) {
                 this.environment.playApplauseSound();
                 playedSound = true;

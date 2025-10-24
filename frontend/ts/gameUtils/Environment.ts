@@ -417,6 +417,9 @@ export class Environment {
     }
 
     createOverlay(scene: BABYLON.Scene, message: string) {
+        if (this.overlayText) {
+            this.overlayText.dispose(false, true);
+        }
         const text = BABYLON.MeshBuilder.CreateText("startText", message, fontData, {
             size: 3,
             resolution: 8,
