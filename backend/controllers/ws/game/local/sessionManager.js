@@ -18,17 +18,6 @@ export function createSession(socket) {
     return sessionId;
 }
 
-export function createRemoteSession() {
-    const sessionId = "remote_" + Math.floor(Math.random() * 1000000);
-    const session = {
-        sessionId,
-        players: [],
-        lastUpdateTime: Date.now()
-    };
-    sessions.set(sessionId, session);
-    return sessionId;
-}
-
 export function getSession(sessionId) {
     return sessions.get(sessionId);
 }
