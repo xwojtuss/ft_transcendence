@@ -297,6 +297,8 @@ function markTimedOutPlayers(session) {
                     const other = session.players.find(x => x !== p && !x.removed);
                     session.gameState.winner = other ? other.playerNumber || null : null;
                     session.gameState.winnerNick = other ? other.nick || null : null;
+                    // set loserNick to the removed player's nick
+                    session.gameState.loserNick = p ? p.nick || null : null;
                     try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
                 }
             } catch (e) { /* ignore */ }
@@ -485,7 +487,11 @@ export function startRemoteGameLoop() {
                 }
 
                 if (session.gameState.gameEnded) {
-                    session.gameState.winnerNick = session.players.find(p => p.playerNumber === session.gameState.winner)?.nick || null;
+                    // set both winnerNick and loserNick so frontend can display both
+                    const winnerPlayer = session.players.find(p => p.playerNumber === session.gameState.winner);
+                    const loserPlayer = session.players.find(p => p.playerNumber !== session.gameState.winner);
+                    session.gameState.winnerNick = winnerPlayer ? winnerPlayer.nick || null : null;
+                    session.gameState.loserNick = loserPlayer ? loserPlayer.nick || null : null;
                     // Broadcast final state so frontend can render winner/winnerNick
                     try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
 

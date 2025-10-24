@@ -77,6 +77,9 @@ export function initRemoteGame() {
                     // if the game ended (someone won) remove waiting overlay so win info can be shown
                     if (data.gameEnded) {
                         renderer.setOverlayMessage(null);
+                        if (data.winnerNick != null || data.loserNick != null) {
+                            console.log("Game ended. Winner:", data.winnerNick, "Loser:", data.loserNick);
+                        }
                     }
                     // don't clear overlay for normal state updates (keeps waitForRec visible)
                     return;

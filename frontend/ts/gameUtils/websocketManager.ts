@@ -17,6 +17,7 @@ export interface GameState {
 
 export interface RemoteGameState extends GameState {
     winnerNick: string | null;
+    loserNick: string | null;
 }
 
 export interface PlayerState {
