@@ -5,14 +5,27 @@ export const sessions = new Map();
 export const SEND_TIMEOUT_MS = 5000;
 export const BROADCAST_INTERVAL = 2; // broadcast co N ticków
 
+const WS_OPEN = 1;
+
 export function generateId() {
     return Math.random().toString(36).slice(2);
 }
 
-export function sendSafe(socket, payload) {
+function safeSerialize(obj) {
     try {
-        socket.send(JSON.stringify(payload));
-    } catch (err) { /* ignore */ }
+        return JSON.stringify(obj);
+    } catch (e) {
+        return null;
+    }
+}
+
+export function sendSafe(socket, payload) {
+    if (!socket || socket.readyState !== WS_OPEN) return;
+    const serialized = safeSerialize(payload);
+    if (!serialized) return;
+    try {
+        socket.send(serialized);
+    } catch (err) { /* best-effort */ }
 }
 
 export function sendConfig(socket) {
@@ -27,13 +40,20 @@ export function sendState(socket, state) {
 }
 
 export function broadcastRemoteGameState(gameState, session) {
-    session.players.forEach(p => {
-        if (p.connected && !p.removed && p.socket && p.socket.readyState === 1) {
-            try {
-                p.socket.send(JSON.stringify({ type: "state", state: gameState }));
-            } catch (err) { /* ignore */ }
-        }
-    });
+    if (!session || !session.players || session.players.length === 0) return;
+
+    const payload = { type: "state", state: gameState };
+    const serialized = safeSerialize(payload);
+    if (!serialized) return;
+
+    for (let i = 0; i < session.players.length; i++) {
+        const p = session.players[i];
+        if (!p || p.removed || !p.connected || !p.socket) continue;
+        if (p.socket.readyState !== WS_OPEN) continue;
+        try {
+            p.socket.send(serialized);
+        } catch (err) { /* best-effort */ }
+    }
 }
 
 export function createRemoteGameState() {
