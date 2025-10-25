@@ -6,46 +6,61 @@ import { notifyAllReady, sendConfigToAll } from './playerLifecycle.js';
 import { startGame } from '../local/gameLogic.js';
 
 export function markTimedOutPlayers(session) {
-    session.players.forEach(p => {
-        if (!p.connected && p.lastDisconnect && (Date.now() - p.lastDisconnect > SEND_TIMEOUT_MS) && !p.removed) {
-            p.removed = true;
-            // If a player is removed -> end the game and notify clients
-            try {
-                if (session.gameState && !session.gameState.gameEnded) {
-                    session.gameState.gameEnded = true;
-                    const other = session.players.find(x => x !== p && !x.removed);
-                    session.gameState.winner = other ? other.playerNumber || null : null;
-                    session.gameState.winnerNick = other ? other.nick || null : null;
-                    // set loserNick to the removed player's nick
-                    session.gameState.loserNick = p ? p.nick || null : null;
-                    try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
-                }
-            } catch (e) { /* ignore */ }
+    const now = Date.now();
+    let broadcastNeeded = false;
+
+    for (let i = 0; i < session.players.length; i++) {
+        const player = session.players[i];
+        if (player.removed) continue;
+        if (!player.connected && player.lastDisconnect && (now - player.lastDisconnect > SEND_TIMEOUT_MS)) {
+            player.removed = true;
+            // If this removal ends the game -> prepare single broadcast
+            if (session.gameState && !session.gameState.gameEnded) {
+                session.gameState.gameEnded = true;
+                const secondPlayer = session.players.find(x => x !== player && !x.removed) || null;
+                session.gameState.winner = secondPlayer ? secondPlayer.playerNumber || null : null;
+                session.gameState.winnerNick = secondPlayer ? secondPlayer.nick || null : null;
+                session.gameState.loserNick = player ? player.nick || null : null;
+                broadcastNeeded = true;
+            }
         }
-    });
+    }
+
+    if (broadcastNeeded) {
+        try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
+    }
 }
 
 export function pruneEmptySession(sessionId, session) {
-    if (session.players.every(p => p.removed)) {
-        sessions.delete(sessionId);
-        return true;
+    for (let i = 0; i < session.players.length; i++) {
+        if (!session.players[i].removed) return false;
     }
-    return false;
+    sessions.delete(sessionId);
+    return true;
 }
 
 export function sendWaitingOrReadyInfo(sessionId, session) {
-    const activePlayers = session.players.filter(p => p.connected && !p.removed);
-    const disconnectedPlayers = session.players.filter(p => !p.connected && !p.removed);
-    const presentPlayersCount = session.players.filter(p => !p.removed).length;
+    // Count and find active/disconnected players
+    let activePlayer = null;
+    let disconnectedCount = 0;
+    let presentPlayersCount = 0;
 
-    if (activePlayers.length === 1 && disconnectedPlayers.length === 1) {
-        const player = activePlayers[0];
-        if (player.socket) {
-            sendSafe(player.socket, {
+    for (let i = 0; i < session.players.length; i++) {
+        const p = session.players[i];
+        if (p.removed) continue;
+        presentPlayersCount++;
+        if (p.connected) activePlayer = p;
+        else disconnectedCount++;
+    }
+
+    // If exactly one active and one disconnected -> notify active to wait for reconnection
+    if (activePlayer && disconnectedCount === 1) {
+        if (activePlayer.socket) {
+            sendSafe(activePlayer.socket, {
                 type: "waitForRec",
                 message: "Opponent disconnected. Waiting for reconnection...",
                 players: presentPlayersCount,
-                playerId: player.playerNumber,
+                playerId: activePlayer.playerNumber,
                 sessionId
             });
         }
@@ -60,48 +75,54 @@ export function migrateEndedGame(sessionId, session) {
         const newSession = { id: newSessionId, players: [], gameState: {}, lastUpdate: Date.now() };
         sessions.set(newSessionId, newSession);
 
-        for (const oldP of session.players) {
-            if (!oldP.removed && oldP.connected && oldP.socket) {
-                const playerId = oldP.id;
-                const socket = oldP.socket;
-                const playerNumber = newSession.players.length + 1;
+        // Reuse sockets from old session for players who are connected & not removed
+        for (let i = 0; i < session.players.length; i++) {
+            const oldP = session.players[i];
+            if (oldP.removed || !oldP.connected || !oldP.socket) continue;
 
-                const newPlayer = {
-                    id: playerId,
-                    socket,
-                    connected: true,
-                    lastDisconnect: null,
-                    playerNumber,
-                    removed: false,
-                    nick: oldP.nick
-                };
+            const playerId = oldP.id;
+            const socket = oldP.socket;
+            const playerNumber = newSession.players.length + 1;
 
-                newSession.players.push(newPlayer);
+            const newPlayer = {
+                id: playerId,
+                socket,
+                connected: true,
+                lastDisconnect: null,
+                playerNumber,
+                removed: false,
+                nick: oldP.nick
+            };
 
-                socket.playerId = playerId;
-                socket.playerNumber = playerNumber;
+            newSession.players.push(newPlayer);
 
-                setupSocketHandlers(socket, newSession, playerId);
-            }
+            // keep socket metadata in sync
+            socket.playerId = playerId;
+            socket.playerNumber = playerNumber;
+
+            setupSocketHandlers(socket, newSession, playerId);
         }
 
-        if (newSession.players.length === 1) {
+        const pLen = newSession.players.length;
+        if (pLen === 1) {
             const p = newSession.players[0];
             sendSafe(p.socket, { type: "waiting", message: "Waiting for opponent to join...", players: 1, playerId: 1, sessionId: newSession.id });
             sendConfig(p.socket);
-        } else if (newSession.players.length === 2) {
+        } else if (pLen === 2) {
             notifyAllReady(newSession);
             sendConfigToAll(newSession);
 
             newSession.gameState = createRemoteGameState();
-            newSession.players.forEach((p, idx) => {
+            for (let idx = 0; idx < newSession.players.length; idx++) {
+                const p = newSession.players[idx];
                 const playerNumber = idx + 1;
                 if (newSession.gameState.players[playerNumber]) {
                     newSession.gameState.players[playerNumber].connected = !!p.connected;
                     newSession.gameState.players[playerNumber].removed = !!p.removed;
                     newSession.gameState.players[playerNumber].nick = p.nick;
                 }
-            });
+            }
+
             broadcastRemoteGameState(newSession.gameState, newSession);
 
             // resend ready info after broadcasting state to avoid client-side race conditions
