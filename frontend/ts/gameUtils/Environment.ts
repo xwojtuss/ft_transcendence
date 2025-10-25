@@ -1,5 +1,5 @@
 import { fontData } from "./KenneyMiniSquare.js";
-import { BallState, GameConfig, PlayerState } from "./websocketManager.js";
+import { BallState, GameConfig, PlayerState, RemotePlayerState } from "./websocketManager.js";
 
 const environmentConfig = {
     BACKGROUND_COLOR: BABYLON.Color4.FromHexString('#353535ff'),
@@ -440,5 +440,32 @@ export class Environment {
 
     destroyOverlay() {
         this.overlayText?.dispose(false, true);
+    }
+
+    updatePlayerNames(scene: BABYLON.Scene, config: GameConfig, nicks: Array<string>) {
+        if (this.playerNames && this.playerNames[0] && this.playerNames[1]) return;
+        if (!nicks[0] || !nicks[1]) return;
+        this.playerNames = [];
+        const mat = new BABYLON.StandardMaterial("playersTextMat", scene);
+        const xOffset = config.FIELD_WIDTH / 3;
+        mat.emissiveColor = environmentConfig.PLAYER_NAMES_TEXT_COLOR;
+        for (let i = 0; i < 2; i++) {
+            const text = BABYLON.MeshBuilder.CreateText("playersText", nicks[i], fontData, {
+                size: 3,
+                resolution: 8,
+                depth: 0.1
+            }, scene);
+            if (!text) throw new Error('Could not create text');
+            text.material = mat;
+            text.position = new BABYLON.Vector3(
+                0,
+                this.centerPoint.y + config.FIELD_HEIGHT * 3 / 7,
+                0.01
+            );
+            // this.glowLayer.addIncludedOnlyMesh(text);
+            this.playerNames.push(text);
+        }
+        this.playerNames[0].position.x = this.centerPoint.x - xOffset;
+        this.playerNames[1].position.x = this.centerPoint.x + xOffset;
     }
 }

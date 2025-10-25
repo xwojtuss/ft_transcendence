@@ -1,5 +1,5 @@
 import { Environment } from "./Environment.js";
-import { GameConfig, GameState } from "./websocketManager.js";
+import { GameConfig, GameState, RemoteGameState } from "./websocketManager.js";
 
 export class GameRenderer {
     private engine: BABYLON.Engine;
@@ -34,7 +34,7 @@ export class GameRenderer {
         this.engine.dispose();
     }
 
-    private beforeRenderLoop(gameState: GameState) {
+    private beforeRenderLoop(gameState: any) {
         this.environment.setBallPosition(gameState.ball);
         this.environment.setPaddlePositions(gameState.players);
         if (gameState.gameEnded && gameState.winner) {
@@ -128,6 +128,19 @@ export class GameRenderer {
         } else if (this.scene) {
             this.environment.destroyOverlay();
         }
+    }
+
+    displayPlayerNames(currentUser: string, opponent: string, currentUserId: number) {
+        if (!this.scene || !this.config) return;
+        const names = new Array<string>(2);
+        if (currentUserId === 1) {
+            names[0] = currentUser;
+            names[1] = opponent;
+        } else {
+            names[1] = currentUser;
+            names[0] = opponent;
+        }
+        this.environment.updatePlayerNames(this.scene, this.config, names);
     }
 
     get configured() {

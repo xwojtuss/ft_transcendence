@@ -24,6 +24,7 @@ export function initRemoteGame() {
         const renderer = new GameRenderer(canvas);
         let gameState: RemoteGameState | null = null;
         let previousGameState: RemoteGameState | null = null;
+        let thisUserId: number = -1;
 
         // Consistent playerId in localStorage
         let playerId = localStorage.getItem("playerId");
@@ -65,6 +66,7 @@ export function initRemoteGame() {
 
                 // If this looks like a game state, use it for rendering
                 if (data?.type === "state") {
+                    console.log(data);
                     if (!gameState || !previousGameState) {
                         gameState = state as RemoteGameState | null;
                         previousGameState = JSON.parse(JSON.stringify(state));
@@ -94,6 +96,7 @@ export function initRemoteGame() {
                 if (data?.type === "waiting") {
                     console.log("Server:", data.message);
                     renderer.setOverlayMessage(data.message || "Waiting for opponent...");
+                    thisUserId = data.playerId;
                     return;
                 }
 
@@ -108,6 +111,7 @@ export function initRemoteGame() {
                 if (data?.type === "ready" || data?.type === "reconnected") {
                     console.log("Server:", data.message);
                     renderer.setOverlayMessage(null);
+                    renderer.displayPlayerNames(data.you, data.opponent, thisUserId);
                     return;
                 }
 

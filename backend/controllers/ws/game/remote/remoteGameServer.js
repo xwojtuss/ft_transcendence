@@ -22,7 +22,7 @@ export function handleRemoteConnection(connection, req, fastify) {
     }
 
     // pass optional nickname from query to addNewPlayer
-    const providedNick = req.query && req.query.nickname ? req.query.nickname : null;
+    const providedNick = req.query && req.query.nickname ? req.query.nickname : req.currentUser.nickname;
 
     if (session.players.filter(p => !p.removed).length < 2) {
         addNewPlayer(session, socket, playerId, fastify, providedNick);
