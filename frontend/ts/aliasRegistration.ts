@@ -162,7 +162,7 @@ function handleMatchingAliasForm(form: HTMLFormElement): void {
     const cancelBtn = document.getElementById('cancel-form');
     if (cancelBtn) {
         cancelBtn.addEventListener('click', () => {
-            renderPage('/', false);
+            renderPage('/?game=tic-tac-toe', false);
         });
     }
     
@@ -265,10 +265,10 @@ function handleMatchingAliasForm(form: HTMLFormElement): void {
  */
 function handleLocalAliasForm(form: HTMLFormElement, isAI: boolean): void {
     const cancelBtn = document.getElementById('cancel-form');
-    
+    const game = window.location.pathname.includes('tic-tac-toe') ? "tic-tac-toe" : "ping-pong";
     if (cancelBtn) {
         cancelBtn.addEventListener('click', () => {
-            renderPage('/', false);
+            renderPage('/?game=' + game, false);
         });
     }
     

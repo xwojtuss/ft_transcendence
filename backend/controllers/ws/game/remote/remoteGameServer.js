@@ -6,6 +6,7 @@ import { BROADCAST_INTERVAL, sessions } from './utils.js';
 import { findOrCreateSessionForPlayer } from './sessionHelpers.js';
 import { reconnectPlayer, addNewPlayer, handleSessionFull } from './playerLifecycle.js';
 import { markTimedOutPlayers, pruneEmptySession, sendWaitingOrReadyInfo, migrateEndedGame } from './gameLoopHelpers.js';
+import Match from '../../../../utils/Match.js';
 
 // --- Public API ------------------------------------------------------------
 
@@ -93,6 +94,13 @@ export function startRemoteGameLoop() {
                     // set both winnerNick and loserNick so frontend can display both
                     const winnerPlayer = session.players.find(p => p.playerNumber === session.gameState.winner);
                     const loserPlayer = session.players.find(p => p.playerNumber !== session.gameState.winner);
+                    
+                    const match = new Match(winnerPlayer, "Pong", "Online", 2);
+                    match.addRank(winnerPlayer, "Won");
+                    match.addParticipant(loserPlayer);
+                    match.addRank(loserPlayer, "Lost");
+                    match.endMatch();
+                    match.commitMatch();
                     session.gameState.winnerNick = winnerPlayer ? winnerPlayer.nick || null : null;
                     session.gameState.loserNick = loserPlayer ? loserPlayer.nick || null : null;
                     // Broadcast final state so frontend can render winner/winnerNick
