@@ -8,7 +8,125 @@ import { markTimedOutPlayers, pruneEmptySession, sendWaitingOrReadyInfo, migrate
 import Match from '../../../../utils/Match.js';
 import { getUser } from '../../../../db/dbQuery.js';
 
-// --- Public API ------------------------------------------------------------
+// --- helpers ---------------------------------------------------------------
+
+function safeBroadcast(gameState, session) {
+    try { broadcastRemoteGameState(gameState, session); } catch (e) { /* best-effort */ }
+}
+
+function scheduleMigration(sessionId, session) {
+    if (session._migrateScheduled) return;
+    session._migrateScheduled = true;
+
+    (async () => {
+        try {
+            const winnerPlayer = session.players.find(p => p.playerNumber === session.gameState.winner) || null;
+            const loserPlayer = session.players.find(p => p.playerNumber !== session.gameState.winner) || null;
+
+            // try to persist match result
+            try {
+                const winner = winnerPlayer ? await getUser(winnerPlayer.nick) : null;
+                const loser = loserPlayer ? await getUser(loserPlayer.nick) : null;
+                if (winner && loser) {
+                    const match = new Match(winner, "Pong", "Online", 2);
+                    match.addRank(winner, "Won");
+                    match.addParticipant(loser);
+                    match.addRank(loser, "Lost");
+                    match.endMatch();
+                    await match.commitMatch();
+                }
+            } catch (err) {
+                console.log(err);
+            }
+
+            // give clients time to render final frame, then try migrate
+            setTimeout(() => {
+                try {
+                    const migrated = migrateEndedGame(sessionId, session);
+                    if (!migrated) session._migrateScheduled = false;
+                } catch (e) {
+                    session._migrateScheduled = false;
+                }
+            }, 3000);
+        } catch (e) {
+            session._migrateScheduled = false;
+        }
+    })();
+}
+
+// process single session tick
+function processSessionTick(sessionId, session) {
+    try {
+        markTimedOutPlayers(session);
+
+        if (pruneEmptySession(sessionId, session)) return;
+
+        sendWaitingOrReadyInfo(sessionId, session);
+
+        if (!session.gameState) return;
+
+        // pause handling for temporary disconnects
+        let hasTempDisconnected = false;
+        for (let i = 0; i < session.players.length; i++) {
+            const p = session.players[i];
+            if (p && p.connected === false && p.removed === false && p.lastDisconnect != null) {
+                hasTempDisconnected = true;
+                break;
+            }
+        }
+        if (hasTempDisconnected) {
+            if (!session.gameState.paused) session.gameState.paused = true;
+            safeBroadcast(session.gameState, session);
+            return;
+        }
+
+        // resume from pause
+        if (session.gameState.paused) {
+            session.gameState.paused = false;
+            session.lastUpdate = Date.now();
+            safeBroadcast(session.gameState, session);
+        }
+
+        // tick bookkeeping
+        if (typeof session._tick !== 'number') session._tick = 0;
+        session._tick++;
+
+        const nowTs = Date.now();
+        if (!session.lastUpdate) session.lastUpdate = nowTs;
+        const deltaTime = (nowTs - session.lastUpdate) / 1000;
+        session.lastUpdate = nowTs;
+
+        // update game state
+        try {
+            updateGame(session.gameState, deltaTime, () => safeBroadcast(session.gameState, session), null);
+        } catch (err) { }
+
+        // periodic broadcast: only when state changed (serialize once)
+        if (session._tick % BROADCAST_INTERVAL === 0) {
+            try {
+                const serialized = JSON.stringify(session.gameState);
+                if (session._lastBroadcast !== serialized) {
+                    session._lastBroadcast = serialized;
+                    safeBroadcast(session.gameState, session);
+                }
+            } catch (err) {
+                safeBroadcast(session.gameState, session);
+            }
+        }
+
+        // finished game -> finalize and schedule migration
+        if (session.gameState.gameEnded) {
+            const winnerPlayer = session.players.find(p => p.playerNumber === session.gameState.winner) || null;
+            const loserPlayer = session.players.find(p => p.playerNumber !== session.gameState.winner) || null;
+            session.gameState.winnerNick = winnerPlayer ? winnerPlayer.nick || null : null;
+            session.gameState.loserNick = loserPlayer ? loserPlayer.nick || null : null;
+
+            safeBroadcast(session.gameState, session);
+            scheduleMigration(sessionId, session);
+            return;
+        }
+    } catch (err) { }
+}
 
 export function handleRemoteConnection(connection, req, fastify) {
     const socket = connection.socket || connection;
@@ -33,107 +151,9 @@ export function handleRemoteConnection(connection, req, fastify) {
 }
 
 export function startRemoteGameLoop() {
-    setInterval(async () => {
-        for (const [sessionId, session] of sessions.entries()) {
-            markTimedOutPlayers(session);
-
-            if (pruneEmptySession(sessionId, session)) continue;
-
-            sendWaitingOrReadyInfo(sessionId, session);
-
-            if (!session.gameState) continue;
-
-            // --- pause if any player is temporarily disconnected ---
-            const hasTempDisconnected = session.players.some(p =>
-                p.connected === false && p.removed === false && p.lastDisconnect != null
-            );
-
-            if (hasTempDisconnected) {
-                if (!session.gameState.paused) session.gameState.paused = true;
-                try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
-                continue;
-            }
-
-            // resume from pause
-            if (session.gameState.paused) {
-                session.gameState.paused = false;
-                session.lastUpdate = Date.now();
-                try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
-            }
-
-            try {
-                // initialize per-session tick bookkeeping
-                if (typeof session._tick !== 'number') session._tick = 0;
-                session._tick++;
-
-                const nowTs = Date.now();
-                if (!session.lastUpdate) session.lastUpdate = nowTs;
-                const deltaTime = (nowTs - session.lastUpdate) / 1000;
-                session.lastUpdate = nowTs;
-
-                try {
-                    updateGame(
-                        session.gameState,
-                        deltaTime,
-                        () => broadcastRemoteGameState(session.gameState, session), null);
-                } catch (err) { /* ignore */ }
-
-                if (session._tick % BROADCAST_INTERVAL === 0) {
-                    try {
-                        const serialized = JSON.stringify(session.gameState);
-                        if (session._lastBroadcast !== serialized) {
-                            session._lastBroadcast = serialized;
-                            broadcastRemoteGameState(session.gameState, session);
-                        }
-                    } catch (err) {
-                        try { broadcastRemoteGameState(session.gameState, session); } catch (_) { /* ignore */ }
-                    }
-                }
-
-                if (session.gameState.gameEnded) {
-                    // set both winnerNick and loserNick so frontend can display both
-                    const winnerPlayer = session.players.find(p => p.playerNumber === session.gameState.winner);
-                    const loserPlayer = session.players.find(p => p.playerNumber !== session.gameState.winner);
-
-                    session.gameState.winnerNick = winnerPlayer ? winnerPlayer.nick || null : null;
-                    session.gameState.loserNick = loserPlayer ? loserPlayer.nick || null : null;
-                    // Broadcast final state so frontend can render winner/winnerNick
-                    try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
-
-                    // Schedule migration once with a short delay to give clients time to render final frame
-                    if (!session._migrateScheduled) {
-                        session._migrateScheduled = true;
-                        try {
-                            const winner = await getUser(winnerPlayer.nick);
-                            const loser = await getUser(loserPlayer.nick);
-                            const match = new Match(winner, "Pong", "Online", 2);
-                            match.addRank(winner, "Won");
-                            match.addParticipant(loser);
-                            match.addRank(loser, "Lost");
-                            match.endMatch();
-                            await match.commitMatch();
-                        } catch (error) {
-                            console.log(error);
-                        }
-                        
-                        setTimeout(() => {
-                            try {
-                                const migrated = migrateEndedGame(sessionId, session);
-                                if (!migrated) {
-                                    // allow retry next loop if migration failed
-                                    session._migrateScheduled = false;
-                                }
-                            } catch (e) {
-                                // reset flag so we can retry migration next tick
-                                session._migrateScheduled = false;
-                            }
-                        }, 3000); // give clients ~3s to render final frame
-                    }
-                    // skip further processing of this session in this tick
-                    continue;
-                }
-
-            } catch (err) { /* ignore */ }
+    setInterval(() => {
+        for (const [sessionId, session] of Array.from(sessions.entries())) {
+            processSessionTick(sessionId, session);
         }
     }, 1000 / FPS);
 }
