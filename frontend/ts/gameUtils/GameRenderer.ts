@@ -9,6 +9,7 @@ export class GameRenderer {
     private environment!: Environment;
     private initialized: boolean;
     private isConfigured: boolean = false;
+    private isRemote: boolean = false;
 
     private createEngine(canvas: HTMLCanvasElement, tries: number = 1) {
         let engine: BABYLON.Engine;
@@ -23,7 +24,8 @@ export class GameRenderer {
         return engine;
     }
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, isRemote: boolean = false) {
+        this.isRemote = isRemote;
         this.canvas = canvas;
         this.engine = this.createEngine(this.canvas);
         this.initialized = false;
@@ -81,7 +83,7 @@ export class GameRenderer {
         })
         if (!this.config) throw new Error("Game not configured");
         this.scene = new BABYLON.Scene(this.engine);
-        this.environment = new Environment(this.scene, this.config);
+        this.environment = new Environment(this.scene, this.config, this.isRemote);
         this.initialized = true;
         window.addEventListener("resize", () => {
             this.engine.resize();

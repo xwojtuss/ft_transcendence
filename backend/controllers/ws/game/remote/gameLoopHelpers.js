@@ -56,7 +56,7 @@ export function sendWaitingOrReadyInfo(sessionId, session) {
         if (activePlayer.socket) {
             sendSafe(activePlayer.socket, {
                 type: "waitForRec",
-                message: "Opponent disconnected. Waiting for reconnection...",
+                message: "Opponent disconnected.\nWaiting for reconnection...",
                 players: presentPlayersCount,
                 playerId: activePlayer.playerNumber,
                 sessionId

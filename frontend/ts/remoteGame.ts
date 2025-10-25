@@ -21,7 +21,7 @@ export function initRemoteGame() {
             return;
         }
 
-        const renderer = new GameRenderer(canvas);
+        const renderer = new GameRenderer(canvas, true);
         let gameState: RemoteGameState | null = null;
         let previousGameState: RemoteGameState | null = null;
         let thisUserId: number = -1;
@@ -103,7 +103,7 @@ export function initRemoteGame() {
                 // opponent disconnected -> show persistent overlay until reconnected or game end
                 if (data?.type === "waitForRec") {
                     console.log("Server:", data.message);
-                    renderer.setOverlayMessage(data.message || "Opponent disconnected. Waiting for reconnection...");
+                    renderer.setOverlayMessage(data.message || "Opponent disconnected.\nWaiting for reconnection...");
                     return;
                 }
 
