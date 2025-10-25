@@ -1,64 +1,76 @@
 export function setupSocketHandlers(socket, session, playerId) {
-	// remove previously attached listeners (prevents duplicate handlers)
-	try {
-		if (typeof socket.removeAllListeners === 'function') {
-			socket.removeAllListeners('message');
-			socket.removeAllListeners('close');
-		}
-		if (typeof socket.setMaxListeners === 'function') {
-			socket.setMaxListeners(0);
-		}
-	} catch (e) { /* ignore */ }
+    // detach previous listeners (defensive)
+    try {
+        if (typeof socket.removeAllListeners === 'function') {
+            socket.removeAllListeners('message');
+            socket.removeAllListeners('close');
+        }
+        if (typeof socket.setMaxListeners === 'function') {
+            socket.setMaxListeners(0);
+        }
+    } catch (e) { /* ignore */ }
 
-	socket.on('message', (msg) => {
-		let data;
-		try {
-			data = JSON.parse(msg);
-		} catch (err) {
-			return;
-		}
+    const getPlayerIndex = () => session.players.findIndex(p => p.id === playerId);
 
-		const idx = session.players.findIndex(p => p.id === playerId);
+    const markDisconnected = (idx) => {
+        const p = session.players[idx];
+        if (!p) return;
+        p.connected = false;
+        p.lastDisconnect = Date.now();
+    };
 
-		if (data.type === "clientDisconnecting") {
-			if (idx !== -1) {
-				session.players[idx].connected = false;
-				session.players[idx].lastDisconnect = Date.now();
-			}
-			return;
-		}
+    socket.on('message', (msg) => {
+        // safe convert to string (Buffer in some ws libs)
+        let raw;
+        try { raw = typeof msg === 'string' ? msg : msg.toString(); } catch (e) { return; }
 
-		if ((data.type === 'keydown' || data.type === 'keyup') && idx !== -1) {
-			handlePlayerInput(session, idx, data);
-		}
-	});
+        let data;
+        try { data = JSON.parse(raw); } catch (err) { return; }
 
-	socket.on('close', () => {
-		const idx = session.players.findIndex(p => p.id === playerId);
-		if (idx !== -1) {
-			session.players[idx].connected = false;
-			session.players[idx].lastDisconnect = Date.now();
-		}
-	});
+        const idx = getPlayerIndex();
+
+        if (data && data.type === "clientDisconnecting") {
+            if (idx !== -1) markDisconnected(idx);
+            return;
+        }
+
+        // ignore inputs if player not present
+        if (idx === -1) return;
+
+        if (data.type === 'keydown' || data.type === 'keyup') {
+            handlePlayerInput(session, idx, data);
+        }
+    });
+
+    socket.on('close', () => {
+        const idx = getPlayerIndex();
+        if (idx !== -1) markDisconnected(idx);
+    });
 }
 
 function handlePlayerInput(session, playerIndex, data) {
-	const sessionPlayer = session.players[playerIndex];
-	const playerNumber = sessionPlayer.playerNumber;
+    const sessionPlayer = session.players[playerIndex];
+    if (!sessionPlayer) return;
 
-	if (!session.gameState || !session.gameState.players || !session.gameState.players[playerNumber]) return;
+    const playerNumber = sessionPlayer.playerNumber;
+    const gsPlayer = session?.gameState?.players?.[playerNumber];
+    if (!gsPlayer) return;
 
-	const gsPlayer = session.gameState.players[playerNumber];
-	if (!gsPlayer.keyState) gsPlayer.keyState = { up: false, down: false };
+    // ensure keyState exists
+    if (!gsPlayer.keyState) gsPlayer.keyState = { up: false, down: false };
 
-	const isDown = data.type === 'keydown';
-	if (data.key === 'w' || data.key === 'ArrowUp') {
-		gsPlayer.keyState.up = isDown;
-	} else if (data.key === 's' || data.key === 'ArrowDown') {
-		gsPlayer.keyState.down = isDown;
-	}
+    const isDown = data.type === 'keydown';
 
-	const up = gsPlayer.keyState.up ? 1 : 0;
-	const down = gsPlayer.keyState.down ? 1 : 0;
-	gsPlayer.dy = (down - up);
+    // key groups to avoid repeated if/else chains
+    const upKeys = { 'w': true, 'ArrowUp': true };
+    const downKeys = { 's': true, 'ArrowDown': true };
+
+    if (upKeys[data.key]) {
+        gsPlayer.keyState.up = isDown;
+    } else if (downKeys[data.key]) {
+        gsPlayer.keyState.down = isDown;
+    }
+
+    // compute velocity direction compactly
+    gsPlayer.dy = (gsPlayer.keyState.down ? 1 : 0) - (gsPlayer.keyState.up ? 1 : 0);
 }
