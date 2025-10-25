@@ -53,11 +53,11 @@ function handlePlayerInput(session, playerIndex, data) {
     if (!sessionPlayer) return;
 
     const playerNumber = sessionPlayer.playerNumber;
-    const gsPlayer = session?.gameState?.players?.[playerNumber];
-    if (!gsPlayer) return;
+    const player = session?.gameState?.players?.[playerNumber];
+    if (!player) return;
 
     // ensure keyState exists
-    if (!gsPlayer.keyState) gsPlayer.keyState = { up: false, down: false };
+    if (!player.keyState) player.keyState = { up: false, down: false };
 
     const isDown = data.type === 'keydown';
 
@@ -66,11 +66,11 @@ function handlePlayerInput(session, playerIndex, data) {
     const downKeys = { 's': true, 'ArrowDown': true };
 
     if (upKeys[data.key]) {
-        gsPlayer.keyState.up = isDown;
+        player.keyState.up = isDown;
     } else if (downKeys[data.key]) {
-        gsPlayer.keyState.down = isDown;
+        player.keyState.down = isDown;
     }
 
     // compute velocity direction compactly
-    gsPlayer.dy = (gsPlayer.keyState.down ? 1 : 0) - (gsPlayer.keyState.up ? 1 : 0);
+    player.dy = (player.keyState.down ? 1 : 0) - (player.keyState.up ? 1 : 0);
 }
