@@ -27,7 +27,7 @@ export function markTimedOutPlayers(session) {
     }
 
     if (broadcastNeeded) {
-        try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* ignore */ }
+        try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* best-effort */ }
     }
 }
 

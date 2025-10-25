@@ -5,22 +5,38 @@ import { startGame } from '../local/gameLogic.js';
 import { sendSafe, sendConfig, sendState } from './utils.js';
 import { setupSocketHandlers } from './socketHandlers.js';
 
+function getPresentPlayers(session) {
+    const arr = [];
+    for (let i = 0; i < session.players.length; i++) {
+        const p = session.players[i];
+        if (!p.removed) arr.push(p);
+    }
+    return arr;
+}
+
 export function reconnectPlayer(session, socket, playerId, existingIdx) {
     const player = session.players[existingIdx];
+    if (!player) return;
+
     player.socket = socket;
     player.connected = true;
     player.lastDisconnect = null;
     player.removed = false;
 
+    // keep socket metadata consistent
     socket.playerId = existingIdx + 1;
     socket.playerNumber = player.playerNumber;
 
     setupSocketHandlers(socket, session, playerId);
 
+    const present = getPresentPlayers(session);
+    const presentCount = present.length;
+
+    // Inform the reconnected socket
     sendSafe(socket, {
         type: "reconnected",
         message: "Reconnected to session.",
-        players: session.players.filter(p => !p.removed).length,
+        players: presentCount,
         playerId: socket.playerNumber,
         sessionId: session.id
     });
@@ -30,35 +46,30 @@ export function reconnectPlayer(session, socket, playerId, existingIdx) {
         sendConfig(socket);
     }
 
-    // If after reconnect the player is alone in the session, inform them to wait for opponent
-    try {
-        const presentPlayers = session.players.filter(p => !p.removed).length;
-        if (presentPlayers === 1) {
-            sendSafe(socket, {
-                type: "waiting",
-                message: "Waiting for opponent to join...",
-                players: presentPlayers,
-                playerId: socket.playerNumber,
-                sessionId: session.id
-            });
-        }
-    } catch (e) { /* ignore */ }
+    // If alone -> waiting message
+    if (presentCount === 1) {
+        sendSafe(socket, {
+            type: "waiting",
+            message: "Waiting for opponent to join...",
+            players: 1,
+            playerId: socket.playerNumber,
+            sessionId: session.id
+        });
+    }
 
-    // Notify all other connected players that this player reconnected
-    try {
-        for (const other of session.players) {
-            if (other === player) continue;
-            if (other.socket && other.connected && !other.removed) {
-                sendSafe(other.socket, {
-                    type: "reconnected",
-                    message: "Opponent reconnected.",
-                    players: session.players.filter(p => !p.removed).length,
-                    playerId: other.playerNumber,
-                    sessionId: session.id
-                });
-            }
-        }
-    } catch (e) { /* ignore notification errors */ }
+    // Notify other connected players about reconnection
+    for (let i = 0; i < present.length; i++) {
+        const other = present[i];
+        if (other === player) continue;
+        if (!other.socket || !other.connected) continue;
+        sendSafe(other.socket, {
+            type: "reconnected",
+            message: "Opponent reconnected.",
+            players: presentCount,
+            playerId: other.playerNumber,
+            sessionId: session.id
+        });
+    }
 }
 
 export function addNewPlayer(session, socket, playerId, fastify, providedNick) {
@@ -76,54 +87,63 @@ export function addNewPlayer(session, socket, playerId, fastify, providedNick) {
     };
     session.players.push(player);
 
+    // socket indexing consistent with existing code
     socket.playerId = session.players.length;
     socket.playerNumber = playerNumber;
 
     setupSocketHandlers(socket, session, playerId);
 
-    if (session.players.length === 1) {
-        // inform the sole player that they are waiting for an opponent
-        try {
-            // send config early so frontend can initialize canvas/dimensions
-            sendConfig(socket);
-            sendSafe(socket, {
-                type: "waiting",
-                message: "Waiting for opponent to join...",
-                players: 1,
-                playerId: playerNumber,
-                sessionId: session.id
-            });
-        } catch (e) { /* ignore */ }
+    const present = getPresentPlayers(session);
+    const presentCount = present.length;
+
+    if (presentCount === 1) {
+        // send config first so frontend can init UI, then waiting message
+        sendConfig(socket);
+        sendSafe(socket, {
+            type: "waiting",
+            message: "Waiting for opponent to join...",
+            players: 1,
+            playerId: playerNumber,
+            sessionId: session.id
+        });
         return;
     }
 
-    // two players -> notify, init state and auto-start
+    // Two players -> prepare game
     notifyAllReady(session);
     sendConfigToAll(session);
 
     try {
         session.gameState = createRemoteGameState();
-        session.players.forEach((p, idx) => {
-            const playerNumber = idx + 1;
-            if (session.gameState.players[playerNumber]) {
-                session.gameState.players[playerNumber].connected = !!p.connected;
-                session.gameState.players[playerNumber].removed = !!p.removed;
-                session.gameState.players[playerNumber].nick = p.nick;
-            }
-        });
 
+        // populate player meta in state
+        for (let idx = 0; idx < session.players.length; idx++) {
+            const p = session.players[idx];
+            const pn = idx + 1;
+            if (session.gameState.players[pn]) {
+                session.gameState.players[pn].connected = !!p.connected;
+                session.gameState.players[pn].removed = !!p.removed;
+                session.gameState.players[pn].nick = p.nick;
+            }
+        }
+
+        // initial broadcast
         broadcastRemoteGameState(session.gameState, session);
 
+        // resend ready briefly after state to avoid client race
         setTimeout(() => {
             try { notifyAllReady(session); } catch (e) { /* ignore */ }
         }, 50);
 
+        // start game after short delay
         setTimeout(() => {
             if (!session.gameState) return;
             startGame(session.gameState);
             broadcastRemoteGameState(session.gameState, session);
         }, 3000);
-    } catch (err) { /* ignore */ }
+    } catch (err) {
+        // best-effort: ignore startup errors
+    }
 }
 
 export function handleSessionFull(socket) {
@@ -133,23 +153,31 @@ export function handleSessionFull(socket) {
 
 // notification helpers used by addNewPlayer
 export function notifyAllReady(session) {
-    session.players.forEach((p, idx) => {
-        if (!p.socket) return;
-        const playersNick = p.nick || '';
-        const opponent = session.players.find(x => x !== p);
+    const present = getPresentPlayers(session);
+    const playersCount = present.length;
+
+    for (let i = 0; i < present.length; i++) {
+        const p = present[i];
+        if (!p.socket) continue;
+        const opponent = present.find(x => x !== p) || null;
         const opponentNick = opponent ? (opponent.nick || '') : null;
+        const playersNick = p.nick || '';
         sendSafe(p.socket, {
             type: "ready",
             message: "Enemy found! Starting game...",
-            players: 2,
-            playerId: idx + 1,
+            players: playersCount,
+            playerId: p.playerNumber,
             sessionId: session.id,
             you: playersNick,
             opponent: opponentNick
         });
-    });
+    }
 }
 
 export function sendConfigToAll(session) {
-    session.players.forEach(p => { if (p.socket) sendConfig(p.socket); });
+    const present = getPresentPlayers(session);
+    for (let i = 0; i < present.length; i++) {
+        const p = present[i];
+        if (p.socket) sendConfig(p.socket);
+    }
 }
