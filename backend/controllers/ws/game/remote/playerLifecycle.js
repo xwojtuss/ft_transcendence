@@ -1,8 +1,6 @@
 import { getUserSession } from '../../../view/viewUtils.js';
-import { createRemoteGameState } from './remoteGameState.js';
-import { broadcastRemoteGameState } from './remoteClientManager.js';
 import { startGame } from '../local/gameLogic.js';
-import { sendSafe, sendConfig, sendState } from './utils.js';
+import { broadcastRemoteGameState, createRemoteGameState, sendSafe, sendConfig, sendState } from './utils.js';
 import { setupSocketHandlers } from './socketHandlers.js';
 
 function getPresentPlayers(session) {

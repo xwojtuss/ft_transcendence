@@ -1,8 +1,7 @@
 import { FPS } from '../local/gameConfig.js';
-import { broadcastRemoteGameState } from './remoteClientManager.js';
 import { updateGame } from '../local/gameLogic.js';
 
-import { BROADCAST_INTERVAL, sessions } from './utils.js';
+import { BROADCAST_INTERVAL, broadcastRemoteGameState, sessions } from './utils.js';
 import { findOrCreateSessionForPlayer } from './sessionHelpers.js';
 import { reconnectPlayer, addNewPlayer, handleSessionFull } from './playerLifecycle.js';
 import { markTimedOutPlayers, pruneEmptySession, sendWaitingOrReadyInfo, migrateEndedGame } from './gameLoopHelpers.js';

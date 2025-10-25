@@ -1,6 +1,4 @@
-import { SEND_TIMEOUT_MS, sessions, generateId, sendSafe, sendConfig } from './utils.js';
-import { broadcastRemoteGameState } from './remoteClientManager.js';
-import { createRemoteGameState } from './remoteGameState.js';
+import { SEND_TIMEOUT_MS, broadcastRemoteGameState, createRemoteGameState, sessions, generateId, sendSafe, sendConfig } from './utils.js';
 import { setupSocketHandlers } from './socketHandlers.js';
 import { notifyAllReady, sendConfigToAll } from './playerLifecycle.js';
 import { startGame } from '../local/gameLogic.js';
