@@ -1,4 +1,4 @@
-import { FIELD_WIDTH, FIELD_HEIGHT } from '../local/gameConfig.js';
+import { FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_RADIUS } from '../local/gameConfig.js';
 
 export const sessions = new Map();
 
@@ -16,7 +16,10 @@ export function sendSafe(socket, payload) {
 }
 
 export function sendConfig(socket) {
-    sendSafe(socket, { type: "config", FIELD_WIDTH, FIELD_HEIGHT });
+    sendSafe(socket, {
+        type: "config",
+        config: { FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_RADIUS }
+    });
 }
 
 export function sendState(socket, state) {

@@ -63,6 +63,8 @@ export class GameRenderer {
 
         if (this.initialized) return;
         this.engine.runRenderLoop(() => {
+            // the renderer needs to be configured to change things on the scene
+            if (!this.isConfigured) return;
             const isGameState = gameState.type === "state";
             if (isGameState) this.beforeRenderLoop(gameState);
             this.scene?.render();

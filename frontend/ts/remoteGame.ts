@@ -1,4 +1,4 @@
-import { GameState, GameWebSocket } from "./gameUtils/websocketManager.js";
+import { GameState, GameWebSocket, RemoteGameState } from "./gameUtils/websocketManager.js";
 import { InputHandler } from "./gameUtils/inputHandler.js";
 import { GameRenderer } from "./gameUtils/GameRenderer.js";
 import { copyGameState } from "./localGame.js";
@@ -22,8 +22,8 @@ export function initRemoteGame() {
         }
 
         const renderer = new GameRenderer(canvas);
-        let gameState: GameState | null = null;
-        let previousGameState: GameState | null = null;
+        let gameState: RemoteGameState | null = null;
+        let previousGameState: RemoteGameState | null = null;
 
         // Consistent playerId in localStorage
         let playerId = localStorage.getItem("playerId");
@@ -65,9 +65,8 @@ export function initRemoteGame() {
 
                 // If this looks like a game state, use it for rendering
                 if (data?.type === "state") {
-                    gameState = data;
                     if (!gameState || !previousGameState) {
-                        gameState = state;
+                        gameState = state as RemoteGameState | null;
                         previousGameState = JSON.parse(JSON.stringify(state));
                         renderer.startRenderLoop(gameState);
                         return;
