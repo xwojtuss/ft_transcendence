@@ -215,9 +215,11 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
                 break;
             case 401:// unauthorized
                 // e.g. to a /profile if the user is not logged in
-                if (await refreshAccessToken() === false) {
-                    break;
+                const status = await refreshAccessToken();
+                if (status !== 200 && status !== 403) {
+                    return await renderPage('/login', requestNavBar);
                 }
+                // when the token was refreshed or the token was already valid
                 return renderPage(pathURL, requestNavBar);
             case 403:// forbidden
                 // e.g. to /login if user is logged in already

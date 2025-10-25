@@ -6,6 +6,8 @@ import { BROADCAST_INTERVAL, sessions } from './utils.js';
 import { findOrCreateSessionForPlayer } from './sessionHelpers.js';
 import { reconnectPlayer, addNewPlayer, handleSessionFull } from './playerLifecycle.js';
 import { markTimedOutPlayers, pruneEmptySession, sendWaitingOrReadyInfo, migrateEndedGame } from './gameLoopHelpers.js';
+import Match from '../../../../utils/Match.js';
+import { getUser } from '../../../../db/dbQuery.js';
 
 // --- Public API ------------------------------------------------------------
 
@@ -32,7 +34,7 @@ export function handleRemoteConnection(connection, req, fastify) {
 }
 
 export function startRemoteGameLoop() {
-    setInterval(() => {
+    setInterval(async () => {
         for (const [sessionId, session] of sessions.entries()) {
             markTimedOutPlayers(session);
 
@@ -93,6 +95,7 @@ export function startRemoteGameLoop() {
                     // set both winnerNick and loserNick so frontend can display both
                     const winnerPlayer = session.players.find(p => p.playerNumber === session.gameState.winner);
                     const loserPlayer = session.players.find(p => p.playerNumber !== session.gameState.winner);
+
                     session.gameState.winnerNick = winnerPlayer ? winnerPlayer.nick || null : null;
                     session.gameState.loserNick = loserPlayer ? loserPlayer.nick || null : null;
                     // Broadcast final state so frontend can render winner/winnerNick
@@ -101,6 +104,19 @@ export function startRemoteGameLoop() {
                     // Schedule migration once with a short delay to give clients time to render final frame
                     if (!session._migrateScheduled) {
                         session._migrateScheduled = true;
+                        try {
+                            const winner = await getUser(winnerPlayer.nick);
+                            const loser = await getUser(loserPlayer.nick);
+                            const match = new Match(winner, "Pong", "Online", 2);
+                            match.addRank(winner, "Won");
+                            match.addParticipant(loser);
+                            match.addRank(loser, "Lost");
+                            match.endMatch();
+                            await match.commitMatch();
+                        } catch (error) {
+                            console.log(error);
+                        }
+                        
                         setTimeout(() => {
                             try {
                                 const migrated = migrateEndedGame(sessionId, session);

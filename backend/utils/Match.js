@@ -85,7 +85,7 @@ export default class Match {
      * End the match, set the EndedAt timestamp
      */
     endMatch() {
-        this.#endedAt = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+        this.#endedAt = (new Date()).toLocaleString('en-GB').replace(',', ''); 
     }
 
     /**
