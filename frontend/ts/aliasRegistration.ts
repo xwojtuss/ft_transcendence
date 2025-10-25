@@ -38,6 +38,8 @@ export function initAliasRegistration(): void {
     if (localForm)      handleLocalAliasForm(localForm, false);
     if (aiForm)         handleLocalAliasForm(aiForm, true);
     if (tournamentForm) handleTournamentAliasForm(tournamentForm);
+    // after a refresh we need to redirect to /
+    if (!localForm && !aiForm && !tournamentForm) renderPage("/", true);
 }
 
 
