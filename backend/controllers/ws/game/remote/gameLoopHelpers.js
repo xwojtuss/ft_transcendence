@@ -25,7 +25,7 @@ export function markTimedOutPlayers(session) {
     }
 
     if (broadcastNeeded) {
-        try { broadcastRemoteGameState(session.gameState, session); } catch (e) { /* best-effort */ }
+        try { broadcastRemoteGameState(session.gameState, session); } catch (e) { }
     }
 }
 
@@ -125,7 +125,7 @@ export function migrateEndedGame(sessionId, session) {
 
             // resend ready info after broadcasting state to avoid client-side race conditions
             setTimeout(() => {
-                try { notifyAllReady(newSession); } catch (e) { /* ignore */ }
+                try { notifyAllReady(newSession); } catch (e) { }
             }, 50);
 
             setTimeout(() => {

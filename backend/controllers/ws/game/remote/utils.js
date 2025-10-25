@@ -3,7 +3,7 @@ import { FIELD_WIDTH, FIELD_HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, BALL_RADIUS } f
 export const sessions = new Map();
 
 export const SEND_TIMEOUT_MS = 5000;
-export const BROADCAST_INTERVAL = 2; // broadcast co N ticków
+export const BROADCAST_INTERVAL = 2;
 
 const WS_OPEN = 1;
 
@@ -25,7 +25,7 @@ export function sendSafe(socket, payload) {
     if (!serialized) return;
     try {
         socket.send(serialized);
-    } catch (err) { /* best-effort */ }
+    } catch (err) { }
 }
 
 export function sendConfig(socket) {
@@ -52,7 +52,7 @@ export function broadcastRemoteGameState(gameState, session) {
         if (p.socket.readyState !== WS_OPEN) continue;
         try {
             p.socket.send(serialized);
-        } catch (err) { /* best-effort */ }
+        } catch (err) { }
     }
 }
 

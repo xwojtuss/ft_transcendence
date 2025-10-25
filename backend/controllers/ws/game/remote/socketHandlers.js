@@ -8,7 +8,7 @@ export function setupSocketHandlers(socket, session, playerId) {
         if (typeof socket.setMaxListeners === 'function') {
             socket.setMaxListeners(0);
         }
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
 
     const getPlayerIndex = () => session.players.findIndex(p => p.id === playerId);
 

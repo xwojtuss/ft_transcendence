@@ -130,7 +130,7 @@ export function addNewPlayer(session, socket, playerId, fastify, providedNick) {
 
         // resend ready briefly after state to avoid client race
         setTimeout(() => {
-            try { notifyAllReady(session); } catch (e) { /* ignore */ }
+            try { notifyAllReady(session); } catch (e) { }
         }, 50);
 
         // start game after short delay
@@ -139,14 +139,12 @@ export function addNewPlayer(session, socket, playerId, fastify, providedNick) {
             startGame(session.gameState);
             broadcastRemoteGameState(session.gameState, session);
         }, 3000);
-    } catch (err) {
-        // best-effort: ignore startup errors
-    }
+    } catch (err) { }
 }
 
 export function handleSessionFull(socket) {
     sendSafe(socket, { type: "error", message: "Session full or not found" });
-    try { socket.close(); } catch (e) { /* ignore */ }
+    try { socket.close(); } catch (e) { }
 }
 
 // notification helpers used by addNewPlayer
