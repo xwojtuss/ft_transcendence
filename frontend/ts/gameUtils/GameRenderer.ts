@@ -52,7 +52,9 @@ export class GameRenderer {
         if (gameState.gameEnded && gameState.winner) {
             // Game just ended
             this.environment.updatePlayerScore(gameState.players);
-            this.environment.showEndText(gameState.winner);
+            if (this.scene && this.config) {
+                this.environment.showEndText(this.scene, this.config, this.isRemote, gameState.winner);
+            }
         } else if (gameState.gameInitialized) {
             // Game has been initialized - user pressed space
             this.environment.updatePlayerScore(gameState.players);
@@ -152,8 +154,8 @@ export class GameRenderer {
             names[0] = currentUser;
             names[1] = opponent;
         } else {
-            names[1] = currentUser;
             names[0] = opponent;
+            names[1] = currentUser;
         }
         this.environment.updatePlayerNames(this.scene, this.config, names);
     }

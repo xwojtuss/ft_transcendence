@@ -30,13 +30,18 @@ export function reconnectPlayer(session, socket, playerId, existingIdx) {
     const present = getPresentPlayers(session);
     const presentCount = present.length;
 
+    const opponent = present.find(x => x !== player) || null;
+    const opponentNick = opponent ? (opponent.nick || '') : null;
+    const playersNick = player.nick || '';
     // Inform the reconnected socket
     sendSafe(socket, {
         type: "reconnected",
         message: "Reconnected to session.",
         players: presentCount,
         playerId: socket.playerNumber,
-        sessionId: session.id
+        sessionId: session.id,
+        you: playersNick,
+        opponent: opponentNick
     });
 
     if (session.gameState) {

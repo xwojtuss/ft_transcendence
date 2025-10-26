@@ -16,9 +16,9 @@ const environmentConfig = {
     END_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
     PLAYER_NAMES_TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
     START_MESSAGE: "PRESS SPACE TO BEGIN",
-    END_MESSAGE: (player: number) => `PLAYER ${player} WINS!\nPRESS SPACE TO RESTART`,
+    END_MESSAGE: (player: string) => `${player} WINS!\nPRESS SPACE TO RESTART`,
     REMOTE_START_MESSAGE: "GAME IS ABOUT TO BEGIN",
-    REMOTE_END_MESSAGE: (player: number) => `PLAYER ${player} WINS!\nGAME RESTARTING SOON`,
+    REMOTE_END_MESSAGE: (player: string) => `${player} WINS!\nGAME RESTARTING SOON`,
 };
 
 export class Environment {
@@ -30,9 +30,10 @@ export class Environment {
     private paddleMeshes!: BABYLON.Mesh[];
     private scoreText!: BABYLON.Mesh[];
     private startText!: BABYLON.Mesh;
-    private endTexts!: BABYLON.Mesh[];
+    private endText?: BABYLON.Mesh;
     private playerNames: BABYLON.Mesh[] | undefined;
     private currentScores: number[];
+    private playerAliases?: string[];
     private glowLayer!: BABYLON.GlowLayer;
     private wallMeshes!: BABYLON.Mesh[];
     private audioEngine?: BABYLON.AudioEngineV2;
@@ -98,7 +99,6 @@ export class Environment {
         this.constructPaddles(scene, configuration);
         this.constructScoreText(scene, configuration);
         this.constructStartText(scene, configuration, isRemote);
-        this.constructEndTexts(scene, configuration, isRemote);
         this.constructWalls(scene, configuration);
         this.constructPlayerNames(scene, configuration);
         this.constructOverlayPlane(scene, configuration);
@@ -124,7 +124,7 @@ export class Environment {
                 passedThroughCenter = false;
             } else if (this.ballMesh.position.x > this.centerPoint.x - graceZoneX && this.ballMesh.position.x < this.centerPoint.x + graceZoneX) {
                 passedThroughCenter = true;
-            } else if (!this.endTexts[0].isEnabled() && !this.endTexts[1].isEnabled()
+            } else if (!this.endText
                 && (this.ballMesh.position.x < outsideZoneX || this.ballMesh.position.x > configuration.FIELD_WIDTH - outsideZoneX)) {
                 await this.playBallFailSound();
             }
@@ -195,16 +195,15 @@ export class Environment {
         }
     }
 
-    showEndText(playerKey: number) {
-        this.endTexts[playerKey - 1].setEnabled(true);
+    showEndText(scene: BABYLON.Scene, configuration: GameConfig, isRemote: boolean, winnerId: number) {
+        if (this.endText) return;
+        const textToRender = this.playerAliases ? this.playerAliases[winnerId - 1] : "Player" + String(winnerId);
+        this.constructEndTexts(scene, configuration, isRemote, textToRender);
     }
 
-    hideEndText(playerKey?: number) {
-        if (playerKey) {
-            this.endTexts[playerKey - 1].setEnabled(false);
-            return;
-        }
-        this.endTexts.forEach((text) => text.setEnabled(false));
+    hideEndText() {
+        this.endText?.dispose();
+        this.endText = undefined;
     }
 
     hideStartText() {
@@ -373,32 +372,28 @@ export class Environment {
         // this.glowLayer.addIncludedOnlyMesh(this.startText);
     }
 
-    private constructEndTexts(scene: BABYLON.Scene, config: GameConfig, isRemote: boolean) {
-        this.endTexts = [];
+    private constructEndTexts(scene: BABYLON.Scene, config: GameConfig, isRemote: boolean, alias: string) {
         const mat = new BABYLON.StandardMaterial("endTextMat", scene);
         mat.emissiveColor = environmentConfig.END_TEXT_COLOR;
-        for (let i = 0; i < 2; i++) {
-            const text = BABYLON.MeshBuilder.CreateText(
-                "endText",
-                isRemote ? environmentConfig.REMOTE_END_MESSAGE(i + 1) : environmentConfig.END_MESSAGE(i + 1),
-                fontData,
-                {
-                    size: 4,
-                    resolution: 16,
-                    depth: 0.25
-                },
-                scene);
-            if (!text) throw new Error('Could not create text');
-            text.material = mat;
-            text.position = new BABYLON.Vector3(
-                this.centerPoint.x,
-                this.centerPoint.y - config.FIELD_HEIGHT / 3,
-                0.01
-            );
-            text.setEnabled(false);
-            // this.glowLayer.addIncludedOnlyMesh(text);
-            this.endTexts.push(text);
-        }
+        const text = BABYLON.MeshBuilder.CreateText(
+            "endText",
+            isRemote ? environmentConfig.REMOTE_END_MESSAGE(alias) : environmentConfig.END_MESSAGE(alias),
+            fontData,
+            {
+                size: 4,
+                resolution: 16,
+                depth: 0.25
+            },
+            scene);
+        if (!text) throw new Error('Could not create text');
+        text.material = mat;
+        text.position = new BABYLON.Vector3(
+            this.centerPoint.x,
+            this.centerPoint.y - config.FIELD_HEIGHT / 3,
+            0.01
+        );
+        // this.glowLayer.addIncludedOnlyMesh(text);
+        this.endText = text;
     }
 
     private constructPlayerNames(scene: BABYLON.Scene, config: GameConfig) {
@@ -407,6 +402,7 @@ export class Environment {
         names[1] = (window as any).player2Name as string | undefined;
 
         if (!names[0] || !names[1]) return;
+        this.playerAliases = names as Array<string>;
         this.playerNames = [];
         const mat = new BABYLON.StandardMaterial("playersTextMat", scene);
         const xOffset = config.FIELD_WIDTH / 3;
@@ -474,6 +470,7 @@ export class Environment {
     updatePlayerNames(scene: BABYLON.Scene, config: GameConfig, nicks: Array<string>) {
         if (this.playerNames && this.playerNames[0] && this.playerNames[1]) return;
         if (!nicks[0] || !nicks[1]) return;
+        this.playerAliases = nicks;
         this.playerNames = [];
         const mat = new BABYLON.StandardMaterial("playersTextMat", scene);
         const xOffset = config.FIELD_WIDTH / 3;
