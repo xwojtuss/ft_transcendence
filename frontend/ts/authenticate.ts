@@ -16,24 +16,24 @@ export function changeOnlineStatus() {
 
 /**
  * Tries to refresh the access token
- * @returns false if session is not active or has expired, true if the tokens have been refreshed
+ * @returns {Number} the status code of the response
  */
-export async function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<number> {
     const result: Response = await fetch('/api/auth/refresh', {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}` },
         credentials: 'include'
     });
     if (result.status === 403) {
-        return false;// if the access token was already valid
+        return 403;// if the access token was already valid
         // this was changed to false to fix the loops between /2fa and /api/auth/refresh
     }
     if (!result.ok) {
         accessToken = null;
-        return false;
+        return result.status;
     }
     accessToken = (await result.json()).accessToken;
-    return true;
+    return result.status;
 }
 
 /**

@@ -1,18 +1,17 @@
 import changePasswordButton from "./login-register-form.js";
 import { loginHandler, registerHandler, refreshAccessToken, updateSubmitHandler, update2FASubmitHandler, changeOnlineStatus } from "./authenticate.js";
+import { initLocalGame } from "./localGame.js";
 import { accessToken, tfaTempToken } from "./authenticate.js";
 import { friendsHandler } from "./friends.js";
 import formPasswordVisibility from "./login-register-form.js";
 import { profileHandler, update2FAHandler, updateHandler } from "./userProfile.js";
-import { initLocalGame } from "./localGame.js";
+import { initRemoteGame } from "./remoteGame.js";
 import { initLocalTournament } from "./tournament.js";
 import { clearTournamentAll, isTournamentPath, cleanupTournamentOnRouteChange } from "./tournamentCleanup.js";
 import { initAliasRegistration } from "./aliasRegistration.js";
 import { initTicTacToe } from "./ticTacToe.js";
 import { HomeRenderer } from "./homePage/HomeRenderer.js";
 
-
-  
 // ^^^^^ TRDM ^^^^^
 // frontend/ts/app.ts — routes that are rendered 100% client-side.
 // We skip the network fetch for these to avoid 404 noise.
@@ -21,8 +20,6 @@ const CLIENT_ONLY_ROUTES = new Set<string>([
     "tic-tac-toe",
     "tic-tac-toe/match",
   ]);
-  
-
 
 const app: HTMLElement | null = document.getElementById('app');
 const navigation: HTMLElement | null = document.getElementById('navigation');
@@ -157,6 +154,7 @@ async function runChosenGame(pathURL: string): Promise<void> {
     }
     switch (pathname) {
         case '/game/online':
+            initRemoteGame();
         break;
         default:
         return;
@@ -170,6 +168,15 @@ async function runChosenGame(pathURL: string): Promise<void> {
  * @returns
  */
 export async function renderPage(pathURL: string, requestNavBar: boolean): Promise<void> {
+    // Close WebSocket if leaving /game/online
+    if (
+        window.location.pathname === "/game/online" &&
+        pathURL !== "/game/online" &&
+        (window as any).activeGameWs
+    ) {
+        (window as any).activeGameWs.close();
+    }
+
     if (!app)
         return;
     const url = new URL(pathURL, window.location.origin);
@@ -208,9 +215,11 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
                 break;
             case 401:// unauthorized
                 // e.g. to a /profile if the user is not logged in
-                if (await refreshAccessToken() === false) {
-                    break;
+                const status = await refreshAccessToken();
+                if (status !== 200 && status !== 403) {
+                    return await renderPage('/login', requestNavBar);
                 }
+                // when the token was refreshed or the token was already valid
                 return renderPage(pathURL, requestNavBar);
             case 403:// forbidden
                 // e.g. to /login if user is logged in already
@@ -221,9 +230,10 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
         }
         let view: string;
         if (requestNavBar && navigation) {
-            const jsonHTML: { nav: string, app: string } = await response.json();
+            const jsonHTML = await response.json();
             view = jsonHTML.app;
             navigation.innerHTML = DOMPurify.sanitize(jsonHTML.nav);
+            (window as any).currentUser = jsonHTML.currentUser ?? null;
         } else {
             view = await response.text();
         }

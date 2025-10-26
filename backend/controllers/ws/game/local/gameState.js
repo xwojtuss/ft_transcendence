@@ -16,7 +16,8 @@ function createInitialGameState() {
         gameStarted: false,
         gameInitialized: false,
         gameEnded: false,
-        winner: null
+        winner: null,
+        type: "state"
     };
 }
 

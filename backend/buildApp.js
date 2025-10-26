@@ -18,6 +18,7 @@ import wsRoutes from "./routes/wsRoutes.js";
 import tournamentRoutes from "./routes/tournamentRoutes.js";  //^^^^^ TRDM ^^^^^
 import gameRoutes from "./routes/gameRoutes.js";
 import { startLocalGameLoop } from "./controllers/ws/game/local/localGameServer.js";
+import { startRemoteGameLoop } from "./controllers/ws/game/remote/remoteGameServer.js";
 import { cleanupInactiveSessions } from "./controllers/ws/game/local/sessionManager.js";
 
 export const cheerio = Cheerio;
@@ -81,6 +82,7 @@ export default function buildApp(logger) {
 
     if (process.env.NODE_ENV !== 'test') {
         startLocalGameLoop();
+        startRemoteGameLoop();
         setInterval(cleanupInactiveSessions, 10 * 1000);
     }
 

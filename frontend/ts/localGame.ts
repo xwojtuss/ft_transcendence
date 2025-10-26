@@ -207,6 +207,7 @@ export function initLocalGame(aiEnabled: boolean) {
                 renderer.configure(config);
             },
             (state) => {
+                if (!renderer.configured) return;
                 if (!gameState || !previousGameState) {
                     gameState = state;
                     previousGameState = JSON.parse(JSON.stringify(state));

@@ -24,6 +24,9 @@ export class HomeRenderer {
         this.canvas = canvas;
         this.engine = this.createEngine(this.canvas);
         this.initialized = false;
+        // ensure only one renderer is active per window
+        if ((window as any).renderer) (window as any).renderer.end();
+        (window as any).renderer = this;
     }
 
     end() {
@@ -38,7 +41,7 @@ export class HomeRenderer {
             const loader = document.getElementById("loader");
             if (loader) loader.style.display = "none";
             this.engine.runRenderLoop(() => {
-                this.scene?.render();
+                if (this.engine.areAllEffectsReady() && this.scene?.isReady) this.scene?.render();
             });
         });
         this.environment = new HomeEnvironment(this.scene);

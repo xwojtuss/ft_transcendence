@@ -2,7 +2,7 @@ import { renderPage } from "../app.js";
 import { fontData } from "../gameUtils/KenneyMiniSquare.js";
 
 const environmentConfig = {
-    BACKGROUND_COLOR: BABYLON.Color4.FromHexString('#353535'),
+    BACKGROUND_COLOR: BABYLON.Color4.FromHexString('#030303ff'),
     TEXT_COLOR: BABYLON.Color3.FromHexString('#e4e4e4'),
     GAME_MESSAGE: "CHOOSE THE GAME",
     MODE_MESSAGE: "CHOOSE THE MODE",
@@ -54,7 +54,7 @@ export class HomeEnvironment {
         // if (canvas) this.camera.attachControl(canvas, true);
         this.camera.fov = Math.PI * 0.2;
 
-        const ambient = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 1, -1), scene);
+        const ambient = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 1, -2), scene);
         ambient.intensity = 1;
 
         this.glowLayer = new BABYLON.GlowLayer("glow", scene);
@@ -242,37 +242,39 @@ export class HomeEnvironment {
 
         const floorMat = new BABYLON.PBRMaterial("floorMat", scene);
         this.assignPBR(scene, floorMat, "../assets/backgroundTexture");
-        floorMat.metallic = 0.6;
-        floorMat.roughness = 0.15;
+        // floorMat.metallic = 0.9;
+        floorMat.roughness = 0.22;
         floorMat.useRoughnessFromMetallicTextureAlpha = false;
-        floorMat.environmentIntensity = 1;
+        floorMat.environmentIntensity = 0.2;
 
-        const reflectionProbe = new BABYLON.ReflectionProbe("reflectionProbe", 512, scene);
-        reflectionProbe.renderList?.push(this.gameText);
-        reflectionProbe.renderList?.push(this.modeText);
+        const mirror = new BABYLON.MirrorTexture("mirror", 512, scene, true);
+        mirror.mirrorPlane = new BABYLON.Plane(0, -1, 0, 0);
+        mirror.blurKernel = 8;
+        mirror.blurRatio = 0.5;
+        mirror.renderList?.push(this.gameText);
+        mirror.renderList?.push(this.modeText);
         this.gamePanels.forEach((panel, index) => {
-            reflectionProbe.renderList?.push(panel);
+            mirror.renderList?.push(panel);
             panel.getChildren().forEach((child) => {
                 if (!(child instanceof BABYLON.Mesh)) return;
-                reflectionProbe.renderList?.push(child);
+                mirror.renderList?.push(child);
             });
         });
         this.modePanels.forEach((panel, index) => {
-            reflectionProbe.renderList?.push(panel.mesh);
+            mirror.renderList?.push(panel.mesh);
             panel.mesh.getChildren().forEach((child) => {
                 if (!(child instanceof BABYLON.Mesh)) return;
-                reflectionProbe.renderList?.push(child);
+                mirror.renderList?.push(child);
             });
         });
-        reflectionProbe.renderList?.push(this.backButton);
-
-        floorMat.reflectionTexture = reflectionProbe.cubeTexture;
-
+        mirror.renderList?.push(this.backButton);
+        this.floor.material = floorMat;
+        const wallMat = floorMat.clone("wallMat");
+        wallMat.reflectionTexture = scene.environmentTexture;
+        this.wall.material = wallMat;
+        floorMat.reflectionTexture = mirror;
         floorMat.reflectivityColor = new BABYLON.Color3(0.4, 0.4, 0.4);
         floorMat.albedoColor = new BABYLON.Color3(1, 1, 1);
-
-        this.floor.material = floorMat;
-        this.wall.material = floorMat;
     }
 
     private constructStartTexts(scene: BABYLON.Scene) {
@@ -317,7 +319,10 @@ export class HomeEnvironment {
         texture = new BABYLON.Texture(path + "_normal.png", scene);
         material.bumpTexture = texture;
         texture = new BABYLON.Texture(path + "_specular.png", scene);
-        material.metallicTexture = texture;
+        material.metallicTexture = texture
+        material.useRoughnessFromMetallicTextureAlpha = false;
+        material.useRoughnessFromMetallicTextureGreen = false;
+        material.useMetallnessFromMetallicTextureBlue = true;
     }
 
     public hideGames() {

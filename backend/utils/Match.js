@@ -85,7 +85,7 @@ export default class Match {
      * End the match, set the EndedAt timestamp
      */
     endMatch() {
-        this.#endedAt = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+        this.#endedAt = (new Date()).toLocaleString('en-GB').replace(',', ''); 
     }
 
     /**
@@ -172,13 +172,18 @@ export default class Match {
 
     /**
      * Get the match history of a user (by nickname or alias)
+     * If its a user then we only return the matches without the corresponding alias
+     * So for: getUserMatches(pzurawicUser) we get:
+     * pzurawicUser vs alias1, pzurawicUser vs wkornatoUser
+     * but no: pzurawicAlias vs wkornatoUser
      * @param {string | User} user The user nickname or User
      * @returns {Promise<Map<number, Match>>} A map of [match.match_id, Match]
      * @throws {Error} if query failed
      */
     static async getUserMatches(user) {
         const matchesMap = new Map();
-        const identifier = typeof user === "string" ? user : user.nickname;
+        const isUser = !(typeof user === "string");
+        const identifier = isUser ? user.nickname : user;
 
         try {
             const matches = await db.all(`
@@ -204,7 +209,7 @@ export default class Match {
                     WHERE (u2.nickname = ? OR p2.alias = ?)
                 )
                 ORDER BY mh.match_id DESC, p.is_originator DESC;
-            `, [identifier, identifier]);
+            `, [isUser ? identifier : '', isUser ? '' : identifier]);
 
             if (matches.length === 0) return new Map();
 

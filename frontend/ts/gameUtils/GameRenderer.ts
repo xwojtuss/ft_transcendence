@@ -1,5 +1,5 @@
 import { Environment } from "./Environment.js";
-import { GameConfig, GameState } from "./websocketManager.js";
+import { GameConfig, GameState, RemoteGameState } from "./websocketManager.js";
 
 export class GameRenderer {
     private engine: BABYLON.Engine;
@@ -8,6 +8,15 @@ export class GameRenderer {
     private config: GameConfig | null = null;
     private environment!: Environment;
     private initialized: boolean;
+    private isConfigured: boolean = false;
+    private isRemote: boolean = false;
+    private configFallback: GameConfig = {
+        FIELD_WIDTH: 150,
+        FIELD_HEIGHT: 70,
+        PADDLE_HEIGHT: 12,
+        PADDLE_WIDTH: 2,
+        BALL_RADIUS: 1
+    };
 
     private createEngine(canvas: HTMLCanvasElement, tries: number = 1) {
         let engine: BABYLON.Engine;
@@ -22,10 +31,14 @@ export class GameRenderer {
         return engine;
     }
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, isRemote: boolean = false) {
+        this.isRemote = isRemote;
         this.canvas = canvas;
         this.engine = this.createEngine(this.canvas);
         this.initialized = false;
+        // ensure only one renderer is active per window
+        if ((window as any).renderer) (window as any).renderer.end();
+        (window as any).renderer = this;
     }
 
     end() {
@@ -33,7 +46,7 @@ export class GameRenderer {
         this.engine.dispose();
     }
 
-    private beforeRenderLoop(gameState: GameState) {
+    private beforeRenderLoop(gameState: any) {
         this.environment.setBallPosition(gameState.ball);
         this.environment.setPaddlePositions(gameState.players);
         if (gameState.gameEnded && gameState.winner) {
@@ -57,11 +70,16 @@ export class GameRenderer {
         }
     }
 
-    startRenderLoop(gameState: GameState) {
+    startRenderLoop(gameState: any) {
         let playedSound: boolean = false;
+
         this.engine.runRenderLoop(() => {
-            this.beforeRenderLoop(gameState);
-            this.scene?.render();
+            // the renderer needs to be configured to change things on the scene
+            if (!this.isConfigured) return;
+            const isGameState = gameState && gameState.type === "state";
+            if (isGameState) this.beforeRenderLoop(gameState);
+            if (this.engine.areAllEffectsReady() && this.scene?.isReady) this.scene?.render();
+            if (!isGameState) return;
             if (!playedSound && gameState.gameEnded && gameState.winner) {
                 this.environment.playApplauseSound();
                 playedSound = true;
@@ -70,9 +88,12 @@ export class GameRenderer {
             }
         })
         if (this.initialized) return;
-        if (!this.config) throw new Error("Game not configured");
+        if (!this.config) {
+            this.config = this.configFallback;
+            this.resizeGame();
+        }
         this.scene = new BABYLON.Scene(this.engine);
-        this.environment = new Environment(this.scene, this.config);
+        this.environment = new Environment(this.scene, this.config, this.isRemote);
         this.initialized = true;
         window.addEventListener("resize", () => {
             this.engine.resize();
@@ -112,6 +133,36 @@ export class GameRenderer {
 
     configure(gameConfiguration: GameConfig) {
         this.config = gameConfiguration;
+        this.isConfigured = true;
         this.resizeGame();
+    }
+
+    setOverlayMessage(message: string | null) {
+        if (message && this.scene) {
+            this.environment.createOverlay(this.scene, message);
+        } else if (this.scene) {
+            this.environment.destroyOverlay();
+        }
+    }
+
+    displayPlayerNames(currentUser: string, opponent: string, currentUserId: number) {
+        if (!this.scene || !this.config) return;
+        const names = new Array<string>(2);
+        if (currentUserId === 1) {
+            names[0] = currentUser;
+            names[1] = opponent;
+        } else {
+            names[1] = currentUser;
+            names[0] = opponent;
+        }
+        this.environment.updatePlayerNames(this.scene, this.config, names);
+    }
+
+    get configured() {
+        return this.isConfigured;
+    }
+
+    get isInitialized() {
+        return this.initialized;
     }
 }
