@@ -111,6 +111,8 @@ export function initRemoteGame() {
                 if (data?.type === "ready" || data?.type === "reconnected") {
                     // console.log("Server:", data.message);
                     renderer.setOverlayMessage(null);
+                    if (data.playerId) thisUserId = data.playerId;
+                    if (!renderer.isInitialized) renderer.startRenderLoop(undefined);
                     renderer.displayPlayerNames(data.you, data.opponent, thisUserId);
                     return;
                 }

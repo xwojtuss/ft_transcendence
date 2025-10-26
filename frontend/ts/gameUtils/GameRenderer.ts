@@ -154,8 +154,8 @@ export class GameRenderer {
             names[0] = currentUser;
             names[1] = opponent;
         } else {
-            names[1] = currentUser;
             names[0] = opponent;
+            names[1] = currentUser;
         }
         this.environment.updatePlayerNames(this.scene, this.config, names);
     }
