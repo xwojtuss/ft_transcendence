@@ -11,7 +11,7 @@ export function initAliasRegistration(): void {
         if (localPongAliases || window.location.pathname.startsWith("/game/tic-tac-toe")) {
             redirectURL = window.location.pathname + "?" + params.toString();
         } else {
-            redirectURL = window.location.origin + "/game/local-tournament" + params.toString();
+            redirectURL = window.location.origin + "/game/local-tournament" + (params.toString() ? "?" + params.toString() : "");
         }
         renderPage(redirectURL, true);
         return;
@@ -51,7 +51,6 @@ export function initAliasRegistration(): void {
     if (aiForm)         handleLocalAliasForm(aiForm, true);
     if (tournamentForm) handleTournamentAliasForm(tournamentForm);
     // after a refresh we need to redirect to /
-    // if (!localForm && !aiForm && !tournamentForm) renderPage("/", true);
 }
 
 
