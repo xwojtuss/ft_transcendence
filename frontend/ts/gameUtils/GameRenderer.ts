@@ -52,7 +52,9 @@ export class GameRenderer {
         if (gameState.gameEnded && gameState.winner) {
             // Game just ended
             this.environment.updatePlayerScore(gameState.players);
-            this.environment.showEndText(gameState.winner);
+            if (this.scene && this.config) {
+                this.environment.showEndText(this.scene, this.config, this.isRemote, gameState.winner);
+            }
         } else if (gameState.gameInitialized) {
             // Game has been initialized - user pressed space
             this.environment.updatePlayerScore(gameState.players);
