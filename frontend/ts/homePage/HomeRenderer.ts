@@ -41,7 +41,7 @@ export class HomeRenderer {
             const loader = document.getElementById("loader");
             if (loader) loader.style.display = "none";
             this.engine.runRenderLoop(() => {
-                this.scene?.render();
+                if (this.engine.areAllEffectsReady() && this.scene?.isReady) this.scene?.render();
             });
         });
         this.environment = new HomeEnvironment(this.scene);

@@ -78,7 +78,7 @@ export class GameRenderer {
             if (!this.isConfigured) return;
             const isGameState = gameState && gameState.type === "state";
             if (isGameState) this.beforeRenderLoop(gameState);
-            this.scene?.render();
+            if (this.engine.areAllEffectsReady() && this.scene?.isReady) this.scene?.render();
             if (!isGameState) return;
             if (!playedSound && gameState.gameEnded && gameState.winner) {
                 this.environment.playApplauseSound();
