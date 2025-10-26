@@ -4,6 +4,18 @@ import { checkNickname } from "./validateInput.js";
 export function initAliasRegistration(): void {
     // 1) Primary signal from URL
     const params = new URLSearchParams(window.location.search);
+    if (params.get("registered") === "true") {
+        params.delete("registered");
+        let redirectURL: string = '';
+        const localPongAliases = sessionStorage.getItem("localGameAliases");
+        if (localPongAliases || window.location.pathname.startsWith("/game/tic-tac-toe")) {
+            redirectURL = window.location.pathname + "?" + params.toString();
+        } else {
+            redirectURL = window.location.origin + "/game/local-tournament" + (params.toString() ? "?" + params.toString() : "");
+        }
+        renderPage(redirectURL, true);
+        return;
+    }
     let isMatching = params.get('matching') === '1';
     if (!isMatching && window.location.pathname.includes('tic-tac-toe') && document.querySelectorAll('input[id^="player"]').length >= 4) isMatching = true;
     const isAI = params.get('ai') === '1'; // unchanged for local/AI
@@ -39,7 +51,6 @@ export function initAliasRegistration(): void {
     if (aiForm)         handleLocalAliasForm(aiForm, true);
     if (tournamentForm) handleTournamentAliasForm(tournamentForm);
     // after a refresh we need to redirect to /
-    if (!localForm && !aiForm && !tournamentForm) renderPage("/", true);
 }
 
 
