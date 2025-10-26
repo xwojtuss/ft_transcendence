@@ -66,11 +66,10 @@ export class GameRenderer {
     startRenderLoop(gameState: any) {
         let playedSound: boolean = false;
 
-        if (this.initialized) return;
         this.engine.runRenderLoop(() => {
             // the renderer needs to be configured to change things on the scene
             if (!this.isConfigured) return;
-            const isGameState = gameState.type === "state";
+            const isGameState = gameState && gameState.type === "state";
             if (isGameState) this.beforeRenderLoop(gameState);
             this.scene?.render();
             if (!isGameState) return;
@@ -81,6 +80,7 @@ export class GameRenderer {
                 playedSound = false;
             }
         })
+        if (this.initialized) return;
         if (!this.config) throw new Error("Game not configured");
         this.scene = new BABYLON.Scene(this.engine);
         this.environment = new Environment(this.scene, this.config, this.isRemote);
@@ -150,5 +150,9 @@ export class GameRenderer {
 
     get configured() {
         return this.isConfigured;
+    }
+
+    get isInitialized() {
+        return this.initialized;
     }
 }

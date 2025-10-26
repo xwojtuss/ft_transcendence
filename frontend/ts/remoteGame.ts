@@ -95,6 +95,7 @@ export function initRemoteGame() {
                 // show waiting overlay when the server explicitly tells us to wait for opponent
                 if (data?.type === "waiting") {
                     console.log("Server:", data.message);
+                    if (!renderer.isInitialized) renderer.startRenderLoop(undefined);
                     renderer.setOverlayMessage(data.message || "Waiting for opponent...");
                     thisUserId = data.playerId;
                     return;
