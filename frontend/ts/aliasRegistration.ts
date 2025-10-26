@@ -6,7 +6,14 @@ export function initAliasRegistration(): void {
     const params = new URLSearchParams(window.location.search);
     if (params.get("registered") === "true") {
         params.delete("registered");
-        renderPage(window.location.pathname + "?" + params.toString(), true);
+        let redirectURL: string = '';
+        const localPongAliases = sessionStorage.getItem("localGameAliases");
+        if (localPongAliases || window.location.pathname.startsWith("/game/tic-tac-toe")) {
+            redirectURL = window.location.pathname + "?" + params.toString();
+        } else {
+            redirectURL = window.location.origin + "/game/local-tournament" + params.toString();
+        }
+        renderPage(redirectURL, true);
         return;
     }
     let isMatching = params.get('matching') === '1';
