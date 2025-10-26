@@ -66,7 +66,6 @@ export function initRemoteGame() {
 
                 // If this looks like a game state, use it for rendering
                 if (data?.type === "state") {
-                    console.log(data);
                     if (!gameState || !previousGameState) {
                         gameState = state as RemoteGameState | null;
                         previousGameState = JSON.parse(JSON.stringify(state));
@@ -79,7 +78,7 @@ export function initRemoteGame() {
                     if (data.gameEnded) {
                         renderer.setOverlayMessage(null);
                         if (data.winnerNick != null || data.loserNick != null) {
-                            console.log("Game ended. Winner:", data.winnerNick, "Loser:", data.loserNick);
+                            // console.log("Game ended. Winner:", data.winnerNick, "Loser:", data.loserNick);
                         }
                     }
                     // don't clear overlay for normal state updates (keeps waitForRec visible)
@@ -94,7 +93,7 @@ export function initRemoteGame() {
 
                 // show waiting overlay when the server explicitly tells us to wait for opponent
                 if (data?.type === "waiting") {
-                    console.log("Server:", data.message);
+                    // console.log("Server:", data.message);
                     if (!renderer.isInitialized) renderer.startRenderLoop(undefined);
                     renderer.setOverlayMessage(data.message || "Waiting for opponent...");
                     thisUserId = data.playerId;
@@ -103,14 +102,14 @@ export function initRemoteGame() {
 
                 // opponent disconnected -> show persistent overlay until reconnected or game end
                 if (data?.type === "waitForRec") {
-                    console.log("Server:", data.message);
+                    // console.log("Server:", data.message);
                     renderer.setOverlayMessage(data.message || "Opponent disconnected.\nWaiting for reconnection...");
                     return;
                 }
 
                 // ready/reconnected -> clear overlay so gameplay or post-game info is visible
                 if (data?.type === "ready" || data?.type === "reconnected") {
-                    console.log("Server:", data.message);
+                    // console.log("Server:", data.message);
                     renderer.setOverlayMessage(null);
                     renderer.displayPlayerNames(data.you, data.opponent, thisUserId);
                     return;
@@ -120,7 +119,7 @@ export function initRemoteGame() {
                 if (data?.type === "error") {
                     console.error("WS error:", data.message);
                 } else {
-                    console.log("WS meta:", data);
+                    // console.log("WS meta:", data);
                 }
             },
             renderer.end.bind(renderer)

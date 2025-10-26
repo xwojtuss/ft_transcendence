@@ -10,6 +10,13 @@ export class GameRenderer {
     private initialized: boolean;
     private isConfigured: boolean = false;
     private isRemote: boolean = false;
+    private configFallback: GameConfig = {
+        FIELD_WIDTH: 150,
+        FIELD_HEIGHT: 70,
+        PADDLE_HEIGHT: 12,
+        PADDLE_WIDTH: 2,
+        BALL_RADIUS: 1
+    };
 
     private createEngine(canvas: HTMLCanvasElement, tries: number = 1) {
         let engine: BABYLON.Engine;
@@ -81,7 +88,10 @@ export class GameRenderer {
             }
         })
         if (this.initialized) return;
-        if (!this.config) throw new Error("Game not configured");
+        if (!this.config) {
+            this.config = this.configFallback;
+            this.resizeGame();
+        }
         this.scene = new BABYLON.Scene(this.engine);
         this.environment = new Environment(this.scene, this.config, this.isRemote);
         this.initialized = true;

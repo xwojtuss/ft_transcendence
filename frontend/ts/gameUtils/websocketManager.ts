@@ -63,7 +63,7 @@ export class GameWebSocket {
 
   private setupEventListeners() {
     this.ws.onopen = () => {
-        console.log("WebSocket connection established");
+        // console.log("WebSocket connection established");
     };
 
     this.ws.onmessage = (event) => {
@@ -96,7 +96,7 @@ export class GameWebSocket {
             this.onGameState(data);
         } else if (data.type === "waitForRec") {
             // new server message informing opponent disconnected
-            console.log("waitForRec received:", data);
+            // console.log("waitForRec received:", data);
             this.onGameState(data);
         } else if (data.type === "error") {
             console.error("Error from server:", data.message);
@@ -106,7 +106,7 @@ export class GameWebSocket {
     };
 
     this.ws.onclose = () => {
-        console.log("WebSocket connection closed");
+        // console.log("WebSocket connection closed");
     };
 
     // Cleanup on unload
@@ -161,7 +161,7 @@ export class GameWebSocket {
   disconnect() {
     if (this.onGameDisconnect) this.onGameDisconnect();
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log("Disconnecting WebSocket... informing server first");
+      // console.log("Disconnecting WebSocket... informing server first");
       try {
         this.ws.send(JSON.stringify({ type: "clientDisconnecting" }));
       } catch (err) {
