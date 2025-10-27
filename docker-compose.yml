@@ -1,0 +1,201 @@
+# ^^^^^ dckr ^^^^^
+name: ft_transcendence  
+
+volumes:
+  # ELK volumes (managed by Compose, not host bind-mounts)
+  esdata:
+  essnapshots:
+  lsdata:
+  certs:
+  # Shared app logs volume: app writes JSONL, Logstash reads it
+  applogs:
+
+services:
+  # -----------------------------
+  # ft_transcendence web application
+  # -----------------------------
+  app:
+    build:
+      context: ./ft
+      # (uses ft/Dockerfile)
+    image: ft_transcendence:latest
+    container_name: ft_transcendence
+    env_file:
+      - ./ft/secrets/.env
+    environment:
+      # Make sure Fastify binds to all interfaces inside container
+      HOST: "0.0.0.0"
+      # Ensure the path where Fastify/Pino writes logs (inside the named volume)
+      LOG_FILE: "/logs/ft_transcendence.jsonl"
+      # (PORT=3000 comes from ./ft/secrets/.env; )
+      NODE_ENV: "production"
+    volumes:
+      # Named volume mounted at /logs (no host bind-mount)
+      - applogs:/logs
+    ports:
+      # host:container
+      - "3000:3000"
+    restart: unless-stopped
+
+  # -----------------------------
+  # ELK: cert generation first
+  # -----------------------------
+  certs:
+    build:
+      context: ./elk
+      dockerfile: Dockerfile.certs
+    container_name: elk-certs
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-lc"]
+    command: "/scripts/gen-certs.sh"
+    volumes:
+      - certs:/certs
+    restart: "no"
+
+  # -----------------------------
+  # Elasticsearch
+  # -----------------------------
+  elasticsearch:
+    env_file:
+      - ./elk/secrets/.env
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.9.0
+    container_name: elk-elasticsearch
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+      snap-perms:
+        condition: service_completed_successfully
+    environment:
+      node.name: "es01"
+      cluster.name: "elk-cluster"
+      discovery.type: "single-node"
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+      bootstrap.memory_lock: "false"
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "true"
+      xpack.security.http.ssl.certificate: "/usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.crt"
+      xpack.security.http.ssl.key: "/usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.key"
+      xpack.security.http.ssl.certificate_authorities: "/usr/share/elasticsearch/config/certs/ca/ca.crt"
+      xpack.security.transport.ssl.enabled: "true"
+      xpack.security.transport.ssl.certificate: "/usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.crt"
+      xpack.security.transport.ssl.key: "/usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.key"
+      xpack.security.transport.ssl.certificate_authorities: "/usr/share/elasticsearch/config/certs/ca/ca.crt"
+      xpack.security.transport.ssl.verification_mode: "certificate"
+      path.repo: "/snapshots"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+      - essnapshots:/snapshots
+      - certs:/usr/share/elasticsearch/config/certs:ro
+    restart: unless-stopped
+
+  # -----------------------------
+  # One-time Elasticsearch setup (users/roles, passwords)
+  # -----------------------------
+  setup:
+    env_file:
+      - ./elk/secrets/.env
+    build:
+      context: ./elk
+      dockerfile: Dockerfile.es-setup
+    container_name: elk-setup
+    command: ["/bin/sh","-lc","sh -x /scripts/es-setup.sh"]
+    volumes:
+      - certs:/certs:ro
+    depends_on:
+      elasticsearch:
+        condition: service_started
+    restart: "no"
+
+  # -----------------------------
+  # Logstash (reads /logs/*.jsonl and writes to Elasticsearch)
+  # -----------------------------
+  logstash:
+    env_file:
+      - ./elk/secrets/.env
+    build:
+      context: ./elk
+      dockerfile: Dockerfile.logstash
+    container_name: elk-logstash
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    environment:
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
+    volumes:
+      # <-- shared volume with the ft app; NOT a host mount
+      - applogs:/logs
+      - lsdata:/usr/share/logstash/data
+      - certs:/usr/share/logstash/certs:ro
+    restart: unless-stopped
+
+  # -----------------------------
+  # Kibana (HTTPS on :5601)
+  # -----------------------------
+  kibana:
+    env_file:
+      - ./elk/secrets/.env
+    image: docker.elastic.co/kibana/kibana:8.9.0
+    container_name: elk-kibana
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    environment:
+      ELASTICSEARCH_HOSTS: "https://elasticsearch:9200"
+      ELASTICSEARCH_USERNAME: "kibana_system"
+      # ELASTICSEARCH_PASSWORD comes from ./elk/secrets/.env
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: "/usr/share/kibana/config/certs/ca/ca.crt"
+      SERVER_SSL_ENABLED: "true"
+      SERVER_SSL_CERTIFICATE: "/usr/share/kibana/config/certs/kibana/kibana.crt"
+      SERVER_SSL_KEY: "/usr/share/kibana/config/certs/kibana/kibana.key"
+      # Kibana encryption keys from ./elk/secrets/.env
+      NODE_OPTIONS: "--use-openssl-ca"
+      NODE_EXTRA_CA_CERTS: "/usr/share/kibana/config/certs/ca/ca.crt"
+    volumes:
+      - certs:/usr/share/kibana/config/certs:ro
+    ports:
+      - "5601:5601"
+    restart: unless-stopped
+
+  # -----------------------------
+  # synthetic JSON log generator (for testing dashboards) - used for testing before merge
+  # -----------------------------
+  # loggen-json:
+  #   build:
+  #     context: ./elk
+  #     dockerfile: Dockerfile.loggen-json
+  #   container_name: elk-loggen-json
+  #   depends_on:
+  #     - logstash
+  #   volumes:
+  #     - applogs:/logs
+  #   restart: unless-stopped
+
+  # -----------------------------
+  # One-off container to set /snapshots permissions for ES repo
+  # -----------------------------
+  snap-perms:
+    image: alpine:3.20
+    container_name: elk-snap-perms
+    user: "0:0"
+    command: ["sh","-lc","set -eux; install -d -o 1000 -g 0 -m 0775 /snapshots"]
+    volumes:
+      - essnapshots:/snapshots
+    restart: "no"
+
+  # -----------------------------
+  # One-time Kibana objects setup (index patterns, spaces, etc.)
+  # -----------------------------
+  kbn-setup:
+    env_file:
+      - ./elk/secrets/.env
+    build:
+      context: ./elk
+      dockerfile: Dockerfile.kbn-setup
+    container_name: elk-kbn-setup
+    entrypoint: ["/bin/sh","-lc","sh -x /scripts/kibana-setup.sh"]
+    volumes:
+      - certs:/certs:ro
+    depends_on:
+      kibana:
+        condition: service_started
+    restart: "no"

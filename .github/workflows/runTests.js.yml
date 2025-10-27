@@ -26,9 +26,13 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+        cache-dependency-path: ft/package-lock.json
     - run: npm ci
+      working-directory: ft
     - run: npm run build --if-present
+      working-directory: ft
     - run: npm test
+      working-directory: ft
       env:
         COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
         ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
