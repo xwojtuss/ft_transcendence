@@ -32,7 +32,10 @@ export default function buildApp(logger) {
 
     // setup fastify and use the console logger
     const fastify = Fastify({
-        logger: logger,
+        logger: {
+            level: process.env.LOG_LEVEL || 'info',
+            file: process.env.LOG_FILE || path.join(defaultLogDir, "ft_transcendence.jsonl"),
+        },
         https: {
             key: keySSL,
             cert: certSSL

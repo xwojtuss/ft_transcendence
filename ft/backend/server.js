@@ -45,7 +45,7 @@ await fastify.register(rateLimit, {
 });
 // await testDatabase();
 
-fastify.listen({ port: process.env.PORT || 3000 }, (err, address) => {
+fastify.listen({ host: '0.0.0.0', port: process.env.PORT || 3000 }, (err, address) => {
     if (err) {
         fastify.log.error(err);
         process.exit(1);
