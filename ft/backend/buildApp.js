@@ -34,7 +34,7 @@ export default function buildApp(logger) {
     const fastify = Fastify({
         logger: {
             level: process.env.LOG_LEVEL || 'info',
-            file: process.env.LOG_FILE || path.join(defaultLogDir, "ft_transcendence.jsonl"),
+            file: process.env.LOG_FILE || path.join("./ft_transcendence.jsonl"),
         },
         https: {
             key: keySSL,
