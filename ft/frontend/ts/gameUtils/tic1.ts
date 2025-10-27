@@ -271,8 +271,7 @@ function resetGame(canvas: HTMLCanvasElement, controlsId: string): void {
 export function showTic1(canvasId = 'canvasTic1', controlsId = 'tic-controls', opts: ShowOpts = {}): void {
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
     if (!canvas) return;
-    
-    const difficulty = chooseDifficulty(opts.difficulty ?? 'auto');
+
     const thinkDelay = opts.delayMs ?? 220;
     
     if (!canvas.dataset.ticResizeBound) {
@@ -314,6 +313,7 @@ export function showTic1(canvasId = 'canvasTic1', controlsId = 'tic-controls', o
         // CPU move (small delay for UX)
         await new Promise(r => setTimeout(r, thinkDelay));
         let cpuMove: Cell | null = null;
+        const difficulty = chooseDifficulty(opts.difficulty ?? 'auto');
         if (difficulty === 'hard') cpuMove = findBestMove(board);
         if (!cpuMove) cpuMove = getRandomMove(board); // fallback or easy
         if (cpuMove) {

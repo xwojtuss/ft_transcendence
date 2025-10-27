@@ -50,7 +50,7 @@ function getDesktopMatchHTML(match, profileOwner) {
             <td>${match.endedAt}</td>
             <td>${match.game}</td>
             <td>${match.mode}</td>
-            <td class="overflow-x-auto max-w-[150px] whitespace-nowrap"></td>
+            <td class="overflow-x-auto max-w-[150px] whitespace-nowrap inline-block no-border"></td>
             <td></td>
         </tr>`, null, false);
     match.participants.forEach((key, participant) => {

@@ -138,8 +138,9 @@ export async function recordTicResult(req, reply) {
 
   const opponentAlias = myAlias === player1 ? player2 : player1;
 
+  const prettyMode = mode.charAt(0).toUpperCase() + mode.slice(1);
   // Create match with the requested mode and add ONLY the opponent as second participant
-  const m = new Match(originator, "TicTacToe", mode, 2);
+  const m = new Match(originator, "TicTacToe", prettyMode, 2);
   m.addParticipant(opponentAlias);
 
   // Rank outcomes (support Draw)

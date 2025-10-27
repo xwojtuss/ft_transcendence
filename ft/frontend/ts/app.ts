@@ -217,7 +217,7 @@ export async function renderPage(pathURL: string, requestNavBar: boolean): Promi
                 // e.g. to a /profile if the user is not logged in
                 const status = await refreshAccessToken();
                 if (status !== 200 && status !== 403) {
-                    return await renderPage('/login', requestNavBar);
+                    return await renderPage('/login', true);
                 }
                 // when the token was refreshed or the token was already valid
                 return renderPage(pathURL, requestNavBar);
