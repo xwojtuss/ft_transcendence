@@ -206,7 +206,7 @@ export class HomeEnvironment {
     private constructBackButton(scene: BABYLON.Scene) {
         let text = BABYLON.MeshBuilder.CreateText("backText", environmentConfig.BACK_BUTTON_MESSAGE, fontData, {
             size: 0.7,
-            resolution: 8,
+            resolution: 1,
             depth: 0.5
         }, scene);
         const mat = new BABYLON.StandardMaterial("backTextMat", scene);
@@ -280,7 +280,7 @@ export class HomeEnvironment {
     private constructStartTexts(scene: BABYLON.Scene) {
         let text = BABYLON.MeshBuilder.CreateText("gameText", environmentConfig.GAME_MESSAGE, fontData, {
             size: 3,
-            resolution: 16,
+            resolution: 1,
             depth: 1
         }, scene);
         const mat = new BABYLON.StandardMaterial("startTextMat", scene);
@@ -296,7 +296,7 @@ export class HomeEnvironment {
         this.glowLayer.addIncludedOnlyMesh(text);
         text = BABYLON.MeshBuilder.CreateText("modeText", environmentConfig.MODE_MESSAGE, fontData, {
             size: 3,
-            resolution: 16,
+            resolution: 1,
             depth: 1
         }, scene);
         if (!text) throw new Error('Could not create text');
@@ -312,13 +312,21 @@ export class HomeEnvironment {
     }
 
     private assignPBR(scene: BABYLON.Scene, material: BABYLON.PBRMaterial, path: string) {
-        let texture = new BABYLON.Texture(path + "_albedo.svg", scene);
+        let texture = new BABYLON.Texture(path + "_albedo.png", scene);
+        texture.uScale = 7;
+        texture.vScale = 4.2;
         material.albedoTexture = texture;
         texture = new BABYLON.Texture(path + "_ambient.png", scene);
+        texture.uScale = 7;
+        texture.vScale = 4.2;
         material.ambientTexture = texture;
         texture = new BABYLON.Texture(path + "_normal.png", scene);
+        texture.uScale = 7;
+        texture.vScale = 4.2;
         material.bumpTexture = texture;
         texture = new BABYLON.Texture(path + "_specular.png", scene);
+        texture.uScale = 7;
+        texture.vScale = 4.2;
         material.metallicTexture = texture
         material.useRoughnessFromMetallicTextureAlpha = false;
         material.useRoughnessFromMetallicTextureGreen = false;
@@ -481,7 +489,7 @@ export class HomeEnvironment {
 
         const text = BABYLON.MeshBuilder.CreateText("startText", description, fontData, {
             size: 0.55,
-            resolution: 4,
+            resolution: 1,
             depth: 0.1
         }, scene);
         if (isMode) {
