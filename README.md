@@ -28,13 +28,15 @@
 
 Minimum setup from a fresh clone.
 
-```bash
-docker compose up app
-```
-
 Before starting, copy and fill the provided environment templates:
 
 * `.env.example` → `.env`
+
+Then start the application:
+
+```bash
+docker compose up app
+```
 
 Once running, open:
 
